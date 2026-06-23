@@ -6,6 +6,7 @@ Every substantive claim is marked measured, decompile-derived, or predicted.
 
 ### Reading it
 
+The web edition is at <https://ane-guide.readthedocs.io>, and the PDF is on arXiv ([arXiv:2606.22283](https://arxiv.org/abs/2606.22283)).
 Each chapter opens with a short summary, then the mechanism, then a worked example (front half) or the reference tables, structs, and register maps (back half).
 Parts I through V deploy and tune a model; Parts VI through IX and the appendices document the engine itself: the datapath, memory hierarchy, compiler, program format, kernel driver, firmware, command protocol, and per-chip target tables.
 The full table of contents is in [SUMMARY.md](SUMMARY.md).
