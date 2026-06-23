@@ -8,17 +8,19 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.12"   # web/gen.py (Python standard library only; no requirements)
-    rust: "latest"   # mdBook and its KaTeX preprocessor
   commands:
-    # mdBook is pinned to 0.4.x: mdbook-katex speaks the 0.4 preprocessor protocol,
-    # not 0.5. (cargo install compiles from source; swap for the prebuilt
-    # x86_64-unknown-linux-gnu release binaries if the build time matters.)
-    - cargo install mdbook --version 0.4.48
-    - cargo install mdbook-katex
+    # Fetch PREBUILT mdBook + mdbook-katex Linux binaries rather than compiling them
+    # with cargo (which took minutes per build). mdBook is pinned to 0.4.x and
+    # mdbook-katex to the matching 0.9.x line, since the preprocessor speaks the 0.4
+    # protocol, not 0.5. No rust toolchain is needed once we skip the compile.
+    - mkdir -p "$HOME/bin"
+    - curl -fsSL https://github.com/rust-lang/mdBook/releases/download/v0.4.48/mdbook-v0.4.48-x86_64-unknown-linux-gnu.tar.gz | tar xz -C "$HOME/bin" mdbook
+    - curl -fsSL https://github.com/lzanini/mdbook-katex/releases/download/0.9.3-binaries/mdbook-katex-v0.9.3-x86_64-unknown-linux-gnu.tar.gz | tar xz -C "$HOME/bin" mdbook-katex
     # Regenerate the mdBook source tree from the authoring chapters (gen.py resolves
     # paths relative to web/, so it must run from there).
     - cd web && python3 gen.py
     # Vendor the mermaid runtime the diagrams render with (book.toml additional-js).
     - curl -fsSL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js -o web/mermaid.min.js
-    # Build the static site straight into RTD's served output directory.
-    - mdbook build web -d "$READTHEDOCS_OUTPUT/html"
+    # Build the static site straight into RTD's served output directory. PATH is set
+    # inline so mdBook is found and can spawn the mdbook-katex preprocessor.
+    - PATH="$HOME/bin:$PATH" mdbook build web -d "$READTHEDOCS_OUTPUT/html"
