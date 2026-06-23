@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Pre-commit hook mirroring the guide-check CI workflow locally, so a change that
+# passes check.sh but fails markdownlint (for example trailing spaces, MD009) is
+# caught before it is pushed. Bypass with `git commit --no-verify` if you must.
+#
+# Enable in a fresh clone with: git config core.hooksPath .githooks
+set -uo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root" || exit 1
+
+fail=0
+
+echo "pre-commit: build/structure invariants (check.sh)"
+bash check.sh || fail=1
+
+echo "pre-commit: markdown formatting (markdownlint-cli2)"
+if command -v markdownlint-cli2 >/dev/null 2>&1; then
+  markdownlint-cli2 '**/*.md' || fail=1
+elif command -v npx >/dev/null 2>&1; then
+  npx -y markdownlint-cli2 '**/*.md' || fail=1
+else
+  echo "  WARNING: markdownlint-cli2 and npx are both unavailable; skipping the markdown lint."
+  echo "  Install Node so this check can run, since CI will still enforce it."
+fi
+
+if [ "$fail" != 0 ]; then
+  echo
+  echo "pre-commit FAILED: fix the issues above, or use 'git commit --no-verify' to bypass."
+  exit 1
+fi
+exit 0

@@ -1,0 +1,150 @@
+/* Figure styling for the mermaid diagrams gen.py emits. The web edition uses a
+   dark mermaid palette (see mermaid-init.js), so the diagrams sit directly on the
+   dark page with no card, blending in rather than floating on a white box. */
+pre.mermaid {
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  padding: 14px 10px;
+  margin: 1em 0 0.4em 0;
+}
+
+figure {
+  margin: 1.5em 0;
+}
+
+figure > figcaption {
+  font-size: 0.85em;
+  font-style: italic;
+  opacity: 0.8;
+  text-align: center;
+  margin-top: 0.5em;
+}
+
+/* Per-theme palette. mdBook ships five themes: light and rust read as light
+   pages; coal, navy, and ayu are dark. Seagreen links and a syntax-highlight
+   palette are defined per group so the colours stay legible on either background
+   and keep the guide on the project's palette across a theme switch. */
+.light, .rust {
+  --links: #2e6b69;
+  --sidebar-active: #2e6b69;
+  --search-mark-bg: #e0a33a;
+  --hl-comment: #6e7b73; --hl-keyword: #2e6b69; --hl-type: #9a5b16;
+  --hl-string: #a8410f; --hl-number: #4c52c4; --hl-title: #1f5d80; --hl-meta: #8a7f6d;
+}
+.coal, .navy, .ayu {
+  --links: #5fb3a8;
+  --sidebar-active: #5fb3a8;
+  --search-mark-bg: #b9842f;
+  --hl-comment: #8a9590; --hl-keyword: #5fb3a8; --hl-type: #d9a44a;
+  --hl-string: #e08a5b; --hl-number: #9b91f0; --hl-title: #6fa8c9; --hl-meta: #9a8f7d;
+}
+
+/* The guide is locked to coal, whose defaults carry a cool teal tint (hsl 200) in
+   the page, table, and quote backgrounds. Retune them to the same neutral dark
+   gray the landing page uses (--bg #17191b) so the two read as one design: dark
+   gray with seagreen accents, not dark teal. The sidebar's #292c2f is already
+   neutral, so it stays. */
+.coal {
+  --bg: #17191b;
+  --table-alternate-bg: #1e2123;
+  --table-header-bg: #2a2e30;
+  --quote-bg: #1f2224;
+}
+
+/* The book title is thin (font-weight 200) and dim on the dark theme; brighten
+   and slightly thicken it so it reads clearly. */
+#menu-bar .menu-title { font-weight: 400; color: #d8ded6; }
+
+/* "Back to the project" link, placed in the menu bar by home-link.js. Sized up
+   and in the seagreen link colour so it reads as a navigation action. */
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  height: 50px;
+  padding: 0 14px;
+  font-family: "Source Code Pro", ui-monospace, monospace;
+  font-size: 1.6rem;   /* mdBook's root is 62.5%, so 1.6rem = 16px */
+  font-weight: 600;
+  color: var(--links);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.home-link:hover { color: #8fd0c5; }
+
+/* "Download PDF" action in the menu bar, placed by home-link.js. Rendered as a
+   filled seagreen pill (label + icon) so it reads as a clear call to action
+   rather than a dim icon. Margin centres the 32px pill in the 50px menu bar. */
+#pdf-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  margin: 9px 8px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--links);
+  color: #0f1513;
+  font-family: "Source Sans Pro", system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+#pdf-button:hover { background: #8fd0c5; color: #0f1513; }
+#pdf-button .fa { font-size: 1.5rem; }
+
+/* Hide mdBook's auto-generated sidebar chapter number. The labels carry the real
+   chapter number (which gen.py keeps), and mdBook's own count includes the
+   provenance files, so its number drifts from the headings and cross-references. */
+.sidebar .chapter strong[aria-hidden="true"] { display: none; }
+
+/* The guide is locked to the dark theme, so hide the theme picker. */
+#theme-toggle, #theme-list, .theme-popup { display: none !important; }
+
+/* Syntax highlighting, coloured from the per-theme variables above. Applies to
+   highlight.js token spans: mdBook's own for C/Python/Swift, and the ones
+   highlight-extra.js adds for the pseudocode, MLIR, and FlatBuffers listings. */
+.hljs-comment, .hljs-quote                  { color: var(--hl-comment); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag,
+.hljs-literal, .hljs-doctag                 { color: var(--hl-keyword); font-weight: 600; }
+.hljs-built_in, .hljs-type,
+.hljs-title.class_, .hljs-class .hljs-title  { color: var(--hl-type); }
+.hljs-string, .hljs-symbol, .hljs-bullet,
+.hljs-regexp, .hljs-meta-string             { color: var(--hl-string); }
+.hljs-number                                { color: var(--hl-number); }
+.hljs-title, .hljs-title.function_,
+.hljs-section, .hljs-name                    { color: var(--hl-title); }
+.hljs-attr, .hljs-attribute, .hljs-variable,
+.hljs-template-variable, .hljs-property      { color: var(--hl-title); }
+.hljs-meta                                  { color: var(--hl-meta); }
+.hljs-deletion                              { color: #c0563a; }
+.hljs-addition                              { color: #4f9e63; }
+.hljs-emphasis                              { font-style: italic; }
+.hljs-strong                                { font-weight: 700; }
+
+/* Chapter opening summary: the blockquote immediately after the chapter title.
+   The source leaves it unlabeled; box it and add a SUMMARY
+   eyebrow here so it reads as a chapter summary rather than a quotation. The
+   selector matches only the blockquote adjacent to a title, so the bold-led
+   callouts elsewhere in the body are untouched. */
+.content h1 + blockquote {
+  border: none;
+  border-left: 3px solid var(--links);
+  border-radius: 0 4px 4px 0;
+  background: var(--quote-bg);
+  padding: 0.6em 1em 0.75em;
+  margin: 1.1em 0 1.7em;
+  font-style: normal;
+}
+.content h1 + blockquote::before {
+  content: "Summary";
+  display: block;
+  font-family: "Source Sans Pro", system-ui, sans-serif;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--links);
+  margin-bottom: 0.4em;
+}

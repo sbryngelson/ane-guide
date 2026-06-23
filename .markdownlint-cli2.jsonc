@@ -1,0 +1,14 @@
+{
+  "globs": ["**/*.md"],
+  "ignores": ["build/**", "web/**", ".githooks/**", "arxiv/**"],
+  "config": {
+    "MD013": false,
+    "MD033": false,
+    "MD041": false,
+    // Float cross-reference links (#tbl:, #fig:, #lst:) target PDF floats, which
+    // have no GitHub heading anchor by design, so the fragment-validity rule
+    // cannot apply.
+    "MD051": false,
+    "MD024": { "siblings_only": true }
+  }
+}

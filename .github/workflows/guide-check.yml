@@ -1,0 +1,21 @@
+name: guide-check
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  editorial:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build/structure invariants (check.sh)
+        shell: bash
+        run: bash check.sh
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Markdown formatting (markdownlint-cli2)
+        uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: '**/*.md'

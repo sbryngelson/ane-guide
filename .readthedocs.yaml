@@ -1,0 +1,24 @@
+# Read the Docs build for the guide's mdBook web edition.
+# RTD has no native mdBook builder, so we run mdBook ourselves via build.commands
+# and emit the static site into $READTHEDOCS_OUTPUT/html, which RTD then serves.
+# This mirrors web/build-web.sh, adapted for RTD's Linux runner.
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.12"   # web/gen.py (Python standard library only; no requirements)
+    rust: "latest"   # mdBook and its KaTeX preprocessor
+  commands:
+    # mdBook is pinned to 0.4.x: mdbook-katex speaks the 0.4 preprocessor protocol,
+    # not 0.5. (cargo install compiles from source; swap for the prebuilt
+    # x86_64-unknown-linux-gnu release binaries if the build time matters.)
+    - cargo install mdbook --version 0.4.48
+    - cargo install mdbook-katex
+    # Regenerate the mdBook source tree from the authoring chapters (gen.py resolves
+    # paths relative to web/, so it must run from there).
+    - cd web && python3 gen.py
+    # Vendor the mermaid runtime the diagrams render with (book.toml additional-js).
+    - curl -fsSL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js -o web/mermaid.min.js
+    # Build the static site straight into RTD's served output directory.
+    - mdbook build web -d "$READTHEDOCS_OUTPUT/html"

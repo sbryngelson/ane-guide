@@ -1,0 +1,35 @@
+# mdBook configuration for the web edition of the guide.
+# The source tree under src/ is generated from the authoring chapters by gen.py;
+# run ./build-web.sh, which regenerates src/ and then builds book/.
+
+[book]
+title = "Apple Neural Engine: A Complete Guide"
+authors = ["Spencer H. Bryngelson"]
+src = "src"
+language = "en"
+
+[output.html]
+# Locked to the dark 'coal' theme to match the landing page. The theme toggle is
+# hidden in custom.css and home-link.js forces coal, so the guide does not change
+# with the OS or a stale saved choice.
+default-theme = "coal"
+preferred-dark-theme = "coal"
+smart-punctuation = false
+git-repository-url = "https://github.com/sbryngelson/ane-guide"
+git-repository-icon = "fa-github"
+additional-js = ["mermaid.min.js", "mermaid-init.js", "home-link.js", "highlight-extra.js"]
+additional-css = ["custom.css"]
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.search]
+enable = true
+
+# $...$ and $$...$$ math, extracted before markdown so subscripts survive.
+[preprocessor.katex]
+after = ["links"]
+
+# ```mermaid blocks are converted to <pre class="mermaid"> by gen.py and rendered
+# client-side by mermaid.min.js + mermaid-init.js (declared in additional-js above).

@@ -1,0 +1,7 @@
+# Generated/vendored output. src/ is rebuilt from the authoring chapters by
+# gen.py; book/ is mdBook's render; mermaid.min.js is fetched by build-web.sh.
+# (mermaid-init.js is hand-written and tracked.)
+/src/
+/book/
+/mermaid.min.js
+/.tools/

@@ -1,0 +1,70 @@
+name: guide-build
+
+# Build the guide PDF on every change so the shipped download stays in sync with
+# the markdown. Uploads the PDF as an artifact; it does not deploy anything.
+# web/** is the web edition (mdBook CSS/JS/config); it does not feed the PDF,
+# which build.sh assembles from the chapter markdown and pandoc/.
+on:
+  push:
+    paths: ['**', '!web/**']
+  pull_request:
+    paths: ['**', '!web/**']
+  workflow_dispatch:
+
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pandoc, TeX Live, and fontconfig
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pandoc \
+            texlive-xetex texlive-latex-extra texlive-latex-recommended \
+            texlive-fonts-recommended texlive-fonts-extra texlive-science \
+            texlive-plain-generic lmodern fontconfig
+
+      - name: Install Google Chrome (for mermaid-cli)
+        run: |
+          curl -fsSL -o /tmp/chrome.deb \
+            https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y /tmp/chrome.deb
+
+      - name: Register the book fonts with fontconfig
+        # The OTFs ship inside texlive-fonts-extra (texmf), but xelatex resolves
+        # mainfont/sansfont/monofont by name through fontconfig, so copy them to a
+        # font dir and refresh the cache. XCharter-Math is found by filename in
+        # texmf and needs no copy.
+        run: |
+          mkdir -p ~/.fonts
+          for pkg in xcharter sourcesanspro sourcecodepro; do
+            find /usr/share/texlive /usr/share/texmf -ipath "*/$pkg/*" -name '*.otf' \
+              -exec cp -n {} ~/.fonts/ \; 2>/dev/null || true
+          done
+          fc-cache -f >/dev/null
+          echo "registered:"; fc-list | grep -iE 'XCharter|Source (Sans|Code)' | sort || true
+
+      - name: Point mermaid-cli at Chrome
+        # The repo's puppeteer.json hardcodes the macOS Chrome path; rewrite it for
+        # the Linux runner.
+        run: |
+          printf '{"executablePath":"/usr/bin/google-chrome-stable","args":["--no-sandbox","--disable-gpu","--disable-dev-shm-usage"]}' \
+            > pandoc/puppeteer.json
+
+      - name: Build the PDF
+        # Override mainfont to the libre XCharter (the source default "Charter" is a
+        # macOS system font); sans/mono keep their names, installed above.
+        env:
+          MAINFONT: XCharter
+        run: |
+          ./build.sh
+          test -f build/ane-guide.pdf
+
+      - name: Upload the PDF
+        uses: actions/upload-artifact@v7
+        with:
+          name: ane-guide-pdf
+          path: build/ane-guide.pdf
+          if-no-files-found: error

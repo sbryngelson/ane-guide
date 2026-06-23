@@ -1,0 +1,12 @@
+# build artifacts (regenerate with ./build.sh)
+build/
+
+# python bytecode (web/gen.py)
+__pycache__/
+*.pyc
+
+arxiv/
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store

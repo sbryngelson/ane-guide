@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Highlighter for the FlatBuffers schema (.fbs) used to describe the program
+     container: structural keywords, scalar and string types, line and block
+     comments, strings, and numbers. Skylighting has no FlatBuffers lexer; mapping
+     these blocks to C++ left the schema keywords (table, the scalar types)
+     uncoloured, so this gives them correct, consistent colour. -->
+<language name="fbs" version="1" kateversion="5.0" section="Sources" extensions="*.fbs" mimetype="" author="ANE guide" license="MIT">
+  <highlighting>
+    <list name="keywords">
+      <item>namespace</item>
+      <item>table</item>
+      <item>struct</item>
+      <item>enum</item>
+      <item>union</item>
+      <item>root_type</item>
+      <item>attribute</item>
+      <item>rpc_service</item>
+      <item>include</item>
+      <item>file_identifier</item>
+      <item>file_extension</item>
+    </list>
+    <list name="types">
+      <item>bool</item>
+      <item>byte</item>
+      <item>ubyte</item>
+      <item>short</item>
+      <item>ushort</item>
+      <item>int</item>
+      <item>uint</item>
+      <item>long</item>
+      <item>ulong</item>
+      <item>float</item>
+      <item>double</item>
+      <item>int8</item>
+      <item>int16</item>
+      <item>int32</item>
+      <item>int64</item>
+      <item>uint8</item>
+      <item>uint16</item>
+      <item>uint32</item>
+      <item>uint64</item>
+      <item>float32</item>
+      <item>float64</item>
+      <item>string</item>
+    </list>
+    <contexts>
+      <context name="Normal" attribute="Normal" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="LineComment" char="/" char1="/"/>
+        <Detect2Chars attribute="Comment" context="BlockComment" char="/" char1="*"/>
+        <keyword attribute="Keyword" String="keywords"/>
+        <keyword attribute="Type" String="types"/>
+        <DetectChar attribute="String" context="String" char="&quot;"/>
+        <RegExpr attribute="Number" String="\b[0-9][0-9.]*\b"/>
+      </context>
+      <context name="LineComment" attribute="Comment" lineEndContext="#pop"/>
+      <context name="BlockComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/"/>
+      </context>
+      <context name="String" attribute="String" lineEndContext="#pop">
+        <DetectChar attribute="String" context="#pop" char="&quot;"/>
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal" defStyleNum="dsNormal"/>
+      <itemData name="Comment" defStyleNum="dsComment"/>
+      <itemData name="Keyword" defStyleNum="dsKeyword"/>
+      <itemData name="Type" defStyleNum="dsDataType"/>
+      <itemData name="String" defStyleNum="dsString"/>
+      <itemData name="Number" defStyleNum="dsDecVal"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="//"/>
+      <comment name="multiLine" start="/*" end="*/"/>
+    </comments>
+    <keywords casesensitive="1"/>
+  </general>
+</language>

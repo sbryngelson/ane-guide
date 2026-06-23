@@ -1,0 +1,255 @@
+% ===== Typesetting + design for the single-PDF build =====
+
+% --- Accent colour used across headings, rules, links, captions ---
+\usepackage{xcolor}
+\definecolor{accent}{HTML}{1F4E79}     % deep blue
+\definecolor{codebg}{HTML}{F5F7FA}     % very light blue-grey for code
+\definecolor{rulegrey}{HTML}{C9D2DC}
+\definecolor{zebra}{HTML}{EEF3F8}      % faint blue for alternate table rows
+\usepackage{colortbl}                  % per-row \rowcolor zebra (injected by callout.lua)
+
+% --- Microtypography ---
+\usepackage{microtype}
+
+% --- Paragraph style: blank-line spacing, no first-line indent. Pandoc loads the
+% parskip package; we override the gap with a fixed length held in \anebodyparskip.
+% Some environments (fvextra code listings inside a float, and pandoc's \tightlist)
+% globally set \parskip to 0pt and never restore it, which silently collapses every
+% paragraph gap for the rest of the document. To make the gap robust, re-assert the
+% length at the start of every paragraph, so a clobbered \parskip self-heals.
+% \raggedbottom lets the page take slack at the bottom rather than stretching the
+% gaps. Leading is left at default. ---
+\newlength{\anebodyparskip}
+\setlength{\anebodyparskip}{9pt}
+\raggedbottom
+\AtBeginDocument{\setlength{\parindent}{0pt}\setlength{\parskip}{\anebodyparskip}}
+\AddToHook{para/begin}{\setlength{\parskip}{\anebodyparskip}}
+
+% Discourage one-line widows and orphans at page breaks.
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+
+% --- Math font ---
+% The document uses Latin Modern throughout: fontspec defaults text, sans, and
+% mono to the Latin Modern family, and unicode-math (loaded by pandoc) defaults
+% its math font to Latin Modern Math. Text and math are then one consistent
+% family, the standard LaTeX look, and nothing has to be installed beyond the TeX
+% distribution, so the build is identical locally and on CI. No \setmathfont and
+% no fontspec font selection are needed; setting one would only diverge from this.
+
+% --- Callout boxes: the opening summary (left accent rule) and the labelled
+%     Recipe / In practice callouts (titled box). Every blockquote in the guide
+%     is one of these two, routed here by pandoc/callout.lua. ---
+\usepackage[most]{tcolorbox}
+\newtcolorbox{summarybox}{%
+  enhanced, breakable, sharp corners, boxrule=0pt, frame hidden,
+  colback=accent!6, borderline west={3pt}{0pt}{accent},
+  left=12pt, right=10pt, top=8pt, bottom=8pt,
+  before skip=10pt, after skip=12pt,
+  before upper={{\bfseries\scriptsize\textcolor{accent}{SUMMARY}}\par\vspace{2pt}}}
+\newtcolorbox{calloutbox}[1]{%
+  enhanced, breakable, sharp corners, boxrule=0.4pt, colframe=accent!60,
+  colback=accent!6, coltitle=white, colbacktitle=accent,
+  fonttitle=\bfseries\small, title={#1},
+  left=10pt, right=10pt, top=6pt, bottom=6pt,
+  before skip=10pt, after skip=12pt}
+
+% 1. Code blocks: wrap long lines, small font, on a tinted background with a
+%    thin accent rule down the left edge.
+\usepackage{fvextra}
+% Code is set a notch smaller than the body so long lines (especially trailing
+% comments) wrap less; when a line does wrap, the continuation is indented and
+% flagged with a hooked arrow so it reads as a continuation, not a new statement.
+\fvset{breaklines=true,breakanywhere=true,fontsize=\footnotesize,%
+  breakautoindent=true,breakindent=1.4em,%
+  breaksymbolleft={\footnotesize\color{accent!55}\ensuremath{\hookrightarrow}\;},%
+  breaksymbolsepleft=0pt}
+\usepackage{framed}
+\colorlet{shadecolor}{codebg}
+\renewenvironment{Shaded}{%
+  \def\FrameCommand{\color{accent!55}\vrule width 2pt\hspace{0pt}%
+    \fboxsep=8pt\colorbox{codebg}}%
+  \MakeFramed{\hsize\dimexpr\linewidth-2pt-16pt\relax\FrameRestore}}%
+  {\endMakeFramed}
+
+% 2. Tables: smaller font, more row height, flush-left, with bold header cells
+%    and zebra-striped body rows (both injected by pandoc/callout.lua).
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\footnotesize}
+\renewcommand{\arraystretch}{1.25}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{\fill}
+\arrayrulecolor{accent!55}
+
+% 2a. Figures pinned in place ([H]) with small, bold-labelled captions.
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small,labelfont={bf,color=accent},labelsep=period}
+\usepackage{newfloat}
+\DeclareFloatingEnvironment[fileext=lol,placement=H,name=Listing]{listing}
+% fvextra code listings (especially wrapped in a listing float) and longtables
+% leave \parskip globally zeroed; restore it the moment each environment closes,
+% so the paragraph that FOLLOWS keeps its gap. The para/begin hook above only
+% heals from the second following paragraph on, so this covers the first one.
+\AfterEndEnvironment{Shaded}{\setlength{\parskip}{\anebodyparskip}}
+\AfterEndEnvironment{listing}{\setlength{\parskip}{\anebodyparskip}}
+\AfterEndEnvironment{longtable}{\setlength{\parskip}{\anebodyparskip}}
+
+% 3. Inline monospace identifiers break preferentially at underscores, then at
+%    real spaces (for the quoted reject strings that live in narrow table cells),
+%    and only mid-token as a last resort. A high inter-letter penalty keeps a long
+%    monospace string from splitting a word the way a low penalty did.
+\makeatletter
+\let\origtexttt\texttt
+\protected\def\texttt#1{{\origtexttt{\ANEallowbreaks{#1}}}}
+\def\ANEallowbreaks#1{\@tfor\ANEtk:=#1\do{%
+  \ANEtk\ifx\ANEtk\_\penalty\z@\else\penalty2800\fi}}
+\makeatother
+
+% 4. Let the line breaker stretch a little before declaring an overfull box.
+\tolerance=900
+\emergencystretch=3em
+
+% 5. Running headers (chapter title) and a centered page-number footer.
+\usepackage{fancyhdr}
+\setlength{\headheight}{20pt}
+\addtolength{\topmargin}{-6pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{accent}\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{rulegrey}\leaders\hrule height \headrulewidth\hfill}}
+\fancypagestyle{plain}{%
+  \fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% 6. Heading design without titlesec (titlesec breaks \listoffigures/\listoftables).
+%    sectsty restyles sections; the chapter heads are redefined by hand so the
+%    list machinery (\@starttoc) is left untouched.
+\usepackage{sectsty}
+\sectionfont{\bfseries\color{accent}}
+\subsectionfont{\bfseries\color{accent!85!black}}
+\subsubsectionfont{\bfseries\color{accent!85!black}}
+\partfont{\bfseries\color{accent}}
+% Set true (by build.sh, after \appendix) so the appendix chapter heads read
+% "Appendix A" rather than a bare letter.
+\newif\ifANEinappendix
+\makeatletter
+% Numbered chapter head: the chapter number (or "Appendix A") then the title.
+\def\@makechapterhead#1{%
+  \vspace*{10\p@}%
+  {\parindent\z@\raggedright\bfseries\color{accent}\Huge
+   \ifANEinappendix Appendix~\thechapter\quad\else\thechapter\quad\fi #1\par\nobreak
+   \vskip 4\p@{\color{rulegrey}\hrule height 1.2pt}\vskip 26\p@}}
+% Unnumbered chapter head (front and back matter): title only.
+\def\@makeschapterhead#1{%
+  \markboth{#1}{}% set the running mark, since \chapter* otherwise leaves the
+                 % previous numbered chapter's mark stale on later pages.
+  \vspace*{10\p@}%
+  {\parindent\z@\raggedright\bfseries\color{accent}\Huge #1\par\nobreak
+   \vskip 4\p@{\color{rulegrey}\hrule height 1.2pt}\vskip 26\p@}}
+% Running header: chapter number and title.
+\renewcommand{\chaptermark}[1]{%
+  \markboth{\ifANEinappendix Appendix~\thechapter\quad\else\thechapter\quad\fi #1}{}}
+\makeatother
+
+% 7. Link colours.
+\AtBeginDocument{\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,citecolor=accent}}
+
+% 7a. Cross-references (cleveref). Deferred to the end of the preamble so it loads
+%     after hyperref, which pandoc pulls in through bookmark below this header.
+%     The \cref / \Cref calls are emitted by pandoc/crossref.lua from the
+%     [text](#tbl:slug) / (#fig:slug) / (#lst:slug) reference links in the prose.
+\AtEndPreamble{%
+  \usepackage{cleveref}%
+  % Full words, not the abbreviated "fig.", for a consistent reference register.
+  \crefname{figure}{figure}{figures}\Crefname{figure}{Figure}{Figures}%
+  \crefname{table}{table}{tables}\Crefname{table}{Table}{Tables}%
+  \crefname{listing}{listing}{listings}\Crefname{listing}{Listing}{Listings}%
+}
+
+% 8. Title page: the title framed by two accent rules, with an eyebrow line,
+%    subtitle, and a one-line scope tagline.
+% Eyebrow label: set in regular roman so the cover and dividers read as a plain,
+% traditional LaTeX title page. (Formerly tracked uppercase; the text is kept, the
+% styling dropped.)
+\newcommand{\aneeyebrow}[1]{#1}
+\renewcommand{\maketitle}{%
+  \begin{titlepage}
+  \centering
+  \vspace*{0.13\textheight}
+  {\color{accent}\rule{0.72\linewidth}{0.8pt}}\par
+  \vspace{0.85cm}
+  {\color{accent}\fontsize{32}{38}\selectfont\bfseries Apple Neural Engine\par}
+  \vspace{0.55cm}
+  {\Large\color{black!75} Architecture, Programming, and Performance\par}
+  \vspace{16pt}
+  {\color{accent}\rule{0.72\linewidth}{0.8pt}}\par
+  \vspace{1.0cm}
+  {\large\color{black!80} Spencer H. Bryngelson\par}
+  \vspace{8pt}
+  {\footnotesize\color{black!55}
+   School of Computational Science \& Engineering\\
+   Georgia Institute of Technology, Atlanta, GA 30332, USA\\
+   ORCID 0000-0003-1750-7265\par}
+  \vfill
+  {\color{accent!70}\footnotesize\aneeyebrow{A11--A18 \;\textbullet\; M1--M5}\par}
+  \vspace{0.7cm}
+  {\normalsize\color{black!70} June 2026\par}
+  \vspace{0.6cm}
+  \end{titlepage}
+  % Copyright / license / citation page (verso of the title page).
+  {\thispagestyle{empty}\footnotesize\color{black!70}\raggedright
+   \vspace*{\fill}
+   \noindent Apple Neural Engine: Architecture, Programming, and Performance.\par
+   \vspace{8pt}
+   \noindent Copyright \textcopyright\ 2026 Spencer H. Bryngelson.\par
+   \vspace{8pt}
+   \noindent This work is licensed under a Creative Commons Attribution 4.0
+   International License (CC~BY~4.0). You are free to share and adapt the material
+   for any purpose, including commercially, provided you give appropriate credit.
+   The full license is at \texttt{creativecommons.org/licenses/by/4.0/}.\par
+   \vspace{8pt}
+   \noindent Apple, Apple silicon, Core ML, and the Apple Neural Engine are
+   trademarks of Apple Inc. This is an independent reference work and is not
+   affiliated with, authorized by, or endorsed by Apple Inc. The private
+   interfaces it describes are undocumented, unsupported, and may change without
+   notice.\par
+   \vspace{10pt}
+   \noindent\textbf{How to cite.}\par
+   \noindent Spencer H. Bryngelson. \textit{Apple Neural Engine: Architecture,
+   Programming, and Performance.} arXiv:2606.22283, 2026.\par
+   \vspace{16pt}}
+  % Front matter (abstract, contents) numbers in roman; introduction.md switches
+  % to arabic so body page 1 is the Introduction.
+  \clearpage\pagenumbering{roman}}
+
+% 9. Part divider pages: an eyebrow part number, the title between two accent
+%    rules, and the list of chapters the part contains. Built by build.sh, which
+%    emits one \anepartopen ... \anechap ... \anepartclose block per part.
+\makeatletter
+\newcommand{\anepartopen}[2]{%
+  \clearpage\thispagestyle{empty}%
+  \def\ANE@eb{#1}%
+  \addcontentsline{toc}{part}{\ifx\ANE@eb\@empty #2\else #1. #2\fi}%
+  \vspace*{0.20\textheight}%
+  {\parindent\z@\raggedright
+   \ifx\ANE@eb\@empty\else
+     {\color{accent!75}\large\aneeyebrow{#1}}\par\vskip 9\p@
+   \fi
+   {\color{accent}\hrule height 2pt}\vskip 16\p@
+   {\color{accent}\bfseries\fontsize{30}{34}\selectfont #2\par}%
+   \vskip 13\p@{\color{rulegrey}\hrule height 1pt}\vskip 24\p@}%
+  \begingroup\parindent\z@\raggedright}
+% One chapter row on a divider: the number in accent, the title beside it, and a
+% one-line description of the chapter set in grey beneath it.
+\newcommand{\anechap}[3]{%
+  \noindent{\color{accent}\bfseries #1}\hspace{1.1em}{\color{black!85}#2}\par
+  \def\ANE@cb{#3}\ifx\ANE@cb\@empty\else
+    \nobreak\noindent\hspace*{2.7em}{\color{black!55}\small #3}\par
+  \fi
+  \vskip 9\p@}
+\newcommand{\anepartclose}{\endgroup\clearpage}
+\makeatother

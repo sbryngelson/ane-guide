@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Minimal highlighter for the anec/MIL dialect used in the guide: line comments,
+     dialect operations (anec.convolution), SSA and symbol values (%x, @x), the
+     scalar and tensor type names, strings, and numbers. There is no standard MLIR
+     lexer in skylighting; this gives the blocks correct, consistent colour. -->
+<language name="mlir" version="1" kateversion="5.0" section="Sources" extensions="*.mlir" mimetype="" author="ANE guide" license="MIT">
+  <highlighting>
+    <list name="types">
+      <item>tensor</item>
+      <item>memref</item>
+      <item>vector</item>
+      <item>index</item>
+      <item>i1</item>
+      <item>i8</item>
+      <item>i16</item>
+      <item>i32</item>
+      <item>i64</item>
+      <item>f16</item>
+      <item>f32</item>
+      <item>f64</item>
+      <item>bf16</item>
+      <item>Float</item>
+      <item>Int</item>
+    </list>
+    <contexts>
+      <context name="Normal" attribute="Normal" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="LineComment" char="/" char1="/"/>
+        <RegExpr attribute="Operation" String="[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_.]*"/>
+        <RegExpr attribute="Variable" String="[%@][A-Za-z0-9_.]+"/>
+        <keyword attribute="Type" String="types"/>
+        <DetectChar attribute="String" context="String" char="&quot;"/>
+        <RegExpr attribute="Number" String="\b[0-9][0-9.]*\b"/>
+      </context>
+      <context name="LineComment" attribute="Comment" lineEndContext="#pop"/>
+      <context name="String" attribute="String" lineEndContext="#pop">
+        <DetectChar attribute="String" context="#pop" char="&quot;"/>
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal" defStyleNum="dsNormal"/>
+      <itemData name="Comment" defStyleNum="dsComment"/>
+      <itemData name="Operation" defStyleNum="dsFunction"/>
+      <itemData name="Variable" defStyleNum="dsVariable"/>
+      <itemData name="Type" defStyleNum="dsDataType"/>
+      <itemData name="String" defStyleNum="dsString"/>
+      <itemData name="Number" defStyleNum="dsDecVal"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="//"/>
+    </comments>
+    <keywords casesensitive="1"/>
+  </general>
+</language>
