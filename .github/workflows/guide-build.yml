@@ -1,7 +1,8 @@
 name: guide-build
 
 # Build the guide PDF on every change so the shipped download stays in sync with
-# the markdown. Uploads the PDF as an artifact; it does not deploy anything.
+# the markdown. On a push to main it also publishes the PDF as the rolling
+# 'pdf-latest' GitHub release; the web edition's Download PDF button links there.
 # web/** is the web edition (mdBook CSS/JS/config); it does not feed the PDF,
 # which build.sh assembles from the chapter markdown and pandoc/.
 on:
@@ -14,6 +15,8 @@ on:
 jobs:
   pdf:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # publish the rolling pdf-latest release
     steps:
       - uses: actions/checkout@v6
 
@@ -68,3 +71,16 @@ jobs:
           name: ane-guide-pdf
           path: build/ane-guide.pdf
           if-no-files-found: error
+
+      - name: Publish the PDF as the rolling 'pdf-latest' release
+        # Only on a real push to main; PRs and other branches just build + artifact.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/ane-guide.pdf apple-neural-engine-guide.pdf
+          gh release view pdf-latest >/dev/null 2>&1 \
+            || gh release create pdf-latest \
+                 --title "Guide PDF (latest build)" \
+                 --notes "Auto-built from the latest commit on main."
+          gh release upload pdf-latest apple-neural-engine-guide.pdf --clobber

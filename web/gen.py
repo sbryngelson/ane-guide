@@ -314,14 +314,6 @@ def build_src():
             fh.write(rewrite(text, "references.md", chap, app, labels,
                              file_floats.get("references.md", [])))
 
-    # Stage the built PDF at the book root so the web "Download PDF" button
-    # (home-link.js links to /apple-neural-engine-guide.pdf) resolves. The PDF is
-    # produced by build.sh at build/ane-guide.pdf; mdBook copies non-markdown
-    # files from src/ into the served book/. Copy it in when present.
-    pdf = os.path.join(GUIDE, "build", "ane-guide.pdf")
-    if os.path.exists(pdf):
-        shutil.copy2(pdf, os.path.join(SRC, "apple-neural-engine-guide.pdf"))
-
 
 def build_summary():
     """Emit web/src/SUMMARY.md in mdBook form from the authoring ../SUMMARY.md.

@@ -5,8 +5,9 @@
 //      suffix chapters in SUMMARY), so the headers are inserted here, using
 //      mdBook's own .part-title markup so they match the Part I-VIII headers.
 //   3. A "download as PDF" button in the menu bar's right buttons, linking to the
-//      published PDF on arXiv. The web edition (RTD/mdBook) does not build the PDF
-//      itself, and arXiv hosts the canonical version.
+//      rolling 'pdf-latest' GitHub release. The guide-build CI rebuilds that PDF
+//      from the markdown on every push to main; the web/RTD edition does not build
+//      the PDF itself.
 (function () {
   function addSidebarHeaders() {
     var nav = document.querySelector(".sidebar .chapter, #sidebar ol.chapter");
@@ -44,10 +45,10 @@
     if (!rb || document.querySelector("#pdf-button")) return;
     var a = document.createElement("a");
     a.id = "pdf-button";
-    a.href = "https://arxiv.org/pdf/2606.22283";
+    a.href = "https://github.com/sbryngelson/ane-guide/releases/download/pdf-latest/apple-neural-engine-guide.pdf";
     a.target = "_blank";
     a.rel = "noopener";
-    a.title = "Download the whole guide as a PDF (arXiv)";
+    a.title = "Download the whole guide as a PDF";
     a.setAttribute("aria-label", "Download as PDF");
     a.innerHTML = '<span class="pdf-button-label">Download PDF</span><i class="fa fa-file-pdf-o"></i>';
     rb.insertBefore(a, rb.firstChild);
