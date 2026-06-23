@@ -1,5 +1,9 @@
 ## Apple Neural Engine: Architecture, Programming, and Performance
 
+[![Documentation](https://readthedocs.org/projects/ane-guide/badge/?version=latest)](https://ane-guide.readthedocs.io/en/latest/)
+[![arXiv](https://img.shields.io/badge/arXiv-2606.22283-b31b1b.svg)](https://arxiv.org/abs/2606.22283)
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+
 This guide documents the Apple Neural Engine (ANE), the fixed-function matrix accelerator built into Apple silicon from the A11 and M1 generations onward.
 It reports what Apple's public surface does not: the datapath and roofline, the dispatch route below Core ML, the compiler and program format, and the kernel driver, firmware, and command protocol, each from measurement and decompilation.
 Every substantive claim is marked measured, decompile-derived, or predicted.
