@@ -1,6 +1,7 @@
 ## Apple Neural Engine: Architecture, Programming, and Performance
 
 [![Documentation](https://readthedocs.org/projects/ane-guide/badge/?version=latest)](https://ane-guide.readthedocs.io/en/latest/)
+[![PDF](https://img.shields.io/badge/PDF-download-blue.svg)](https://github.com/sbryngelson/ane-guide/releases/download/pdf-latest/apple-neural-engine-guide.pdf)
 [![arXiv](https://img.shields.io/badge/arXiv-2606.22283-b31b1b.svg)](https://arxiv.org/abs/2606.22283)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 
