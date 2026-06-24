@@ -57,6 +57,22 @@ sudo tlmgr install tcolorbox fvextra framed sectsty fancyhdr microtype \
 If Chrome is installed somewhere other than `/Applications/Google Chrome.app`, edit
 the `executablePath` in `pandoc/puppeteer.json`.
 
+## Cutting a new edition
+
+The guide is versioned by an edition number in the `VERSION` file (v1 is the
+original release) and a date stamped from the last commit. Both appear on the PDF
+title page and the web front page, and the changelog lives in
+`back-matter/revision-history.md`. To cut a new edition:
+
+```sh
+./new-edition.sh "what changed" "and this too"   # bumps VERSION, adds a dated entry
+# edit back-matter/revision-history.md to refine the bullets, then commit
+```
+
+The script does not commit; it prints recent commits as crib material for the
+bullets. The arXiv snapshot is refreshed only at milestones and may lag the
+edition number after v1.
+
 ## Checks
 
 ```sh
