@@ -27,6 +27,10 @@ level = 1
 [output.html.search]
 enable = true
 
+# Remove the print/printer button from the menu bar (and the print page).
+[output.html.print]
+enable = false
+
 # $...$ and $$...$$ math, extracted before markdown so subscripts survive.
 [preprocessor.katex]
 after = ["links"]

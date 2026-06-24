@@ -56,6 +56,23 @@ figure > figcaption {
    and slightly thicken it so it reads clearly. */
 #menu-bar .menu-title { font-weight: 400; color: #d8ded6; }
 
+/* "Home" link, placed in the menu bar's left buttons by home-link.js; back to the
+   ANEForge landing page. Sized up and in the seagreen link colour so it reads as a
+   navigation action. */
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  height: 50px;
+  padding: 0 14px;
+  font-family: "Source Code Pro", ui-monospace, monospace;
+  font-size: 1.6rem;   /* mdBook's root is 62.5%, so 1.6rem = 16px */
+  font-weight: 600;
+  color: var(--links);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.home-link:hover { color: #8fd0c5; }
+
 /* "Download PDF" action in the menu bar, placed by home-link.js. Rendered as a
    filled seagreen pill (label + icon) so it reads as a clear call to action
    rather than a dim icon. Margin centres the 32px pill in the 50px menu bar. */

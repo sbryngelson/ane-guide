@@ -8,6 +8,8 @@
 //      rolling 'pdf-latest' GitHub release. The guide-build CI rebuilds that PDF
 //      from the markdown on every push to main; the web/RTD edition does not build
 //      the PDF itself.
+//   4. A "Home" link in the menu bar's left buttons, back to the ANEForge landing
+//      page (the guide is hosted standalone on Read the Docs).
 (function () {
   function addSidebarHeaders() {
     var nav = document.querySelector(".sidebar .chapter, #sidebar ol.chapter");
@@ -54,7 +56,18 @@
     rb.insertBefore(a, rb.firstChild);
   }
 
-  function run() { lockTheme(); addSidebarHeaders(); addPdfButton(); }
+  function addHomeLink() {
+    var bar = document.querySelector("#menu-bar .left-buttons");
+    if (!bar || document.querySelector(".home-link")) return;
+    var a = document.createElement("a");
+    a.className = "home-link";
+    a.href = "https://sbryngelson.github.io/ANEForge/";
+    a.title = "ANEForge home";
+    a.textContent = "Home";
+    bar.appendChild(a);
+  }
+
+  function run() { lockTheme(); addHomeLink(); addSidebarHeaders(); addPdfButton(); }
   if (document.readyState !== "loading") run();
   else document.addEventListener("DOMContentLoaded", run);
 })();
