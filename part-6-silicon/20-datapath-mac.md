@@ -277,3 +277,9 @@ A fused convolution folds its per-channel affine and its activation into four se
 Table: The four kernel-coefficient streams a fused convolution emits, each with the relocation register the loader patches and the role it holds. {#tbl:c20-coeff-streams}
 
 A convolution with batch normalization and a following activation thus does not become four operations: the scale and bias fold into the post-scale and bias streams, the activation runs as the activation-lookup stream, and one fused operation streams all four coefficient banks alongside its weights.
+
+## Cross-source corroboration
+
+The accumulator and output-channel-group geometry decoded in this chapter from the compiler is independently described in Apple's neural-engine patents, analyzed in Maynard Handley's AArch64-Explore vol. 7 (ANE). The patents describe a 256-by-8-by-32-byte accumulator with eight storage channels per multiply-accumulator, splittable into two four-channel halves, with a per-pass channel interleave; this matches the eight-deep accumulator file, the demand-four double-buffering, and the output-channel-group tiling derived here. The patents' rasterizer loop manager is the kernel-rasterizer unit, and their account of descriptors held in a configuration queue and switched in order is the register-write task descriptor of chapter 23. The two derivations are independent: one read from the shipped compiler and the live engine, the other from the patent record.
+
+The patents describe a configurable design rather than one chip, so the absolute counts there (a 256-wide multiply-accumulator array, an eight-core organization) are family ceilings rather than M1 figures; the per-chip core count read from the hardware-abstraction table, four on the M1, is the value that holds for a given part.

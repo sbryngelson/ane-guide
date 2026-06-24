@@ -39,7 +39,7 @@ The cross-generation predictions checked on a second physical chip held, and a s
 
 Reaching the engine below Core ML has both concurrent and prior precedent.
 The closest is [Orion2026], concurrent work that characterizes and programs the engine for large-language-model training and inference.
-A line of community reverse engineering precedes it: the tinygrad project recovered the HWX program format and the AppleH11ANEInterface IOKit path [tinygrad], Yoon's `ane` project built a reverse-engineered Linux driver and the `anecc` compiler [eilnANE], and Singh's recent series decodes the M4 engine [Singh2026].
+A line of community reverse engineering precedes it: the tinygrad project recovered the HWX program format and the AppleH11ANEInterface IOKit path [tinygrad], Yoon's `ane` project built a reverse-engineered Linux driver and the `anecc` compiler [eilnANE], and Singh's recent series decodes the M4 engine [Singh2026], while Handley reconstructs the engine's hardware architecture from Apple's patent filings [Handley].
 
 Runtime and application work builds on that access.
 The `libane` native runtime exposes the engine to ordinary programs [libane], whisper.cpp reaches it through the Core ML-routed path [whispercpp], and the long-maintained catalog of Hollemans [Hollemans] and Apple's own engineering note on deploying Transformers [AppleANETransformers] collect what is publicly known.

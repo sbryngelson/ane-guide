@@ -41,6 +41,7 @@ local keys = {
   tinygrad = true,
   eilnANE = true,
   Singh2026 = true,
+  Handley = true,
   libane = true,
   whispercpp = true,
   Hollemans = true,
