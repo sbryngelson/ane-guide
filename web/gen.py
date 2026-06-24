@@ -44,6 +44,17 @@ def current_edition_date():
     except Exception:
         return ORIGINAL_RELEASE
 
+
+def current_edition_version():
+    """Current edition number from the VERSION file, mirroring \\anecurrentversion
+    in the PDF. Falls back to v1 when the file is absent."""
+    try:
+        with open(os.path.join(GUIDE, "VERSION"), encoding="utf-8") as fh:
+            v = fh.read().strip()
+        return f"v{v}" if v else "v1"
+    except Exception:
+        return "v1"
+
 # Directories of authoring content to publish, in book order. Anything outside
 # this list (pandoc/, build/) is excluded.
 CONTENT_DIRS = [
@@ -416,8 +427,8 @@ def write_intro():
         "*School of Computational Science & Engineering, "
         "Georgia Institute of Technology, Atlanta, GA 30332, USA*\n\n"
         "ORCID 0000-0003-1750-7265\n\n"
-        f"Current edition: {current_edition_date()}. "
-        f"Original release: {ORIGINAL_RELEASE}. "
+        f"Current edition: {current_edition_version()} ({current_edition_date()}). "
+        f"Original release: v1 ({ORIGINAL_RELEASE}). "
         "See the [revision history](back-matter/revision-history.md) for changes.\n\n"
         "This is the web edition of the guide. Use the sidebar to move between the "
         "parts and chapters; the search box indexes the full text.\n\n"

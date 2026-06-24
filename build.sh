@@ -154,11 +154,16 @@ pandoc introduction.md "${assembled[@]}" \
   -M date="June 2026" \
   -M abstract="$ABSTRACT"
 
-# Stamp the title page with the revision date (the last commit's date), read by
-# the \anebuilddate macro in pandoc/header.tex. Falls back to the macro default
-# when not in a git checkout.
+# Stamp the title page with the current edition number (from VERSION) and the
+# revision date (the last commit's date), read by the \anecurrentversion and
+# \anebuilddate macros in pandoc/header.tex. Each falls back to its macro default
+# when unavailable (e.g. outside a git checkout).
 build_date=$(git log -1 --format=%cd --date=format:'%B %-d, %Y' 2>/dev/null || true)
-[ -n "$build_date" ] && printf '\\def\\anebuilddate{%s}\n' "$build_date" > build/anedate.tex || rm -f build/anedate.tex
+guide_version=$(tr -d ' \n' < VERSION 2>/dev/null || true)
+{
+  [ -n "$guide_version" ] && printf '\\def\\anecurrentversion{v%s}\n' "$guide_version"
+  [ -n "$build_date" ] && printf '\\def\\anebuilddate{%s}\n' "$build_date"
+} > build/anedate.tex
 
 # Run XeLaTeX three times (inside build/, so aux reads/writes and the
 # diagrams/*.pdf image paths all resolve) to settle the TOC, the list of figures

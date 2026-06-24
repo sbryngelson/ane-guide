@@ -176,9 +176,11 @@
 % traditional LaTeX title page. (Formerly tracked uppercase; the text is kept, the
 % styling dropped.)
 \newcommand{\aneeyebrow}[1]{#1}
-% Title-page dates: build.sh writes build/anedate.tex with the current revision
-% date so the living edition is self-stamping; the original-release date is fixed
-% (the initial public release, arXiv:2606.22283 v1). Both fall back when absent.
+% Title-page edition stamps: build.sh writes build/anedate.tex with the current
+% edition number (from the VERSION file) and revision date (the last commit's
+% date) so the living edition is self-stamping; the original release is fixed at
+% v1 (arXiv:2606.22283 v1, June 21, 2026). All fall back when absent.
+\providecommand{\anecurrentversion}{v2}
 \providecommand{\anebuilddate}{June 2026}
 \providecommand{\aneorigrelease}{June 21, 2026}
 \IfFileExists{anedate.tex}{\input{anedate.tex}}{}
@@ -204,8 +206,8 @@
   {\color{accent!70}\footnotesize\aneeyebrow{A11--A18 \;\textbullet\; M1--M5}\par}
   \vspace{0.7cm}
   {\small\color{black!70}
-   Current edition: \anebuilddate\\[3pt]
-   Original release: \aneorigrelease\par}
+   Current edition: \anecurrentversion\ (\anebuilddate)\\[3pt]
+   Original release: v1 (\aneorigrelease)\par}
   \vspace{0.6cm}
   \end{titlepage}
   % Copyright / license / citation page (verso of the title page).
