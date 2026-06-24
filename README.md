@@ -32,7 +32,7 @@ The direct route is for measurement, research, and on-device work on a fixed ope
 
 ### How to cite
 
-This guide is archived on arXiv as [arXiv:2606.22283](https://arxiv.org/abs/2606.22283).
+This guide is available at [arXiv:2606.22283](https://arxiv.org/abs/2606.22283) and can be cited as below.
 
 ```bibtex
 @misc{bryngelson2026ane,
