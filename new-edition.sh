@@ -62,5 +62,5 @@ fi
 echo
 echo "Next:"
 echo "  1. edit $CHANGELOG (fill in the bullets)"
-echo "  2. git add VERSION $CHANGELOG && git commit"
-echo "  3. git tag guide-v$next   # optional, anchors the next edition's diff range"
+echo "  2. git add VERSION $CHANGELOG && git commit   # post-commit hook tags guide-v$next"
+echo "  3. git push --follow-tags                      # pushes the commit and the new tag"

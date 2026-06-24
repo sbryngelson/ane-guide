@@ -66,12 +66,17 @@ title page and the web front page, and the changelog lives in
 
 ```sh
 ./new-edition.sh "what changed" "and this too"   # bumps VERSION, adds a dated entry
-# edit back-matter/revision-history.md to refine the bullets, then commit
+# edit back-matter/revision-history.md to refine the bullets, then:
+git add VERSION back-matter/revision-history.md && git commit
+git push --follow-tags
 ```
 
 The script does not commit; it prints recent commits as crib material for the
-bullets. The arXiv snapshot is refreshed only at milestones and may lag the
-edition number after v1.
+bullets. The `post-commit` hook in `.githooks/` tags the commit `guide-v<N>`
+whenever `VERSION` changes, so `git push --follow-tags` ships the edition and its
+tag together (the hook needs `git config core.hooksPath .githooks`, the same
+setting the pre-commit check uses). The arXiv snapshot is refreshed only at
+milestones and may lag the edition number after v1.
 
 ## Checks
 

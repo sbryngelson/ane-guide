@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Post-commit hook: when a commit changes the VERSION file (a new edition), tag
+# that commit guide-v<N> so editions are anchored automatically. The tag points
+# at the release commit itself, after the changelog prose has been reviewed and
+# committed. No-op on commits that do not touch VERSION, and skips if the tag
+# already exists. The tag is local; push it with `git push --follow-tags`.
+#
+# Enable in a fresh clone with: git config core.hooksPath .githooks
+set -uo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)" || exit 0
+cd "$repo_root" || exit 0
+
+# Only act when this commit touched VERSION (matches VERSION or guide/VERSION).
+git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null \
+  | grep -qE '(^|/)VERSION$' || exit 0
+
+ver="$(tr -d ' \n' < VERSION 2>/dev/null || true)"
+[ -n "$ver" ] || exit 0
+tag="guide-v$ver"
+
+if git rev-parse -q --verify "refs/tags/$tag" >/dev/null 2>&1; then
+  exit 0   # already tagged this edition
+fi
+
+git tag -a "$tag" -m "Guide edition v$ver" HEAD
+echo "post-commit: tagged $tag at $(git rev-parse --short HEAD)."
+echo "post-commit: push it with 'git push --follow-tags'."
+exit 0
