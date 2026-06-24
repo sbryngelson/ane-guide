@@ -260,6 +260,38 @@ Only the M1 family has a named per-family validity gate.
 `IsValidForH13GatherNCH` holds the channel-height-width-layout gather restriction.
 No equivalent named gate exists for any other family; the rest gate numerically through the hardware-abstraction clamps, and the compression gate `IsValidForCompression` is hardware-abstraction-driven with the universal rule that only kernels of at least eight bits are compressible.
 
+## Cross-compiled across the family
+
+The per-generation versioning that chapter 23 reads out of the descriptor accessors can be observed directly in the emitted program.
+Because the compiler is one binary that lowers for any target from any machine, the target is a command-line flag rather than a property of the host: a single `ANECompile` build, here `9.509.0`, lowers the same network for `h13` through `h17` while only the `-t` target varies.
+A diff across those programs isolates the per-generation divergence from the compiler version and the operating-system version, which a diff across physical machines confounds.
+Lowering one convolution and one matmul for the five base M-series targets, `h13` through `h17`, gives the comparison that [Table](#tbl:c35-crossgen) records.
+
+| Target | Silicon | cpusubtype `+0x08` | Convolution op-config word | Aperture base-record stride |
+| --- | --- | --- | --- | --- |
+| `h13` | A13, M1 base | `0x04` | `0x5042a063` | 8 bytes |
+| `h14` | A14, M2 base | `0x05` | `0x5042a0c3` | 16 bytes |
+| `h15` | A15, M3 base | `0x06` | `0x5042a0c3` | 16 bytes |
+| `h16` | A16, M4 base | `0x07` | `0x5042a0c3` | 16 bytes |
+| `h17` | A17, M5 base | `0x09` | `0x5042a0c3` | 16 bytes |
+
+Table: One convolution and one matmul cross-compiled for the five base M-series targets from a single machine and compiler, with the per-generation fields read from the emitted container. {#tbl:c35-crossgen}
+
+The cpusubtype at header offset `0x08`, the codegen revision chapter 23 reads as `0x4` on the M1, steps once per generation across the family: `0x04`, `0x05`, `0x06`, `0x07`, and `0x09`, the M5 base skipping `0x08`, with the A19 target `h18` continuing to `0x0a`.
+The convolution op-config word that chapter 23 decodes as the version-7 value `0x5042a063` holds on the M1 and becomes `0x5042a0c3` on the M2 and every later base target.
+The high half-word `0x5042` is stable, as chapter 23 states; it is the low byte that carries a generation component, `0x63` on the version-7 image and `0xc3` from the A14 image on.
+The version-7 op-config words in the `0x5000a0..` range, `0x5000a021` and `0x5000a421`, appear only in the M1 image and are absent from the M2 image onward, the byte-level form of the version bump chapter 23 describes.
+
+What does not move is the addressing aperture and the descriptor prologue.
+The aperture virtual addresses, input `0x30004000` and the `0x30008000`, `0x3000c000`, and `0x30010000` that follow, are byte-identical across all five targets, as is the descriptor header through its first `0x300` bytes.
+What moves is the register program below them: the relocation records that carry the aperture base addresses are packed at an 8-byte stride on the M1 and move to a 16-byte stride from the M2 on, the concrete instance of the rule that the byte offsets and field widths move between versions (chapter 23) and of the per-generation descriptor-offset [Table](#tbl:c35-descoffset).
+Both operations show the same stride shift at the same boundary.
+
+The largest single step is the M1 to the M2, the version-7 descriptor to the A14 descriptor.
+The op-config word, the relocation stride, and the version-7 config words all change there, while the M2 through the M5 share the op-config word and the stride and differ mainly in the cpusubtype stamp and the kernel-section size, the convolution image growing from 64 KB on the M1 through the M3 to 96 KB on the M4 and M5.
+This is the program-format counterpart of chapter 34's observation that the operation surface stops expanding at A15 while the upper tiers add cores: the format is largely settled after A14, and the later changes are incremental.
+This comparison is the compiler's emitted program for each target, read from the cross-compiled container, not an on-silicon run on the M2, M3, and M4, which this guide does not have; it confirms the decompile-derived per-generation versioning of chapter 23 against the actual byte stream, with the M1 and M5 endpoints also confirmed on silicon.
+
 ## Apple documents
 
 Per-family code generation has no public counterpart, and this chapter reports it as reverse-engineered across the target set.
