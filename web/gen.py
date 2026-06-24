@@ -21,10 +21,28 @@ mdbook-katex and mdbook-mermaid preprocessors to handle.
 import os
 import re
 import shutil
+import subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GUIDE = os.path.dirname(HERE)
 SRC = os.path.join(HERE, "src")
+
+# Initial public release, arXiv:2606.22283 v1. Mirrors \aneorigrelease in the PDF.
+ORIGINAL_RELEASE = "June 21, 2026"
+
+
+def current_edition_date():
+    """Date of the last commit, matching the PDF title-page stamp written by
+    build.sh. Falls back to the original-release date outside a git checkout."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", GUIDE, "log", "-1",
+             "--format=%cd", "--date=format:%B %-d, %Y"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        return out or ORIGINAL_RELEASE
+    except Exception:
+        return ORIGINAL_RELEASE
 
 # Directories of authoring content to publish, in book order. Anything outside
 # this list (pandoc/, build/) is excluded.
@@ -42,7 +60,7 @@ CITE_KEYS = ["AppleCoreMLTools", "AppleCoreML", "AppleANE", "AppleAccelerate",
              "Jouppi2017", "Ignatov2019", "Jayanth2024", "Prashanthi2025",
              "Fanariotis2025", "Tummalapalli2026", "Bi2026", "Xu2025", "Moon2025",
              "Chen2025", "Benazir2026", "Hubner2025", "tinygrad", "eilnANE",
-             "Singh2026", "libane", "whispercpp", "Hollemans",
+             "Singh2026", "Handley", "libane", "whispercpp", "Hollemans",
              "AppleANETransformers", "Plyenkov2019", "CommunityANE", "Zeus2025",
              "ANEForge2026"]
 
@@ -398,6 +416,9 @@ def write_intro():
         "*School of Computational Science & Engineering, "
         "Georgia Institute of Technology, Atlanta, GA 30332, USA*\n\n"
         "ORCID 0000-0003-1750-7265\n\n"
+        f"Current edition: {current_edition_date()}. "
+        f"Original release: {ORIGINAL_RELEASE}. "
+        "See the [revision history](back-matter/revision-history.md) for changes.\n\n"
         "This is the web edition of the guide. Use the sidebar to move between the "
         "parts and chapters; the search box indexes the full text.\n\n"
     )

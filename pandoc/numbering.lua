@@ -14,6 +14,7 @@ local UNNUMBERED = {
   "^Methodology$",
   "^Open questions$",
   "^Statements$",
+  "^Revision history$",
 }
 
 -- Headers are visited in document order, so a flag carries "inside an unnumbered

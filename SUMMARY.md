@@ -74,6 +74,7 @@
 - [Methodology](back-matter/methodology.md)
 - [Open questions](back-matter/open-questions.md)
 - [Statements](back-matter/statements.md)
+- [Revision history](back-matter/revision-history.md)
 
 ## Appendices
 
