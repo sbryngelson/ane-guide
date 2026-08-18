@@ -127,8 +127,8 @@ e5rt_e5_compiler_compile(compiler, model_path, options, &library);  /* M1 floor,
 
 /* Then the same drive: retain the function, build the op, and dispatch on a stream. */
 e5rt_program_library_retain_program_function(library, fn_name, &function);
-e5rt_precompiled_compute_op_create_options_create_with_program_function(function, &op_opts);
-e5rt_execution_stream_operation_create_precompiled_compute_operation_with_options(op_opts, &op);
+e5rt_precompiled_compute_op_create_options_create_with_program_function(&op_opts, function);
+e5rt_execution_stream_operation_create_precompiled_compute_operation_with_options(&op, op_opts);
 e5rt_execution_stream_encode_operation(stream, op);
 e5rt_execution_stream_execute_sync(stream);
 ```
