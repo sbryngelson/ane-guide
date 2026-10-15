@@ -10,7 +10,7 @@
 The engine implements more layer kinds than the high-level conversion path emits.
 Authoring the network description directly reaches the rest, including several layers a later chip accepts and the M1 rejects.
 
-The machinery this rests on is decoded in full in the back half: the `.espresso.net` program format in chapter 23, the compiler's layer parsers and validators in chapter 22, and the per-family capability gates in chapter 24.
+The back half decodes this machinery in full: the `.espresso.net` program format in chapter 23, the compiler's layer parsers and validators in chapter 22, and the per-family capability gates in chapter 24.
 Here it is enough that the format is hand-authorable and that each layer has a validator and a family gate; Appendix B is the full per-layer schema.
 
 ## Framework and native catalogs
@@ -140,7 +140,7 @@ Trigonometric sine and cosine have no direct-authoring bridge, so they stay conv
 ## Reference: the native layer classes reached by direct authoring
 
 The native catalog is the set of layer kinds the engine silicon runs, each with a constructor and a validator in the compiler.
-Each class in [Table](#tbl:c26-classes) carries the binding validator gate and the first family that runs it.
+Each class has a binding validator gate and a first family that runs it ([table](#tbl:c26-classes)).
 
 | Class | Native layers | Binding gate | First family |
 | --- | --- | --- | --- |

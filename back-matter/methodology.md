@@ -1,7 +1,7 @@
 # Methodology
 
 > Every finding rests on one of four techniques: a direct private-runtime path, static decompilation of the stack, live read-only instrumentation, and compile-and-run probing.
-> The results rest on two measured silicon points: M1/H13 as the primary host and M5/H17s as the second.
+> The results come from two measured silicon points: M1/H13 as the primary host and M5/H17s as the second.
 > Claims are marked as measured on a named generation, or as predicted.
 
 The direct private-runtime path, static decompilation, live instrumentation, and cross-silicon measurement come at the engine from different sides ([figure](#fig:meth-evidence)).

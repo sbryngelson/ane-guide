@@ -66,7 +66,7 @@ The MLIR `symbolize*` enums are a length-dispatched chain of packed integer stri
 
 Table: The symbolized attribute tokens and the integer values each one maps to. {#tbl:apc-symbolize}
 
-A second class of enum sits in a packed pointer table in the data segment, the internal `Zin` enums ([table](#tbl:apc-zin-enums)).
+A second class of enum is in a packed pointer table in the data segment, the internal `Zin` enums ([table](#tbl:apc-zin-enums)).
 
 | enum | value to token |
 | --- | --- |

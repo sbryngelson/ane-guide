@@ -1,10 +1,10 @@
 # 8. Entitlement boundary
 
 > The direct route reaches the engine's useful compute.
-> Four features sit behind the framework loader or an entitlement: three-dimensional convolution, native stateful types, bf16 program input and output, and flexible or symbolic shapes.
+> Four features are behind the framework loader or an entitlement: three-dimensional convolution, native stateful types, bf16 program input and output, and flexible or symbolic shapes.
 > Each passes an earlier layer and fails at the one that runs the work.
 > None of the four runs on the engine on the M1 under either route.
-> One hard limit sits below all of this: a hand-built or self-compiled program is rejected at load with error `0xe00002e2`.
+> One hard limit is below all of this: a hand-built or self-compiled program is rejected at load with error `0xe00002e2`.
 > The reachable surface is therefore everything the system daemon's compiler will accept.
 
 The direct route reaches the engine through the execution runtime, below the model framework, with no placement planner in the path.

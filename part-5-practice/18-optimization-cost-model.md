@@ -35,7 +35,7 @@ On the M1 the model fits the measured convolution latencies with a peak of 3.25 
 
 Only the parameter values change from chip to chip; the three-stage structure is identical across the family.
 The compute-unit count, per-cycle divisor, clock range, and efficiency curve are read from the hardware abstraction table for each target, the table chapter 24 decodes.
-The fitted M1 and M5 values sit side by side in [table](#tbl:c18-chip-params).
+The fitted M1 and M5 values appear side by side in [table](#tbl:c18-chip-params).
 
 | Quantity | Source | M1/H13 | M5/H17s |
 | --- | --- | --- | --- |

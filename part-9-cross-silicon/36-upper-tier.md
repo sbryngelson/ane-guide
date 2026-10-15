@@ -1,6 +1,6 @@
 # 36. Predicted upper tier
 
-> Two datapaths sit above the M5 in the compiler, and no part measured here can run them.
+> Two datapaths are above the M5 in the compiler, and no part measured here can run them.
 > They are an fp8 weight and activation format, and a multi-die collective communication layer.
 > Both are present as decoded structure, gated off on every family this guide reached, and stated as predicted, not measured.
 > The fp8 gate is the capability byte at offset `0x52d`, set on H18 alone.
@@ -127,7 +127,7 @@ This is the identical machinery the int4, int8, and fp16 palettes use under temp
 
 ## Multi-die collective layer
 
-The multi-die dialect's collective operations each carry a backend operation class and a unit-type code ([table](#tbl:c36-collops)).
+Each collective operation in the multi-die dialect has a backend operation class and a unit-type code ([table](#tbl:c36-collops)).
 
 | silc mnemonic | C++ operation class | role | unit-type code |
 | --- | --- | --- | --- |

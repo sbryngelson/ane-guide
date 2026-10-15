@@ -113,7 +113,7 @@ A convolution stack at about 63 percent zeros streamed as a mask plus nonzeros r
 The streamed weight file is at 0.43 times the dense size, and the effective bandwidth rises from about 29.5 to about 47.8 GB/s, the engine's weight-stream ceiling.
 The reconstruction is lossless apart from the fp16 rounding of the kept values, so the result matches the dense computation to a cosine of $1.0000$.
 The zero-skip mechanism, by contrast, returns about 1.01 times on the same bandwidth-bound stack, because skipping multiplies does not move a layer whose wall time is set by the DMA, and it needs a compute-bound layer to show.
-The two mechanisms sit side by side in [table](#tbl:c16-sparsity).
+The two mechanisms appear side by side in [table](#tbl:c16-sparsity).
 
 | Sparsity mechanism | What it cuts | Where it pays off | Measured M1 result |
 | --- | --- | --- | --- |

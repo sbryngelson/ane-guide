@@ -12,7 +12,7 @@ Of the programmable engines on an Apple chip (CPU, GPU, and ANE), the ANE is the
 There is no public instruction set, no driver interface, and no documented way for a program to confirm that a computation ran on it.
 An application reaches the ANE indirectly, through the lightly documented Apple Core ML framework, which treats the engine as one option behind a placement hint.
 Core ML is at least partly documented.
-What lies beneath it is not: the datapath and numerics, the performance and energy envelope, the compiler and program format, the kernel driver, the firmware, and the command protocol.
+Nothing below it is: the datapath and numerics, the performance and energy envelope, the compiler and program format, the kernel driver, the firmware, and the command protocol.
 
 Here we report what was not previously available about the ANE, recovered by reverse engineering from the silicon datapath to the system interface.
 Our evidence is of two kinds, checked against each other.
@@ -38,7 +38,7 @@ Several advertised operations never lower to the engine at all, three-dimensiona
 Weight compression on the direct path cuts bandwidth, not only stored size.
 On the unentitled engine, int4 lookup-table weights run about 2.37 times faster than fp16, and structured sparsity 1.55 to 1.64 times faster at 0.43 times the bytes.
 
-Beneath the datapath lies the private stack the engine runs on.
+The engine runs on a private stack beneath the datapath.
 It holds the compiler and its backend dialect, the on-disk program and container format, the kernel-driver IOKit ABI, the unencrypted firmware and its ninety-three-command host protocol, and the address-translation path that maps host buffers into the engine.
 We decode twenty-eight compiler targets, spanning the A11 through A18 and M1 through M5 families.
 The decode yields the rule that maps each M-series part to its internal H-series identity, the per-family operation floors, and an operation-by-device matrix.
@@ -56,7 +56,7 @@ The long-maintained catalog of Hollemans [Hollemans] and Apple's own engineering
 Several further repositories document direct access and runtime APIs [CommunityANE], and an earlier thesis treats decoupling on-device intelligence from the application on IoT hardware [Plyenkov2019].
 
 The performance treatment is organized around the roofline model [Williams2009] and its later refinements: the energy roofline [Choi2013], the cache-aware roofline [Ilic2014], the instruction roofline [Ding2019], hierarchical roofline analysis [Yang2020], and its application to machine-learning accelerators [Verhelst2025].
-It sits within a wider body of work on neural accelerators and edge inference.
+It belongs to a wider body of work on neural accelerators and edge inference.
 That work includes the in-datacenter analysis of the first tensor processing unit [Jouppi2017], smartphone deep-learning benchmarks [Ignatov2019], and edge-platform inference benchmarking [Jayanth2024].
 It also includes energy-and-time roofline studies on edge accelerators [Prashanthi2025], NPU energy efficiency on microcontrollers [Fanariotis2025], LLM inference trade-offs across mobile NPU and GPU under sustained load [Tummalapalli2026], and on-device LLM roofline benchmarking [Bi2026].
 The work closest in workload studies heterogeneous on-device LLM inference: fast NPU inference [Xu2025], GPU-NPU hybrid serving for long context [Moon2025], and mobile-SoC characterization for heterogeneous execution [Chen2025].
@@ -75,7 +75,7 @@ The front half, Parts I through V, covers using the engine: what the hardware is
 The back half, Parts VI through IX, covers the architecture and system internals beneath that surface, down to the firmware and command protocol.
 The appendices collect the operation-by-device matrix, decoded reference tables, glossary, and provenance record, and the references close the guide.
 
-Every substantive claim carries an evidentiary mark.
+Every substantive claim has an evidentiary mark.
 A measured claim was observed directly on Apple silicon, primarily the M1 and M5.
 We read decompile-derived claims out of the disassembled runtime, compiler, kernel driver, or firmware.
 Predicted claims we inferred from a model or a per-chip table; silicon has not confirmed them yet.

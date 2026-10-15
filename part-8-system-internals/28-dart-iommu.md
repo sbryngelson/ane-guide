@@ -280,7 +280,7 @@ Most fields are object pointers whose stringifier the callback invokes; [Table](
 Table: The `IODARTErrorInfo` software fault descriptor, the shared kernel ABI the `t6000dart` core hands to its registered fault consumers. {#tbl:c28-errorinfo}
 
 The four slots at `+0x90` are the `AXI_ID[0..3]` array, the four fault descriptors a prior decode reported.
-What localizes a fault is the walk-index triple, `TTBRIndex`, `L2Index`, and `L3Index`, which names the failing page-table entry; the remaining scalars carry the taxonomy, the faulting page and stream, and the read-write bit.
+What localizes a fault is the walk-index triple, `TTBRIndex`, `L2Index`, and `L3Index`, which names the failing page-table entry; the remaining scalars are the taxonomy, the faulting page and stream, and the read-write bit.
 
 One register the callback reads is not part of the descriptor: it reads an engine status word directly off its own device object at `[engine+0xe028]`.
 The callback treats the fault as benign and returns early when `(status | 0x80) == 0xa0`, that is when the low seven bits equal `0x20` and bit 7 is a don't-care.

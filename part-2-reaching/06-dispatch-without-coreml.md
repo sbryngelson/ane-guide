@@ -1,7 +1,7 @@
 # 6. Dispatching without Core ML
 
 > Five steps reach the engine from ordinary user space: build a graph, compile it to the program format, load it, bind operand buffers, and dispatch.
-> No placement planner sits in the path, and the operations the compiler accepts need no entitlement.
+> No placement planner is in the path, and the operations the compiler accepts need no entitlement.
 > One submission can drive several on-engine steps with no host round-trip per step.
 > It runs at the same rate as the steps issued one call at a time, so the unentitled path is performance-complete for dispatch.
 
@@ -13,7 +13,7 @@ The runtime accepts the description directly, so the graph does not have to come
 
 Compile that description to the engine's program format.
 The runtime drives the compiler, which lowers the graph, lays the weights out for the streaming datapath, validates every operation against the native-layer catalog, and writes a loadable program to a content-addressed cache on disk.
-The cost sits here, and a network pays it once.
+The cost is here, and a network pays it once.
 
 Load the compiled program.
 The runtime opens the program from the cache and instantiates the function it exposes, preparing the program for execution on the device.

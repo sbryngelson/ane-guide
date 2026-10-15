@@ -6,7 +6,7 @@
 > The fp16 ceiling is 65504, and a width-axis slice with a nonzero begin offset applies a fixed gain of sixteen.
 > A fill above 4094 therefore overflows silently to infinity on the M1 and the A14.
 > Activation lookup tables are accurate to about half a unit in the last place.
-> They coerce a NaN to a clamp value and carry a small origin bias that a bit-exact oracle must model.
+> They coerce a NaN to a clamp value and have a small origin bias that a bit-exact oracle must model.
 
 Computation on the engine is fp16 with a wide accumulator.
 That property, stated in chapter 1, decides which computations keep their precision on the engine and which lose it.
@@ -213,7 +213,7 @@ The paths that drive a dedicated reduction or a single elementwise multiply hold
 A reduce-sum rounds to 65504 first and then overflows, an elementwise multiply overflows at the true fp16 limit of 65504, and a pointwise one-by-one convolution with a single input channel passes a fill of 60000.
 This earlier accumulator ceiling is consistent with the multiply-accumulate datapath having about one bit less margin than the fp16 storage format on the M1, so the guard for a matrix multiply or a multi-tap convolution is to keep the output magnitude below $2^{15}$.
 
-A second saturation lies on the slice path.
+The slice path has a second saturation.
 A width-axis slice with a nonzero begin offset routes through a crop DMA that applies a fixed gain of sixteen.
 A value at or below 4094 passes through bit exact, because $4094 \times 16 = 65504$ is the fp16 ceiling.
 A value of 4095 or above becomes infinity, because it rounds to 4096 on the fp16 grid and $4096 \times 16 = 65536 > 65504$, past the ceiling.

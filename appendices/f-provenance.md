@@ -42,7 +42,7 @@ The public account is the convertible operation set at apple.github.io/coremltoo
 
 ## Part II. Reaching the ANE {.unnumbered}
 
-The same M1/H13 (Apple M1) default carries through Part II, except in chapter 7, which also reports figures from M2/H14 (Apple M2 Pro) and M5/H17s (Apple M5).
+The same M1/H13 (Apple M1) default applies through Part II, except in chapter 7, which also reports figures from M2/H14 (Apple M2 Pro) and M5/H17s (Apple M5).
 
 ### Chapter 5. Software stack {.unnumbered}
 
@@ -73,7 +73,7 @@ Apple documents these capabilities (flexible shapes, the `MLState` type) at the 
 
 ## Part III. Performance and Fit {.unnumbered}
 
-Part III rests on two passes, the first on M1/H13 (Apple M1; M1 Max) and the second on M5/H17s (Apple M5), with an A14-class middle point on M2/H14 where a cross-device or cross-generation claim required one.
+Part III uses two passes, the first on M1/H13 (Apple M1; M1 Max) and the second on M5/H17s (Apple M5), with an A14-class middle point on M2/H14 where a cross-device or cross-generation claim required one.
 Apple publishes no roofline, no per-workload power or efficiency figures, and no cross-processor comparison for the engine, so the figures across this Part stand on their own measurements.
 
 ### Chapter 9. Roofline {.unnumbered}
@@ -241,7 +241,7 @@ The per-client isolation contexts, the eight `mapper-ane0` translation mappers i
 
 The preload executable is the M1-generation real-time-kernel image, build identity `RTKit-3255.120.11.release`, chip tag `ASC_CHINOOK`.
 The task roster, priority bands, heap and pool model, execution-loop command set, scheduler deadline, and fault post-mortem layout; the command-record classes and their `sCSneCmdProcedureCall*` invariants; the doorbell-emit sequence around bit 39 of `S3_3_C15_C8_0`, host-notify site `@0x4c890`, and engine-to-graphics-processor doorbell at `0x2_0646_8000`; the bring-up order, seven MMIO banks, RTBuddy endpoint, and three scratch handshakes; and the per-run statistics buffer with its header, per-engine descriptors, and host-side null gate are decompile-derived from the embedded strings, assertion expressions, and disassembled handlers.
-The firmware has no public counterpart and is reported as reverse-engineered from the unencrypted image; Apple documents only the model framework and conversion tools that sit above this layer.
+The firmware has no public counterpart and is reported as reverse-engineered from the unencrypted image; Apple documents only the model framework and conversion tools above this layer.
 The CHINOOK control-CPU register map, its eleven thread contexts, level-two cache, and pipeline error-capture and power-down-save registers, is decompile-derived from the kernel driver.
 
 ### Chapter 30. Host-to-firmware command protocol {.unnumbered}
@@ -255,13 +255,13 @@ The protocol, the command header, and `CSNE_CMD_*` vocabulary have no public cou
 
 The clean 0 mW idle, the 176-second saturating loop holding flat power and throughput under nominal thermal pressure, the first-op power-up tax near 0.5 ms past a 100 ms idle gap, and the single held power state across 56,527 dispatches are M1/H13 measured by read-only tracing.
 The power-block base `0x2_6b8f_0000`, the opaque voltage base `0x2_3b70_c008`, the five-store power-block arm, the `0x11` peak-power control word, the engine and power-manager device-tree nodes (`ane0@84000000`, `compatible "ane,t8020"`, the `0x2_8400_0000` aperture, the `0x2_8E08_0000` power-manager slice), the absence of local DVFS, and firmware seven-step credit sequence are decompile-derived from the H13 firmware Mach-O and live device-tree enumeration.
-Apple documents neither the power model, the fixed operating point, nor the thermal behavior; with nothing public to check against, this account is reported as reverse-engineered and measured.
+Apple does not document the power model, the fixed operating point, or the thermal behavior; with nothing public to check against, this account is reported as reverse-engineered and measured.
 
 ### Chapter 32. Security and isolation {.unnumbered}
 
 The cross-process timing side-channel (a 2.3 times latency jump under contention and a 20 to 50 bit/s occupancy channel) and the intact data isolation across 9000 concurrent results are M1/H13 measured.
 The kernel-side trust boundary and its three program checks (code signature, vnode trustcache, client code-signing identity), the firmware's structural-only check, and the secure and exclave method bodies (the secure-mode transition state machine, the `SwitchExclaveMode not supported` stub, the inert `mov w0, #0; ret` exclave selectors) are decompile-derived from the loaded kernel driver and the firmware image.
-This chapter is reported as reverse-engineered and measured throughout, Apple documenting neither the secure and exclave transition internals nor the cross-process isolation behavior.
+This chapter is reported as reverse-engineered and measured throughout, because Apple does not document the secure and exclave transition internals or the cross-process isolation behavior.
 On the M5 the exclave is live rather than stubbed: the secure component `com.apple.aneexclave`, its capability-scoped segment access, and the Tightbeam submit path are decompile-derived from the M5 exclave bundle and boot kernelcache, with System Integrity Protection enabled.
 
 ### Chapter 33. Telemetry and hardware counters {.unnumbered}

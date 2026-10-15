@@ -104,7 +104,7 @@ The engine rail, sampled read-only at five-second cadence, pins at about 5.5 wat
 Thermal pressure reads Nominal on every sample, and the engine never leaves its single clock state, with the steady draw set by the workload's utilization as the previous section describes.
 The M1 engine does not throttle on this workload over 3.5 minutes: it runs at one clock state and stays there.
 
-What moves first-call latency sits at the boundaries of a burst ([table](#tbl:c10-phases)).
+What moves first-call latency is at the boundaries of a burst ([table](#tbl:c10-phases)).
 
 | Phase | Behavior on the M1 |
 | --- | --- |

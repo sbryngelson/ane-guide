@@ -14,7 +14,7 @@ This chapter maps those layers and marks the one this Part enters.
 ## Layered stack
 
 The full stack runs from the application down to the silicon, with two routes reaching the runtime ([figure](#fig:c5-stack)).
-Below the four user-space layers, out of the dispatch band, sit a system daemon and a kernel driver.
+A system daemon and a kernel driver are below the four user-space layers, out of the dispatch band.
 
 ```mermaid
 %% caption: The full stack from an application down through the kernel driver, the engine firmware, and the silicon, with the two routes to the runtime. {#fig:c5-stack}
@@ -82,7 +82,7 @@ The execution runtime exports a flat C facade over a C++ core in the `E5RT::` na
 The client layer is Objective-C, every class prefixed `_ANE`.
 The daemon communicates over a private interprocess protocol whose selectors hold the arguments verbatim.
 The shim into the kernel driver is the `ANEServices` C and C++ entry points, which lower to the IOKit `IOConnectCall*` calls on the engine's user client.
-Each family stands beside its layer in [table](#tbl:c5-symbols).
+Each family appears beside its layer in [table](#tbl:c5-symbols).
 
 | Layer | Symbol family (entry points) |
 | --- | --- |

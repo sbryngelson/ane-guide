@@ -5,7 +5,7 @@
 > Beneath it the hardware container is a Mach-O-shaped file with the magic `0xbeefface`, holding the register-write program and the weight banks.
 > The descriptor tracks dispatch count, not operation count.
 > A fused graph of any depth reduces to one inference operation bracketed by input and output casts, and a bridge cut adds one per segment.
-> Between them sits the hardware task descriptor `ZinAneTdHw_v10`, a register image in seven groups.
+> Between them is the hardware task descriptor `ZinAneTdHw_v10`, a register image in seven groups.
 > It serializes sparsely as 44-byte records whose buffer bases are relocation slots resolved at load.
 
 ## Two layers

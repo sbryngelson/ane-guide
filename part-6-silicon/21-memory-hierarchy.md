@@ -161,7 +161,7 @@ Table: The device-translation parameters for the engine, read from the live devi
 The aperture is 3.5 GiB, but the firmware clamps every address it programs into a DMA engine to the bottom 4 GiB by asserting that the high 32 bits of every buffer address are zero, so the engine is confined to the bottom of its device-virtual space.
 Each page maps to physical memory through a single 64-bit leaf descriptor: for every live engine data page the descriptor is the physical frame address with bit 63 set, the valid bit, and no other field.
 The descriptor reads $\mathrm{phys} \mathbin{|} \mathtt{0x8000000000000000}$ for an input, weight, intermediate, or output page alike, since the physical frames are 16 KB-aligned and leave the high bits free; unmap clears the descriptor to zero, dropping the valid bit.
-Read-only protection of the inputs sits outside the leaf descriptor on the M1: a configuration bit collapses the would-be read-only class into read-write at the translation unit, so input protection is enforced upstream.
+Read-only protection of the inputs is outside the leaf descriptor on the M1: a configuration bit collapses the would-be read-only class into read-write at the translation unit, so input protection is enforced upstream.
 
 Each mapped buffer holds a usage code that records its role ([table](#tbl:c21-usage-codes)).
 
