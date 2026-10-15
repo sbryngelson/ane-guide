@@ -1,8 +1,11 @@
 # 25. Compression internals
 
-> Every weight blob has a format enum, an integer 1 through 31, that keys five parallel helper tables controlling all packing; the palette range is 7 through 27 and the unity range is 28 through 30.
-> The engine reconstructs four compression forms: per-tensor and per-channel int8 affine, int4 lookup-table, structured sparsity, and blockwise affine, each a distinct dequantization chain the converter decodes into a kernel format.
-> Two gates decide whether a compressed weight streams in its compressed bytes or folds to a dense half-precision constant: the kernel-streaming master at offset `0x48f` and the per-format palette and affine cluster at `0x520` through `0x539`.
+> Every weight blob has a format enum, an integer 1 through 31, keying five parallel helper tables that control all packing.
+> The palette range is 7 through 27; the unity range is 28 through 30.
+> The engine reconstructs four compression forms: per-tensor and per-channel int8 affine, int4 lookup-table, structured sparsity, and blockwise affine.
+> Each is a distinct dequantization chain the converter decodes into a kernel format.
+> Two gates decide whether a compressed weight streams or folds to a dense half-precision constant.
+> They are the kernel-streaming master at offset `0x48f` and the per-format palette and affine cluster at `0x520` through `0x539`.
 > On the M1 only the int4 lookup-table and structured-sparsity forms stream; int8 and blockwise fold to dense through the dequantize-to-dense path.
 
 Chapter 7 stated which compressed weight forms reach the engine and which save bandwidth.

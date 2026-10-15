@@ -1,7 +1,9 @@
 # 5. Software stack
 
-> Four user-space layers separate an application from the engine, and the execution runtime beneath the model framework is reachable directly with no placement planner and no entitlement for accepted operations.
-> The model framework segments work across the processor, graphics processor, and engine by a shortest-path solve over a per-operation cost graph, reported through the public model-plan read-out.
+> Four user-space layers separate an application from the engine.
+> The execution runtime beneath the model framework is reachable directly, with no placement planner and no entitlement for accepted operations.
+> The model framework segments work across the processor, graphics processor, and engine by a shortest-path solve over a per-operation cost graph.
+> The public model-plan read-out reports that solve.
 > A system daemon holds the single privileged device gate, a content-hashed program cache, and one time-shared request queue that arbitrates every client.
 
 Part I treated the engine as a machine: a fixed-function matrix accelerator with an fp16 datapath, driven as an autonomous coprocessor through a command mailbox.

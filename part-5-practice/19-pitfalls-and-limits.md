@@ -1,7 +1,11 @@
 # 19. Pitfalls and limits
 
 > Five direct-path failure modes are silent or target-specific.
-> An M1 last-axis-offset slice saturates above 4094, dynamic-weight convolution fails to compile above batch one, the saturating slice kernel is keyed to the M1 target, repeated failed compiles in quick succession can stall the shared compile service, and a true four-character-code image input is not reachable on the direct path.
+> An M1 last-axis-offset slice saturates above 4094.
+> Dynamic-weight convolution fails to compile above batch one.
+> The saturating slice kernel is keyed to the M1 target.
+> Repeated failed compiles in quick succession can stall the shared compile service.
+> A true four-character-code image input is not reachable on the direct path.
 > Each is a property of the private compiler or its data tables, so the defense is a build-time rule rather than a runtime check.
 > Pace compiles after a failure, roughly 15 seconds apart, so a run of failed compiles does not stall the service.
 

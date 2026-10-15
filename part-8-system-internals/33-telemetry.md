@@ -1,7 +1,8 @@
 # 33. Telemetry and hardware counters
 
 > The engine has a hardware performance-counter block of twenty-four per-task-descriptor counters, master enable at `ANEProgramCreateArgs+0x6c`, and free-running firmware timestamp at MMIO `0x2_6b17_8000`.
-> The block geometry and the timestamp are readable, but the per-task-descriptor counter values are not, because one kernel gate blocks them on the unentitled path.
+> The block geometry and the timestamp are readable; the per-task-descriptor counter values are not.
+> One kernel gate blocks them on the unentitled path.
 > Forcing the stats mask non-zero turns a successful load into a rejected one, since the compiled program has no stats-descriptor section for the kernel to size.
 > What remains readable is the whole-engine telemetry outside that gate: DRAM read and write bytes, engine energy in millijoules, and clock-state residency.
 

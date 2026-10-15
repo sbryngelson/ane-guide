@@ -1,7 +1,9 @@
 # 27. Kernel driver and IOKit ABI
 
-> The engine is reached through a single kernel driver and a flat user-client selector ABI, with 17 control-client selectors and 9 direct-path selectors, each pinned to one exact size tuple.
-> Opening either user client is gated on the kernel entitlement `com.apple.ane.iokit-user-access`, which exactly two system binaries hold, so every application reaches the engine through a privileged broker daemon.
+> The engine is reached through a single kernel driver and a flat user-client selector ABI.
+> There are 17 control-client selectors and 9 direct-path selectors, each pinned to one exact size tuple.
+> Opening either user client is gated on the kernel entitlement `com.apple.ane.iokit-user-access`, which exactly two system binaries hold.
+> Every application therefore reaches the engine through a privileged broker daemon.
 > Selector 2 alone reaches a hardware doorbell from user space, through a four-layer call path ending in an MMIO mailbox write.
 > The size tuples match across the M1 and M2-class kernel cache, so the ABI at this layer is family-invariant.
 

@@ -1,9 +1,11 @@
 # 4. Capability surface
 
-> The engine runs the operations on-device perception networks are built from: convolution, matrix multiply, fused attention, the normalizations, the activations, and data movement, all native from the M1 onward.
-> A confirmed set has no hardware path on any family, including reduce_prod, the scatter family, and the recurrent cells; a network that needs one rewrites it.
-> Some operations are family-gated: the texture-engine sampler arrives on the A14, and sin and cos arrive on the A15.
-> A capability attested at one layer is not a reachable operation: three-dimensional convolution has a capability byte yet fails backend lowering on every device, so only a compile-and-run confirms an operation.
+> The engine natively runs what on-device perception networks are built from: convolution, matrix multiply, fused attention, the normalizations, the activations, and data movement, all from the M1 onward.
+> Another set has no hardware path on any family, among them reduce_prod, the scatter family, and the recurrent cells.
+> A network that needs one of those rewrites it.
+> Some operations are family-gated: the texture-engine sampler arrives on the A14, sin and cos on the A15.
+> A capability attested at one layer is not a reachable operation.
+> Three-dimensional convolution has a capability byte yet fails backend lowering on every device, so only a compile-and-run confirms an operation.
 
 What the engine will run is a fixed vocabulary of tensor operations.
 The full operation-by-device table is Appendix A; this chapter gives its shape and the rules for fitting work to the engine.

@@ -1,6 +1,7 @@
 # 28. Address translation and the DART
 
-> The engine reads and writes DRAM through its own IOMMU, the DART, which translates a device address into a physical page at a 16 KB granule across a 3.5 GiB aperture.
+> The engine reads and writes DRAM through its own IOMMU, the DART.
+> It translates a device address into a physical page at a 16 KB granule across a 3.5 GiB aperture.
 > A normal engine page is one 64-bit leaf word, the physical frame located unshifted with bit 63 set: $\mathrm{leaf} = \mathrm{phys} \mathbin{|} \mathtt{0x8000000000000000}$.
 > Program-create re-bases each host-mapped buffer into a firmware aperture with high half `0x1bc4`, a second translation with no constant offset.
 > The fault-capture registers cannot be read on the M1, because every function on the fault path ends in a kernel panic.

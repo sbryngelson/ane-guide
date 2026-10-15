@@ -1,6 +1,7 @@
 # Revision history
 
-> This guide has two editions: a living web and PDF edition that updates as findings are added or corrected, and a periodic arXiv snapshot that carries a fixed version number.
+> This guide has two editions.
+> The living web and PDF edition updates as findings are added or corrected; the arXiv snapshot carries a fixed version number.
 > Each edition is numbered and dated; v1 is the original release and the arXiv edition is the stable point to cite.
 
 The web edition and the PDF rebuild whenever a finding is added, corrected, or hardened, and each edition is numbered and dated on the title page, beginning with v1.

@@ -1,6 +1,7 @@
 # 11. ANE, GPU, and CPU
 
-> The engine is faster and more efficient on convolution, vision, short-sequence attention, and mid-size matrix multiply, running a sixteen-deep convolution stack about 4.2 times faster than the GPU at about 13 times the energy efficiency on the M5.
+> The engine leads on convolution, vision, short-sequence attention, and mid-size matrix multiply.
+> A sixteen-deep convolution stack runs about 4.2 times faster than on the GPU, at about 13 times the energy efficiency on the M5.
 > The GPU is about 2.8 times faster on large square matrix multiply, long-sequence attention, and bandwidth-bound decode.
 > The CPU is fastest on the trivial operations that fall below the 0.23 ms dispatch floor.
 > Serving moves the line: the GPU overtakes the engine on a batched encoder block near a batch of 23 and on self-attention near a batch of 6.

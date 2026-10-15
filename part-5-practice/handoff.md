@@ -1,6 +1,8 @@
 # Interlude. Below the API: how the engine works
 
-> A reader who only dispatches work to the engine can stop at the end of Part V; the back half is the mechanism beneath the programming surface, for reasoning about a numeric result, predicting an unmeasured chip, or debugging a compile failure.
+> A reader who only dispatches work to the engine can stop at the end of Part V.
+> The back half is the mechanism beneath the programming surface.
+> Read it to reason about a numeric result, to predict an unmeasured chip, or to debug a compile failure.
 
 Parts I through V describe the engine as a developer uses it: what it computes, how to reach it, how it performs, what it suits, and how to fit work to it.
 That account stops at the programming surface.

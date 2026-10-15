@@ -1,7 +1,8 @@
 # 20. Datapath and MAC geometry
 
 > The multiply-accumulate array is four cores on the M1, each with an eight-deep accumulator file, reading every geometry constant from a per-chip hardware-abstraction table.
-> The lane width emits eight output channels per cycle in the int8 fast path and four in the default fp16 path, and output channels are the dimension that splits across cores and across accumulator passes.
+> The lane width emits eight output channels per cycle in the int8 fast path and four in the default fp16 path.
+> Output channels are the dimension that splits across cores and across accumulator passes.
 > Each core reduces through a radix-4 tree of fp16-rounded tiles into one wide running accumulator of fp32 class, rounding to fp16 only at the output port.
 > The firmware has no convolution, Winograd, or systolic code: it holds the real-time kernel and the tile, kernel, and output direct-memory-access plumbing, and nothing else.
 

@@ -1,8 +1,9 @@
 # 6. Dispatching without Core ML
 
-> The engine is reachable in five steps from ordinary user space: build a graph, compile it to the program format, load it, bind operand buffers, and dispatch.
-> No placement planner is in the path, and the operations the compiler accepts require no entitlement.
-> A single submission can drive several on-engine steps without a host round-trip per step, at the same rate as the steps issued one host call at a time, so the unentitled path is performance-complete for dispatch.
+> Five steps reach the engine from ordinary user space: build a graph, compile it to the program format, load it, bind operand buffers, and dispatch.
+> No placement planner sits in the path, and the operations the compiler accepts need no entitlement.
+> One submission can drive several on-engine steps with no host round-trip per step.
+> It runs at the same rate as the steps issued one call at a time, so the unentitled path is performance-complete for dispatch.
 
 ## Five steps
 

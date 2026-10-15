@@ -1,9 +1,12 @@
 # 3. Numerics
 
 > The datapath is fp16 end to end with a wide accumulator of fp32 class, so representable sums come back near exact.
-> Convolution, matrix multiply, and normalization keep their precision; a cancellation-heavy step such as the transformer down-projection loses it to per-product fp16 input rounding, not to the accumulator, and needs a wider anchor off-engine.
-> The fp16 ceiling is 65504, and a width-axis slice with a nonzero begin offset applies a fixed gain of sixteen, so a fill above 4094 overflows silently to infinity on the M1 and the A14.
-> Activation lookup tables are accurate to about half a unit in the last place, but they coerce a NaN to a clamp value and have a small origin bias a bit-exact oracle must model.
+> Convolution, matrix multiply, and normalization keep their precision.
+> A cancellation-heavy step like the transformer down-projection loses it to per-product fp16 input rounding, not to the accumulator, and needs a wider anchor off-engine.
+> The fp16 ceiling is 65504, and a width-axis slice with a nonzero begin offset applies a fixed gain of sixteen.
+> A fill above 4094 therefore overflows silently to infinity on the M1 and the A14.
+> Activation lookup tables are accurate to about half a unit in the last place.
+> They coerce a NaN to a clamp value and carry a small origin bias that a bit-exact oracle must model.
 
 Computation on the engine is fp16 with a wide accumulator.
 That property, stated in chapter 1, decides which computations keep their precision on the engine and which lose it.

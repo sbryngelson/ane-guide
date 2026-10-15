@@ -1,6 +1,7 @@
 # Appendix C. Decoded reference tables
 
-> This appendix collects the decoded values cited throughout the guide into one reference: enum tokens, struct layouts, status codes, the register-init table, command table, register map, and program-container schema.
+> This appendix collects the decoded values cited throughout the guide into one reference.
+> They are enum tokens, struct layouts, status codes, the register-init table, command table, register map, and program-container schema.
 > Each section begins with its table, and says when only a representative excerpt of a larger decoded set is reproduced here.
 
 Each section reproduces the representative and structurally important rows of a larger table.

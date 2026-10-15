@@ -1,8 +1,13 @@
 # 32. Security and isolation
 
-> The trust boundary for a submitted program is the kernel driver, not the firmware: the driver checks the program signature, on-disk trustcache, and client's code-signing identity before any work reaches the engine, which then runs only structural bounds checks.
-> Secure mode is a working transition that gives one tenant the quiesced, power-cycled engine; exclave mode is inert `mov w0, #0; ret` selector stubs on the M1 but the live, capability-scoped execution substrate on the M5.
-> The engine is a shared timing and occupancy oracle: a confirmed cross-process side channel leaks a co-tenant's presence and a coarse duty cycle at roughly 20 to 50 bit/s, but never a value, weight, or input.
+> The trust boundary for a submitted program is the kernel driver, not the firmware.
+> The driver checks the program signature, the on-disk trustcache, and the client's code-signing identity before any work reaches the engine.
+> The engine then runs only structural bounds checks.
+> Secure mode is a working transition that gives one tenant the quiesced, power-cycled engine.
+> Exclave mode is inert `mov w0, #0; ret` selector stubs on the M1, and the live, capability-scoped execution substrate on the M5.
+> The engine is a shared timing and occupancy oracle.
+> A confirmed cross-process side channel leaks a co-tenant's presence and a coarse duty cycle at roughly 20 to 50 bit/s.
+> It never leaks a value, weight, or input.
 
 The kernel driver enforces the engine's security model almost entirely above the firmware.
 It vets every program before the work reaches the engine, secure mode isolates one tenant in time, and the one confidentiality gap is a timing side channel that leaks no data.

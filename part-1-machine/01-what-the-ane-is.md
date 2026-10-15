@@ -1,9 +1,10 @@
 # 1. What the ANE is
 
 > The Apple Neural Engine is a fixed-function fp16 matrix accelerator with a wide accumulator, reachable directly below Core ML.
-> The fp16 product path and wide accumulator explain much of the engine's numerical behavior and contribute to its efficiency.
-> It is faster than the GPU on compute-bound vision and convolution, 3.8 times faster and 9 times more efficient on a 256-channel 3x3 convolution; the GPU leads only on bandwidth-bound decode.
-> The overhead-isolated compute slope reaches nearly 12 fp16 TFLOP/s against 85 GB/s of DRAM bandwidth, with a 2 MB on-chip working-set threshold as the primary design limit.
+> That pairing explains most of its numerical behavior and much of its efficiency.
+> It leads on compute-bound vision and convolution: 3.8 times faster than the GPU on a 256-channel 3x3 convolution, at 9 times the efficiency.
+> The GPU leads only on bandwidth-bound decode.
+> The overhead-isolated compute slope nears 12 fp16 TFLOP/s against 85 GB/s of DRAM, and a 2 MB on-chip working set is the binding limit.
 
 The Apple Neural Engine is a fixed-function matrix accelerator built into every recent Apple system on chip, from the A11 and the M1 onward.
 It runs the feed-forward neural networks of on-device perception, vision and speech, at low power, and leaves the CPU and the GPU free for the rest of the system.

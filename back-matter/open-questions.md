@@ -1,6 +1,8 @@
 # Open questions
 
-> Open questions fall into three kinds: questions another chip or an on-silicon probe would answer, questions the sanctioned entitlement would answer, and questions that are impossible to answer because the data does not exist or the silicon leaves no observable trace.
+> Open questions fall into three kinds.
+> Some another chip or an on-silicon probe would answer; some the sanctioned entitlement would answer.
+> The rest are impossible, because the data does not exist or the silicon leaves no observable trace.
 > Each item gives why it is open and what would close it.
 
 The engine is decoded from the host call down to the register writes, and everything that exists as bytes or strings has been resolved into human-readable form.

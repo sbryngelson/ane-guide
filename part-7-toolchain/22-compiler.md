@@ -1,8 +1,11 @@
 # 22. Compiler
 
-> The compiler turns a network description into a loadable program through four phases: fusion to one compute operation, legalization to the hardware envelope, schedule and task-descriptor partition under the on-chip working set, and memory and direct-memory-access optimization.
-> A frontend operation lowers to one or more backend `anec.*` operations, most one to one, with a convolution absorbing its bias, activation, padding, and dequantize into a single fused operation.
-> An exported `_ANECValidate{Op}Layer` entry point checks each operation first, one of 50 per-layer validators among 55 `_ANECValidate*` exports, and a callable validator signals that an operation is reachable on the direct path.
+> The compiler turns a network description into a loadable program through four phases.
+> They are fusion to one compute operation, legalization to the hardware envelope, schedule and task-descriptor partition under the on-chip working set, and memory and direct-memory-access optimization.
+> A frontend operation lowers to one or more backend `anec.*` operations, most of them one to one.
+> A convolution absorbs its bias, activation, padding, and dequantize into one fused operation.
+> An exported `_ANECValidate{Op}Layer` entry point checks each operation first, one of 50 per-layer validators among 55 `_ANECValidate*` exports.
+> A callable validator signals that an operation is reachable on the direct path.
 > A validator that accepts does not guarantee code generation: top-k, sort, dynamic-slice, and three-dimensional convolution pass validation and fail backend lowering on the M1.
 
 ## Pipeline

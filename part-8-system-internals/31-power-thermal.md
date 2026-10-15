@@ -1,7 +1,9 @@
 # 31. Power and thermal
 
-> The engine runs at one fixed clock with no voltage or frequency scaling, and manages power through a peak-power regulator armed once at power-up by five loop-free stores with the control word `0x11`.
-> Idle reads 0 W with rails off, a sustained convolution holds flat at about 1.66 W over 176 seconds, and the densest peak reaches about 4.7 W at 6.96 TFLOP/s.
+> The engine runs at one fixed clock, with no voltage or frequency scaling.
+> It manages power through a peak-power regulator, armed once at power-up by five loop-free stores with the control word `0x11`.
+> Idle reads 0 W with rails off.
+> A sustained convolution holds flat at about 1.66 W over 176 seconds, and the densest peak reaches about 4.7 W at 6.96 TFLOP/s.
 > The firmware has no thermal logic and reads no temperature; thermal protection is off-engine in the system power manager.
 
 The engine runs at one fixed operating point and manages power through a peak-power regulator, not a frequency sequence.

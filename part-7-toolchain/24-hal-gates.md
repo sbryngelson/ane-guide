@@ -1,9 +1,12 @@
 # 24. HAL and capability gates
 
 > The compiler is one binary that builds any chip in the line from a per-chip data table, the hardware abstraction layer, read at compile time.
-> The table holds scalar fields indexed by byte offset for the numeric limits and a dense capability-byte region at offsets `0x48f` through `0x8cc`, each byte read as `hal[offset] & 1` to gate one operation or format.
-> Operation legality is declared on the operation as a `MinimumFamily<N>` trait: native only when the target family index is `N` or greater, and decomposed below the floor, with no compute operation floored above A15.
-> A capability in the table attests support at the layer that reads it and does not prove the operation runs: three-dimensional convolution has its kernel-depth attestation at `0x70` and fails backend lowering on every device mask.
+> The table holds scalar fields indexed by byte offset for the numeric limits.
+> A dense capability-byte region runs from offset `0x48f` through `0x8cc`, each byte read as `hal[offset] & 1` to gate one operation or format.
+> A `MinimumFamily<N>` trait on the operation declares its legality: native only when the target family index is `N` or greater, decomposed below that floor.
+> No compute operation floors above A15.
+> A capability in the table attests support at the layer that reads it; it does not prove the operation runs.
+> Three-dimensional convolution has its kernel-depth attestation at `0x70` and fails backend lowering on every device mask.
 
 What separates one target from the next is a per-chip data table, read at compile time, that records every size limit and every per-operation switch for that silicon.
 

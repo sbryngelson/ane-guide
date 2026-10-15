@@ -1,7 +1,9 @@
 # 13. Vision, convolution, and encoders
 
-> A 256-channel 3x3 convolution runs about 3.8 times faster than the GPU at about 9 times the energy efficiency, and the engine draws less absolute power on every workload class measured.
-> Serve encoders and embeddings on the engine below a batch of about 23, a self-attention block below a batch of about 6, and vision convolution at every batch.
+> A 256-channel 3x3 convolution runs about 3.8 times faster than the GPU, at about 9 times the energy efficiency.
+> The engine also draws less absolute power on every workload class measured.
+> Serve encoders and embeddings on the engine below a batch of about 23, and a self-attention block below a batch of about 6.
+> Serve vision convolution on it at every batch.
 > On-engine image preprocessing arrives on the A14 generation and later; the M1 has no texture engine.
 > On the M1 and the A14, keep slice and crop source magnitudes below 4094 on the width axis or they saturate to infinity.
 

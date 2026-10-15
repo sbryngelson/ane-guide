@@ -1,9 +1,12 @@
 # 7. Weights and compression
 
-> The engine reconstructs four compressed weight forms at the multiplier input, and on the unentitled direct route a form either streams its compressed bytes for a bandwidth gain or folds to dense fp16 for none.
-> Which outcome applies to a form is set by the target chip: the M1 streams only int4 lookup-table at 2.37 times fp16 and structured sparsity at 1.55 to 1.64 times, and folds int8 and blockwise affine.
+> The engine reconstructs four compressed weight forms at the multiplier input.
+> On the unentitled direct route a form either streams its compressed bytes for a bandwidth gain or folds to dense fp16 for none.
+> The target chip decides which.
+> The M1 streams only int4 lookup-table, at 2.37 times fp16, and structured sparsity at 1.55 to 1.64 times; it folds int8 and blockwise affine.
 > The M5 streams all four at 1.6 to 1.8 times.
-> Choose the form by what streams on the target, and on the M1 fall back to int8 only where its halved stored size pays, since the int8 fold expands to fp16 in DRAM and yields no bandwidth there.
+> Choose the form by what streams on the target.
+> On the M1, fall back to int8 only where its halved stored size pays, since the int8 fold expands to fp16 in DRAM and yields no bandwidth there.
 
 A compiled network holds its weights as a separate stream that the engine reads from DRAM on every dispatch.
 The weight stream is the primary cost of any layer whose arithmetic intensity is low, which covers most decode-shaped and projection-heavy work.

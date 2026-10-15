@@ -1,8 +1,10 @@
 # 30. Host-to-firmware command protocol
 
-> The host drives the engine with one message protocol over a shared mailbox: a fixed `sCSneControllerCmdHdr` header naming a program, process, and procedure, followed by a command body.
+> The host drives the engine with one message protocol over a shared mailbox.
+> A fixed `sCSneControllerCmdHdr` header names a program, process, and procedure, and a command body follows.
 > The dispatched command space on the M1 is 93 identifiers, `0x00` through `0x5c`, indexed by `eCSneCmdId`, with `0xFFFFFFFF` reserved as the invalid sentinel.
-> A submission posts to a bound ring endpoint, the controller validates and queues it by priority, runs it, and returns completion as a firmware-to-host notification in the same identifier space.
+> A submission posts to a bound ring endpoint.
+> The controller validates it, queues it by priority, runs it, and returns completion as a firmware-to-host notification in the same identifier space.
 
 The in-package controller is a real-time-kernel firmware image, and the host communicates with it through a ring-buffer endpoint with a single command vocabulary, `CSNE_CMD_*`, the controller-side neural-engine command set.
 This chapter covers the wire protocol between the host-side execution model of chapter 2 and the program file layers of chapter 23.

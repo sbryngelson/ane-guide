@@ -1,8 +1,11 @@
 # 15. Training on the engine
 
-> The engine has no backward operation, yet a full forward, backward, and optimizer loop runs as ordinary inference-style graph operations with the optimizer state resident across steps.
-> The registered gradient set matches the closed form to a cosine of $1.0000$, so transformers, normalization-based convolutional networks, and gated linear networks all train end to end.
-> A small convolutional network trains to a final test accuracy of $0.9080$ on the M1 and $0.9070$ on the M5 at a loss scale of 1024, a difference of one test sample in one thousand.
+> The engine has no backward operation.
+> A full forward, backward, and optimizer loop still runs as ordinary inference-style graph operations, with the optimizer state resident across steps.
+> The registered gradient set matches the closed form to a cosine of $1.0000$.
+> Transformers, normalization-based convolutional networks, and gated linear networks all train end to end.
+> A small convolutional network trains to a final test accuracy of $0.9080$ on the M1 and $0.9070$ on the M5, at a loss scale of 1024.
+> That is a difference of one test sample in one thousand.
 > The conv weight-gradient saturates above 4094 on the width axis on the M1 and M2, so a preflight check guards that one numeric edge.
 
 There is no backward operation, no gradient layer, and no adjoint primitive in the compiler's operation catalog.

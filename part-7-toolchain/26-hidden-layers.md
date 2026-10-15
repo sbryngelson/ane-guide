@@ -1,8 +1,11 @@
 # 26. Hidden layers and direct netplist authoring
 
-> The compiler validates and lowers a native catalog of 45 hardware layer descriptors, and the model converter surfaces only the subset its public operation set covers.
+> The compiler validates and lowers a native catalog of 45 hardware layer descriptors.
+> The model converter surfaces only the subset its public operation set covers.
 > Authoring the network description directly reaches the rest, including fused attention, ranking, spatial rearrangement, and geometry layers, each cutting its own dispatch segment.
-> Authoring does not bypass a family gate: the texture-engine samplers are accepted from the A14 and the whole-tensor arg-min and arg-max from the A15, both rejected on the M1, and a layer is confirmed only by a compile-and-run on the target.
+> Authoring does not bypass a family gate.
+> The texture-engine samplers are accepted from the A14 and the whole-tensor arg-min and arg-max from the A15, both rejected on the M1.
+> A layer is confirmed only by a compile-and-run on the target.
 
 The engine implements more layer kinds than the high-level conversion path emits.
 Authoring the network description directly reaches the rest, including several layers a later chip accepts and the M1 rejects.

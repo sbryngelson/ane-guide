@@ -1,9 +1,9 @@
 # 2. Execution model
 
-> The engine runs as an autonomous coprocessor: a network compiles once into the engine's program format, then dispatches many times against that one program.
-> The compile phase is costly and belongs out of the hot loop; the dispatch phase binds operands, posts one mailbox command, and waits.
-> The compiled program is a static graph the hardware walks, so control flow is fixed at compile time and cannot depend on runtime values.
-> A buffer can stay resident across dispatches, so a key-value cache or optimizer state persists in place without a host round-trip.
+> The engine is an autonomous coprocessor: a network compiles once into its program format, then dispatches many times against that one program.
+> Compiling is costly, so keep it out of the hot loop; dispatch binds operands, posts one mailbox command, and waits.
+> The compiled program is a static graph the hardware walks, so control flow is fixed at compile time and cannot read runtime values.
+> A buffer can stay resident across dispatches, so a key-value cache or optimizer state persists without a host round-trip.
 
 ## Compile once, dispatch many
 

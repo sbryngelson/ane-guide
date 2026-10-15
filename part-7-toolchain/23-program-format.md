@@ -1,9 +1,12 @@
 # 23. Program and container format
 
-> A compiled network reaches the engine as two layered files: a dispatch descriptor, a FlatBuffer that names the operations and binds the buffers, over a hardware container.
-> The hardware container is a Mach-O-shaped file with the magic `0xbeefface` that holds the register-write program and the weight banks.
-> The descriptor tracks dispatch count, not operation count: a fused graph of any depth reduces to one inference operation bracketed by input and output casts, and a bridge cut adds one inference operation per segment.
-> Between them is the hardware task descriptor `ZinAneTdHw_v10`, a register image in seven groups, serialized sparsely as 44-byte records whose buffer bases are relocation slots resolved at load.
+> A compiled network reaches the engine as two layered files.
+> The upper one is a dispatch descriptor, a FlatBuffer that names the operations and binds the buffers.
+> Beneath it the hardware container is a Mach-O-shaped file with the magic `0xbeefface`, holding the register-write program and the weight banks.
+> The descriptor tracks dispatch count, not operation count.
+> A fused graph of any depth reduces to one inference operation bracketed by input and output casts, and a bridge cut adds one per segment.
+> Between them sits the hardware task descriptor `ZinAneTdHw_v10`, a register image in seven groups.
+> It serializes sparsely as 44-byte records whose buffer bases are relocation slots resolved at load.
 
 ## Two layers
 

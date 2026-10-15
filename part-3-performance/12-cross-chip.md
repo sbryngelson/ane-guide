@@ -1,9 +1,11 @@
 # 12. Across the chip family
 
 > An M(n) chip has the H(n+12) ANE architecture, so M1 is H13 and M5 is H17.
-> A network that compiles and runs on one generation compiles and runs on the others, because one compiler binary builds every target and only a per-target data table changes.
-> The single property that varies from chip to chip is fp16 numerics, and it varies only at a unit in the last place.
-> Target the generation a network needs by its operation set, then verify per chip only the cancellation-sensitive reductions and the width-axis slices.
+> A network that compiles and runs on one generation does so on the others.
+> One compiler binary builds every target, and only a per-target data table changes.
+> Only fp16 numerics vary from chip to chip, and only at a unit in the last place.
+> Target the generation a network needs by its operation set.
+> Then verify per chip only the cancellation-sensitive reductions and the width-axis slices.
 
 ## Naming rule
 

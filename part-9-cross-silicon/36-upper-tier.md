@@ -1,8 +1,10 @@
 # 36. Predicted upper tier
 
-> Two datapaths are above the M5 in the compiler that no part measured here can run: an fp8 weight and activation format, and a multi-die collective communication layer.
+> Two datapaths sit above the M5 in the compiler, and no part measured here can run them.
+> They are an fp8 weight and activation format, and a multi-die collective communication layer.
 > Both are present as decoded structure, gated off on every family this guide reached, and stated as predicted, not measured.
-> The fp8 gate is the capability byte at offset `0x52d`, set on H18 alone; the collective-enable byte at offset `0x48b` reads zero on all 28 targets.
+> The fp8 gate is the capability byte at offset `0x52d`, set on H18 alone.
+> The collective-enable byte at offset `0x48b` reads zero on all 28 targets.
 
 ## 64-core ceiling
 

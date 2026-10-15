@@ -1,10 +1,14 @@
 # 18. Optimization and the cost model
 
-> The compiler turns a shape into a wall-time estimate through three stages: a cycle count, roofline, and fixed dispatch floor, with only the per-chip parameters changing across the family.
-> On the M1 the model fits the five reference convolutions it was tuned against within plus or minus 17 percent at a peak of 3.25 fp16 TFLOP/s, bandwidth of 9.0 GB/s, and 0.23 ms floor.
+> The compiler turns a shape into a wall-time estimate through three stages: a cycle count, a roofline, and a fixed dispatch floor.
+> Only the per-chip parameters change across the family.
+> On the M1 it fits the five reference convolutions it was tuned against within plus or minus 17 percent.
+> Those fits assume a peak of 3.25 fp16 TFLOP/s, bandwidth of 9.0 GB/s, and a 0.23 ms floor.
 > Across a broader sweep the median error is about 31 percent, so the estimate is an ordinal placement tool rather than an absolute-latency oracle.
-> The same model estimates latency for any of the 28 targets without the chip in hand, since bandwidth scales by core count and the floor by clock.
-> The autotuner ranks equivalent rewrites by this estimate and preserves accuracy by default, with a 3.7 to 5.3 times gain on attention blocks at cosine similarity 1.0.
+> The same model estimates latency for any of the 28 targets without the chip in hand.
+> Bandwidth scales by core count, the floor by clock.
+> The autotuner ranks equivalent rewrites by this estimate and preserves accuracy by default.
+> On attention blocks it gains 3.7 to 5.3 times at cosine similarity 1.0.
 
 The compiler estimates how long a layer will take before it runs.
 The same model drives an ahead-of-dispatch latency estimate for any chip in the family and a deterministic autotuner that ranks equivalent graph rewrites.

@@ -1,9 +1,12 @@
 # 16. Numerical and scientific computing
 
-> Dense linear algebra and fixed-iteration numerics fit the engine, with the wide accumulator holding precision to a condition number of roughly $10^4$ before fp16 input rounding sets the error floor.
-> Dense factorizations and full spectral decompositions run by unrolling into one static graph, reaching about $n = 32$ for the factorizations and about $n = 20$ for the spectral decompositions.
+> Dense linear algebra and fixed-iteration numerics fit the engine.
+> The wide accumulator holds precision to a condition number of roughly $10^4$, after which fp16 input rounding sets the error floor.
+> Dense factorizations and full spectral decompositions run by unrolling into one static graph.
+> They reach about $n = 32$ for the factorizations and about $n = 20$ for the spectral decompositions.
 > The discrete Fourier transform runs as a matrix multiply, fp16-clean to about $N = 2048$.
-> The single architectural limit is a runtime-sized output, not pivoting, since a data-dependent pivot is reached by cutting the graph at the pivot selection.
+> The single architectural limit is a runtime-sized output, not pivoting.
+> A data-dependent pivot is reached by cutting the graph at the pivot selection.
 
 The Apple Neural Engine is a dense fp16 matrix engine with a wide accumulator.
 That hardware structure decides which numerical and scientific kernels run on it without a precision penalty and which the architecture bars.

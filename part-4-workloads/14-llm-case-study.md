@@ -2,7 +2,8 @@
 
 > Autoregressive decode is bandwidth-bound and dispatch-bound, the two regimes the engine loses, so it belongs on the GPU at every batch size.
 > At a batch of 16 the GPU runs decode about 2.7 times faster and about 4.6 times more energy efficient than the engine.
-> Int8 weights halve the weight traffic but leave the hybrid decoder at about 0.99 times the fp16 rate, because the step is dispatch-bound, not weight-bandwidth-bound.
+> Int8 weights halve the weight traffic but leave the hybrid decoder at about 0.99 times the fp16 rate.
+> The step is dispatch-bound, not weight-bandwidth-bound.
 > Send the prefill, encoder, and vision front end to the engine, and send the autoregressive decode to the GPU.
 
 Autoregressive decode is the one major workload class where the engine is not the fastest.

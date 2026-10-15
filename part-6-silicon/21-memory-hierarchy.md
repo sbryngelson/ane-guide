@@ -1,8 +1,12 @@
 # 21. Memory hierarchy
 
-> The engine holds its working data in one on-chip pool whose 2 MB size, at hardware-abstraction-table field `0x1b8` on the M1, is the dominant size limit: a layer whose largest single operand fits stays on-chip, and one that exceeds it is tiled and streamed from DRAM.
-> The pool is interleaved across 64 banks at a 16-byte granule, with the bank index `floor(addr / 16) mod 64`, and a compile-time stride optimizer spreads accesses to avoid conflicts.
-> The pool is a compiler-managed scratchpad, not a demand-filled cache: residency and stride are decided at compile time, so re-reference order does not change which operands are resident.
+> The engine holds its working data in one on-chip pool.
+> Its 2 MB size, at hardware-abstraction-table field `0x1b8` on the M1, is the dominant size limit.
+> A layer whose largest single operand fits stays on-chip; one that exceeds it is tiled and streamed from DRAM.
+> The pool is interleaved across 64 banks at a 16-byte granule, with the bank index `floor(addr / 16) mod 64`.
+> A compile-time stride optimizer spreads accesses to avoid conflicts.
+> The pool is a compiler-managed scratchpad, not a demand-filled cache.
+> Residency and stride are decided at compile time, so re-reference order does not change which operands are resident.
 
 The numbers below come from the engine's hardware-abstraction table, indexed by field offset (for example `0x1b8`); quoted values are the M1/H13 entries.
 
