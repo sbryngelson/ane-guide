@@ -7,13 +7,13 @@
 The Apple Neural Engine (ANE) is among the most widely deployed machine-learning accelerators, yet also among the least documented.
 Apple built the ANE into every Apple system on chip since the A11 in 2017 and the M1 in 2020, so nearly every iPhone and iPad active today has one.
 The count of active Apple devices surpasses 2.5 billion (measured early 2026) [AppleActiveDevices2026].
-On these devices, it largest runs on-device vision, speech, and language models for the operating system and its applications.
+On these devices, it largely runs on-device vision, speech, and language models for the operating system and its applications.
 Of the programmable engines on an Apple chip (CPU, GPU, and ANE), the ANE is the most opaque: there is no public instruction set, no driver interface, and no documented way for a program to confirm that a computation ran on it.
 An application reaches the ANE indirectly, through the lightly documented Apple Core ML framework, which treats the engine as one option behind a placement hint.
-The undocumented measurements of ANE devices are nearly wholesale, including its datapath and numerics, performance and energy envelope, and compiler, program format, kernel driver, firmware, and command protocol.
+The undocumented surface is nearly wholesale: the datapath and numerics, the performance and energy envelope, and the compiler, program format, kernel driver, firmware, and command protocol.
 
-This guide reports information on the ANE not previously available, achieved via a suite of reverse-engineering efforts, from the silicon datapath to the system interface.
-We use two types of evidence, which are confirmed against each other: direct measurement on the Apple silicon and static decompilation and dynamic attachment of the private runtime, compiler, kernel driver, and firmware.
+This guide reports information on the ANE not previously available, recovered through a suite of reverse-engineering efforts, from the silicon datapath to the system interface.
+We use two types of evidence, which are confirmed against each other: direct measurement on Apple silicon, and static decompilation and dynamic attachment of the private runtime, compiler, kernel driver, and firmware.
 The engine is reachable directly, below Core ML and from an ordinary user process.
 The ANE compiler lowers a graph to the engine's own program format, the runtime loads and dispatches it without the model framework, and the operations the compiler accepts need no special entitlement.
 This direct route makes the rest of the device measurable.
@@ -21,7 +21,7 @@ Some of the reported quantities and emitted bytecodes are expected to be fragile
 Thus, this work is meant for measurement, research, and on-device experimentation, not for shipping software.
 
 Performance results are staged around a roofline.
-On the M1 Max, the engine holds about 12 fp16 TFLOP/s of compute and a DRAM-bandwidth ceiling.
+On the M1 Max, the engine holds about 12 fp16 TFLOP/s of compute, bounded above by a DRAM-bandwidth ceiling.
 The roofline has a ridge point near 141 FLOP per byte, a 2 MB working-set threshold, a 0.23 ms floor under any single dispatch, and efficiency near 0.37 picojoules per FLOP at peak compute.
 On a 256-channel 3x3 convolution it runs about 3.8 times faster than the same chip's GPU and is 9 times more energy-efficient.
 The roofline pairs the engine's throughput ceilings with its measured power via shipped device measurement tooling.
@@ -49,7 +49,7 @@ Several further repositories document direct access and runtime APIs [CommunityA
 The performance treatment draws on the roofline literature.
 It is organized around the roofline model [Williams2009] and its later refinements: the energy roofline [Choi2013], the cache-aware roofline [Ilic2014], the instruction roofline [Ding2019], hierarchical roofline analysis [Yang2020], and its application to machine-learning accelerators [Verhelst2025].
 It sits within a wider body of work that measures neural accelerators and edge inference: the in-datacenter analysis of the first tensor processing unit [Jouppi2017], smartphone deep-learning benchmarks [Ignatov2019], edge-platform inference benchmarking [Jayanth2024], energy-and-time roofline studies on edge accelerators [Prashanthi2025], NPU energy efficiency on microcontrollers [Fanariotis2025], LLM inference trade-offs across mobile NPU and GPU under sustained load [Tummalapalli2026], and on-device LLM roofline benchmarking [Bi2026].
-Work closest in workload studies heterogeneous on-device LLM inference: fast NPU inference [Xu2025], GPU-NPU hybrid serving for long context [Moon2025], and mobile-SoC characterization for heterogeneous execution [Chen2025].
+The work closest in workload studies heterogeneous on-device LLM inference: fast NPU inference [Xu2025], GPU-NPU hybrid serving for long context [Moon2025], and mobile-SoC characterization for heterogeneous execution [Chen2025].
 On Apple silicon specifically, Benazir and Lin study mixture-of-experts inference on the NPU [Benazir2026], Hübner and colleagues evaluate the M-series for HPC efficiency [Hubner2025], and the ML.ENERGY project [Zeus2025] treats the programmatic energy measurement the power figures here depend on.
 
 This guide does not claim to be first to reach the engine.

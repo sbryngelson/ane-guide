@@ -195,7 +195,7 @@ All three stages submit as one engine graph per step, so the weights and moments
 | Cross-generation accuracy gap | one test sample in one thousand |
 | Per-operation cross-generation fp16 difference | at most one unit in the last place |
 | Loss-scale accuracies, M1 (128, 1024, 65536) | $0.9070$, $0.9080$, $0.9100$ |
-| Conv weight-gradient saturation, width axis | 4094, where $65504 / 16 \approx 4094$ |
+| Conv weight-gradient saturation, width axis | 4094, where $65504 / 16 = 4094$ |
 | First infinity at fixed shape | loss scale 512 (exact at loss scale 384) |
 | Generations with the saturation | M1 and M2; non-saturating on A15 and later |
 

@@ -117,7 +117,7 @@ An E4M3 weight expands to fp16 going into the multiply, the products accumulate 
 No fp8 accumulator type, register field, or symbol exists in the compiler: the generation-20 format word encodes only the source-one, source-two, and output element formats, with no accumulator-format field.
 E4M3 is a native kernel format, code 6 in the kernel-format set that `ZinSetFormat` admits through the mask `0x3b`, alongside int8, uint8, fp16, and fp32; E5M2 is absent from that set, so it is a conversion and upscaler-input format rather than a kernel format.
 Throughput runs on the same double-rate path int8 uses, gated by `ZinDoubleMacMode::CanUseDoubleMacModeBasedOnFormats`.
-A one-byte activation against a one-byte kernel of the same numeric class is eligible for the double-multiply mode, the eligibility being the exclusive-or term that is true only when the activation-float bit equals the kernel-float bit.
+A one-byte activation against a one-byte kernel of the same numeric class is eligible for the double-multiply mode, the eligibility turning on the exclusive-or of the activation-float and kernel-float bits being zero, which holds only when the two bits agree.
 An E4M3 activation against an E4M3 kernel is both one-byte and both float, so it runs at twice the per-element rate into the fp16 accumulator, while a mixed int8-against-E4M3 pair is not eligible.
 E4M3 is symmetric-only, with the zero point forced to zero, the same constraint the M1 imposes on int8.
 The quantize and dequantize validators reject a zero point with "Zero point is not supported for quant with E4M3 output format", and the same rule reaches the palette layer.

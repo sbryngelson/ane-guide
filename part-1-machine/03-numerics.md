@@ -201,13 +201,13 @@ The bias is below the fp16 storage floor and does not affect the per-op accuracy
 The fp16 maximum finite value is 65504.
 The compute datapath has no fp32 margin, so a value above that saturates to infinity silently.
 
-The multiply-accumulate output stage saturates earlier than the storage format, at exactly $2^{15} = 32768$, half of the fp16 ceiling.
+The multiply-accumulate output stage saturates earlier than the storage format, at exactly $2^{15} = 32768$, just above half the fp16 ceiling.
 This is a different axis from the width-slice gain below: it is a property of the accumulator output port, and it fires on matrix multiply, linear, and any convolution that accumulates two or more taps, whatever the number of accumulation terms.
 The threshold is pinned to the bit: the largest fp16 value below $2^{15}$, which is $32752$, passes through a linear, and the next fp16 value, $32768$, returns infinity.
 It holds for $K = 1$, for $K = 2$, and for a two-channel convolution, so it tracks the would-be output magnitude at the accumulator port and not the count of accumulated terms.
 An interior partial that exceeds $2^{15}$ overflows to infinity even when a later cancellation would have brought the final result back into range.
 The paths that drive a dedicated reduction or a single elementwise multiply hold the full fp16 range instead.
-A reduce-sum rounds to 65504 first and then overflows, an elementwise multiply overflows at the true fp16 limit near 65536, and a pointwise one-by-one convolution with a single input channel passes a fill of 60000.
+A reduce-sum rounds to 65504 first and then overflows, an elementwise multiply overflows at the true fp16 limit of 65504, and a pointwise one-by-one convolution with a single input channel passes a fill of 60000.
 This earlier accumulator ceiling is consistent with the multiply-accumulate datapath having about one bit less margin than the fp16 storage format on the M1, so the guard for a matrix multiply or a multi-tap convolution is to keep the output magnitude below $2^{15}$.
 
 The second saturation a developer encounters is on the slice path.

@@ -111,7 +111,7 @@ The number of passes is
 
 $$\mathrm{OCG\ passes} = \left\lceil \frac{C_{out}}{\mathrm{OCG}} \right\rceil .$$
 
-For a 1-by-1 fp16 convolution at a 32-by-32 spatial size, the per-layer slope shows a distinct super-linear jump in cost between an output-channel count of 192 and 256: a step from 20 microseconds to 61 microseconds per layer, a roughly threefold cost step for a 1.8-fold increase in arithmetic.
+For a 1-by-1 fp16 convolution at a 32-by-32 spatial size, the per-layer slope shows a distinct super-linear jump in cost between an output-channel count of 192 and 256: a step from 20 microseconds to 61 microseconds per layer, a roughly threefold cost step for a 1.33-fold increase in arithmetic.
 That step is the pass count incrementing from one to two as the group cap is reached.
 A 3-by-3 convolution reaches the same threshold at fewer output channels per pass, matching the nine-fold accumulator pressure.
 

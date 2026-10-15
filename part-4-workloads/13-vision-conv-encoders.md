@@ -15,7 +15,7 @@ A 3x3 convolution at 256 channels runs about 3.8 times faster on the engine than
 The advantage widens with depth.
 A sixteen-deep stack of 3x3 convolutions at 256 channels runs about 2 times faster than the GPU and at about 14.5 times its energy efficiency on the M1, the largest power difference in the M1 workload set.
 On the M5 it runs about 4.2 times faster at about 13 times the efficiency.
-A ResNet-18 forward pass runs about 6.1 times faster than the GPU reference and at about 11 times the energy per inference.
+A ResNet-18 forward pass runs about 6.1 times faster than the GPU reference and at about 11 times the energy efficiency per inference.
 
 Two properties of the datapath produce this.
 The first is Winograd.
@@ -91,7 +91,7 @@ Table: Engine versus GPU speed and efficiency across convolution, ResNet, matrix
 
 An encoder forward pass favors the engine at low to moderate batch on both latency and energy.
 A single-sentence encoder runs about 4.4 times faster than the GPU.
-A twelve-layer encoder forward runs about 1.5 times faster and at about 18 times the energy per inference.
+A twelve-layer encoder forward runs about 1.5 times faster and at about 18 times the energy efficiency per inference.
 Short-sequence attention, a transformer block at sequence length 197, is at once the fastest, most efficient, and most accurate in fp16 on the engine, because its partial sums stay in range and the wide accumulator holds their precision.
 
 Batch size moves the choice, because serving batches requests.
