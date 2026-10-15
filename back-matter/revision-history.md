@@ -12,7 +12,8 @@ Each entry separates additions and corrections to the text from changes in the e
 
 ## v3 (October 14, 2026)
 
-- Corrected the fp16 saturation figures in chapter 3: on the elementwise-multiply path the true fp16 limit is 65504, not 65536, and the multiply-accumulate ceiling at 32768 sits just above half the fp16 maximum rather than exactly at half of it.
+- Promoted to arXiv:2606.22283 v2.
+- Corrected the fp16 saturation figures in chapter 3: on the elementwise-multiply path the true fp16 limit is 65504, not 65536, and the multiply-accumulate ceiling at 32768 is just above half the fp16 maximum, where the text had said exactly half.
 - Corrected the convolution cost step in chapter 20, where 192 to 256 output channels is a 1.33-fold increase in arithmetic and had been given as 1.8-fold.
 - Corrected the energy comparisons in chapter 13, which gave the ResNet-18 and twelve-layer-encoder results as multiples of energy rather than of energy efficiency and so inverted their sense against the same two figures in chapter 11.
 - Corrected the double-multiply eligibility rule in chapter 36: the mode applies when the activation-float and kernel-float bits agree, which is when their exclusive-or is zero.
