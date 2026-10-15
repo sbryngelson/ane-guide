@@ -4,21 +4,21 @@
 
 # Introduction {.unnumbered}
 
-The Apple Neural Engine (ANE) is among the most widely deployed machine-learning accelerators, yet also among the least documented.
+The Apple Neural Engine (ANE) is among the most widely deployed machine-learning accelerators, and among the least documented.
 Apple built the ANE into every Apple system on chip since the A11 in 2017 and the M1 in 2020, so nearly every iPhone and iPad active today has one.
 The count of active Apple devices surpasses 2.5 billion (measured early 2026) [AppleActiveDevices2026].
-On these devices, it largely runs on-device vision, speech, and language models for the operating system and its applications.
+On these devices it largely runs the vision, speech, and language models used by the operating system and its applications.
 Of the programmable engines on an Apple chip (CPU, GPU, and ANE), the ANE is the most opaque: there is no public instruction set, no driver interface, and no documented way for a program to confirm that a computation ran on it.
 An application reaches the ANE indirectly, through the lightly documented Apple Core ML framework, which treats the engine as one option behind a placement hint.
-The undocumented surface is nearly wholesale: the datapath and numerics, the performance and energy envelope, and the compiler, program format, kernel driver, firmware, and command protocol.
+What goes undocumented spans the whole stack: the datapath and numerics, the performance and energy envelope, the compiler and program format, the kernel driver, the firmware, and the command protocol.
 
 This guide reports what was not previously available about the ANE, recovered by reverse engineering from the silicon datapath to the system interface.
-We use two types of evidence, which are confirmed against each other: direct measurement on Apple silicon, and static decompilation and dynamic attachment of the private runtime, compiler, kernel driver, and firmware.
+Two kinds of evidence stand behind it, each checked against the other: direct measurement on Apple silicon, and static decompilation and dynamic attachment of the private runtime, compiler, kernel driver, and firmware.
 The engine is reachable directly, below Core ML and from an ordinary user process.
 The ANE compiler lowers a graph to the engine's own program format, the runtime loads and dispatches it without the model framework, and the operations the compiler accepts need no special entitlement.
 This direct route makes the rest of the device measurable.
-Some of the reported quantities and emitted bytecodes are expected to be fragile across operating-system updates.
-Thus, this work is meant for measurement, research, and on-device experimentation, not for shipping software.
+Some of the reported quantities and emitted bytecodes are likely to break across operating-system updates.
+Nothing here should be built into software that has to keep working.
 
 Performance results are staged around a roofline.
 On the M1 Max, the engine holds about 12 fp16 TFLOP/s of compute, bounded above by a DRAM-bandwidth ceiling.
