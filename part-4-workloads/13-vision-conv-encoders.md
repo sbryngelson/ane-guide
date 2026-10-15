@@ -13,17 +13,17 @@ It also covers the on-engine image preprocessing path and the family that gates 
 
 A 3x3 convolution at 256 channels runs about 3.8 times faster on the engine than the same kernel on the GPU, at about 9 times the energy efficiency per result [AppleCoreML].
 The advantage widens with depth.
-A sixteen-deep stack of 3x3 convolutions at 256 channels runs about 2 times faster than the GPU and at about 14.5 times its energy efficiency on the M1, the largest power difference in the M1 workload set.
+Stack sixteen 3x3 convolutions at 256 channels and the engine is about 2 times faster than the GPU at about 14.5 times its energy efficiency on the M1, the largest power difference in the M1 workload set.
 On the M5 it runs about 4.2 times faster at about 13 times the efficiency.
 A ResNet-18 forward pass runs about 6.1 times faster than the GPU reference and at about 11 times the energy efficiency per inference.
 
 Two properties of the datapath produce this.
-The first is Winograd.
+Winograd lowering is one.
 Any dense 3x3 stride-1 convolution with enough channels lowers to the F(2x2, 3x3) transform, which replaces 36 direct multiplies per 2x2 output tile with 16, a factor of about 2.25 reduction in multiplies.
 The compiler selects this path automatically for dense non-unicast 3x3 stride-1 layers and falls back to direct convolution otherwise, so a model written with 3x3 stride-1 layers gets the reduction without any annotation.
-The conv-relevant consequence is that a layer takes Winograd only with enough channels to amortize the transform, and a float kernel requires more than a non-float one; the full eligibility test, two tile sizes, and work-threshold derivation are in chapter 20.
+A layer takes Winograd only with enough channels to amortize the transform, and a float kernel requires more than a non-float one; the full eligibility test, two tile sizes, and work-threshold derivation are in chapter 20.
 There is no accumulator widening tied to the transform; its precision safety is that higher float work threshold, not a wider accumulator.
-The second property is the engine's lower power draw.
+The engine's lower power draw is the other.
 On a large compute-bound matrix multiply the engine draws 4.4 W against the GPU's 32.5 W, a 4.0 times efficiency advantage that holds even on the matrix-multiply class where the GPU runs faster.
 Across the M1 workload set the engine runs at 2 to 14.5 times the GPU's energy efficiency, drawing less absolute power on every class measured.
 
@@ -74,7 +74,7 @@ The convolution variants all map onto the same multiply array, and what differs 
 
 Table: How each convolution variant lowers onto the multiply array on the M1. {#tbl:c13-conv-variants}
 
-The speed and efficiency advantage holds across the workload classes the engine is built for, which [table](#tbl:c13-engine-vs-gpu) gives from the single convolution through ResNet to the encoder.
+The speed and efficiency advantage holds across the workload classes the engine is built for ([table](#tbl:c13-engine-vs-gpu)).
 
 | Workload | Engine vs GPU speed | Engine vs GPU efficiency |
 | --- | --- | --- |
@@ -99,10 +99,7 @@ The engine saturates near a batch of 1 while the GPU scales with batch, which pr
 On a true-batched encoder block the GPU overtakes the engine on throughput near a batch of 23, and on a self-attention block near a batch of 6.
 The energy crossover is at a larger batch than the throughput crossover.
 On vision convolution serving the energy crossover never appears: the engine leads throughput by 3.6 to 5.7 times and energy by 6 to 10 times at every batch from 1 to 256.
-
-Serve encoders and embeddings on the engine below a batch of about 23, and a self-attention block below a batch of about 6.
-Above those points the GPU is the throughput device.
-Vision convolution serving stays on the engine at every batch.
+Above the encoder and self-attention crossovers the GPU is the throughput device.
 
 ## On-engine image preprocessing
 
@@ -111,7 +108,7 @@ The datapath is a DMA-side sampler fused onto a layer rather than a separate pas
 The payoff is the elimination of a host preprocessing stage.
 Image dequantization and resize execute on the engine in the same program as the model, so the resampled tensor never makes a round trip to the host between the camera frame and the first convolution.
 
-One datapath backs a fixed set of front-end operations, each gated by the same parameter-table bool, which [table](#tbl:c13-texture-ops) lists with how each lowers on the A14 generation and later.
+One datapath backs a fixed set of front-end operations, each gated by the same parameter-table bool ([table](#tbl:c13-texture-ops)).
 
 | Operation | Bottoms | Lowering on the A14 and later |
 | --- | ---: | --- |
@@ -138,7 +135,7 @@ The gate is one bit with no finer per-operation granularity: crop-and-resize, re
 The same gate has a precision caveat on the M1 and the A14.
 The crop and slice path applies a width-axis gain of 16, so a source value above 4094 on the width axis saturates to plus or minus infinity, while height, channel, and batch offsets stay free of the saturation.
 Chapter 3 derives the bound and chapter 19 gives the build-time guard.
-The preprocessing consequence is to keep slice and crop source magnitudes below 4094 on the width axis on the M1 and the A14.
+So keep slice and crop source magnitudes below 4094 on the width axis on the M1 and the A14.
 The A15 generation and later sampler avoids this saturation.
 
 ## Keeping the model on the engine
@@ -162,7 +159,7 @@ The datapath runs best with a small set of model-construction choices.
   preprocessing on the engine only on the A14 and later, where the texture
   engine is present.
 
-The native convolution backend operation holds its geometry in a fixed set of attributes that the compiler reads to tile the layer onto the multiply array, given in [listing](#lst:c13-conv-backend).
+The native convolution backend operation holds its geometry in a fixed set of attributes ([listing](#lst:c13-conv-backend)).
 
 ```mlir
 anec.convolution(%input, %weights, %bias) {
@@ -177,7 +174,7 @@ anec.convolution(%input, %weights, %bias) {
 
 Listing: The native convolution backend operation and the geometry attributes the compiler reads to tile a layer onto the multiply array. {#lst:c13-conv-backend}
 
-The matrix-multiply backend operation that the encoder paths and the convolution weight gradient reduce to holds its contraction direction in two attributes rather than a fixed operand order, as [listing](#lst:c13-matmul-backend) shows.
+The encoder paths and the convolution weight gradient both reduce to the matrix-multiply backend operation ([listing](#lst:c13-matmul-backend)).
 
 ```mlir
 anec.matmul(%lhs, %rhs) { transpose_lhs, transpose_rhs }  // depth D must be 1 on both operands
@@ -190,7 +187,7 @@ A trainable convolution lowers its forward and its data gradient onto the native
 ## Fitting a convolution or encoder block on the engine
 
 A vision or encoder block stays on the engine when its layers take the Winograd path, its working set fits on chip, and the whole graph compiles as one program.
-The procedure of [listing](#lst:c13-fit-block) builds the convolution stack as one graph, then locates it against the roofline before any device is available.
+[Listing](#lst:c13-fit-block) applies those conditions in order to a two-stage 3x3 block.
 
 ```python
 # Fit a convolution or encoder block on the engine as one fused program.
@@ -233,7 +230,7 @@ Listing: Fitting a convolution or encoder block on the engine as one fused progr
 
 ## Reference: convolution and encoder economics on the M1
 
-[Table](#tbl:c13-reference) collects the M1 convolution and encoder constants this chapter measures, from the GPU speed ratios through the datapath geometry to the batch thresholds.
+The constants below cover the GPU speed ratios, the datapath geometry, and the batch thresholds ([table](#tbl:c13-reference)).
 
 | Constant | M1/H13 value |
 | --- | ---: |

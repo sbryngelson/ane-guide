@@ -8,12 +8,12 @@
 
 The largest die this guide measured is the 16-core H17s, and the line ends at the 64-core H17d that no part here could run.
 The decode shows that nothing extra is family-gated for the 64-core case beyond the count itself, and the following is read from the compiler rather than measured on a 64-core part.
-Core count is a runtime parameter, the `ne_core_count` value sourced from the hardware-abstraction blob, not a hard-coded per-family constant.
+Core count arrives as a runtime parameter, the `ne_core_count` value sourced from the hardware-abstraction blob, rather than as a hard-coded per-family constant.
 `getDeviceInfo` takes that count as its second argument and buckets it against the thresholds 7, 10, 20, and 40, which straddle the four die sizes 8, 16, 32, and 64 held by the `g`, `s`, `c`, and `d` target suffixes.
 Several device-information fields then scale linearly with the count, and the top bucket reached on the A14-and-above branch stores the 800-unit peak.
 The compiler thus emits a 64-core-scaled cost model for H17d purely from the count of 64, and the geometry is decoded while the realized 64-core throughput stays an on-silicon measurement.
 
-The two datapaths above the M5 are the fp8 weight format and the multi-die collective layer, which [table](#tbl:c36-overview) gives field by field, with each gate and its state on the M5.
+The two datapaths above the M5 are the fp8 weight format and the multi-die collective layer ([table](#tbl:c36-overview)).
 
 | field | E4M3 | E5M2 | collective layer |
 | --- | --- | --- | --- |
@@ -33,8 +33,7 @@ Table: The decoded fields of the two fp8 formats and the collective layer, with 
 
 The compiler has two eight-bit floating-point formats, and they are not symmetric in role.
 They are in the internal `ZinTensorFormat` code-generation and direct-memory-access enumeration, not in the serialization data-type enumeration that the operation attributes use.
-The serialization enumeration runs codes 0 through 10 with fp16 at 3, fp32 at 4, and int8 at 2, and has no fp8 codepoint at all; the fp8 formats are recovered from the byte-size map `_ZinTensorFormatGetSizeInBytes`.
-[Table](#tbl:c36-tensorfmt) gives the fp8 codepoints in the internal tensor-format enumeration, with the integer and half-precision neighbors that bound them.
+The serialization enumeration runs codes 0 through 10 with fp16 at 3, fp32 at 4, and int8 at 2, and has no fp8 codepoint at all; the fp8 formats are recovered from the byte-size map `_ZinTensorFormatGetSizeInBytes` ([table](#tbl:c36-tensorfmt)).
 
 | `ZinTensorFormat` code | Format | Bytes |
 | --- | --- | --- |
@@ -62,7 +61,7 @@ The shipping variant is E4M3FN, the finite-and-NaN form: it has no infinity, the
 A one-bit mode held per direct-memory-access source controls the overflow behavior, $0$ for NaN and $1$ for saturate, so a narrowing cast picks the bit pattern $\mathtt{0x7e}$ for the saturated maximum or $\mathtt{0x7f}$ for NaN.
 The narrower exponent and the $\pm 448$ ceiling cap the representable range below half precision.
 
-E5M2 is a conversion format, not a gated weight format.
+The other format, E5M2, is for conversion rather than for gated weight storage.
 It decodes as
 
 $$x = (-1)^s \, 2^{e - 15} \left(1 + \frac{m}{2^2}\right)$$
@@ -97,7 +96,7 @@ The format-register delta between the M1 and the H18 encoder is exact.
 The M1 generation builds the generation-5 and generation-7 descriptors, whose `SetCommonInFmt` writes a two-bit field at `this+0x48` holding only int8, uint8, and fp16, and the code `0xc` aborts with "Error: Invalid Common InFmt E4M3".
 The generation-20 descriptor that the A17 generation builds packs all three format fields into a 32-bit word at `this+0x228`, widening each lane to three bits.
 `SetCommonInFmt` gives E4M3 the source-one code 4 at bits 2 through 0, `SetCommonSrc2InFmt` gives it the source-two code `0x20` at bits 5 through 3, and `SetCommonOutFmt` gives it a distinct output slot `0x100` at bits 8 through 6.
-[Table](#tbl:c36-fmtreg) gives the task-descriptor format-register delta, showing that the M1 encoder has no bit space for an E4M3 codepoint while the generation-20 encoder widens each lane to three bits.
+[Table](#tbl:c36-fmtreg) gives the task-descriptor format-register delta.
 
 | Field | M1 generation-5 at `this+0x48` | H18 generation-20 at `this+0x228` |
 | --- | --- | --- |
@@ -126,7 +125,7 @@ This is the identical machinery the int4, int8, and fp16 palettes use under temp
 
 ## Multi-die collective layer
 
-[Table](#tbl:c36-collops) gives the collective operations of the multi-die dialect, their backend operation classes, and the unit-type code of each.
+The multi-die dialect's collective operations each carry a backend operation class and a unit-type code ([table](#tbl:c36-collops)).
 
 | silc mnemonic | C++ operation class | role | unit-type code |
 | --- | --- | --- | --- |
@@ -149,7 +148,7 @@ It is a distinct intermediate-language dialect, `mlir::silc`, whose closed opera
 The operation-class list is exactly these, with no reduce-scatter and no broadcast, the all-slice operation standing in for the scatter.
 The collective operations have the attributes `mesh`, `mesh_axes`, `sharding`, the `members` membership list, and `reduce_op`.
 
-The reduction kind is an enumerated attribute decoded directly from the packed-string compare in `symbolizeReductionKind`, which [table](#tbl:c36-redkind) gives token by token.
+The reduction kind is an enumerated attribute decoded directly from the packed-string compare in `symbolizeReductionKind`, token by token ([table](#tbl:c36-redkind)).
 
 | Token | Integer |
 | --- | --- |
@@ -178,7 +177,7 @@ The split requires even divisibility, which the strings "Input tensor dimension 
 The compiler rejects sharding the same mesh dimension twice and allows a replicated section only on a multi-die network.
 
 The reduce-across-the-mesh operation lowers to a collective direct-memory-access that holds a hardware atomic read-modify-write: the reduction happens in memory as the direct-memory-access writes into a shared buffer, which is why the operation requires in-memory-reduction support that the single-die families lack.
-The reduction-to-atomic map is decoded from the `ZinIrReductionTypeToZinAtomicOpType` switch, which [table](#tbl:c36-atomic) gives along with the reductions that have no hardware atomic and are rejected.
+The reduction-to-atomic map is decoded from the `ZinIrReductionTypeToZinAtomicOpType` switch ([table](#tbl:c36-atomic)).
 
 | Reduction type | Atomic-op register value |
 | --- | --- |
@@ -205,7 +204,7 @@ The base addresses are all emitted through `ZinSPMDUtils::GetSymbolOffsetToBaseA
 The layer is decoded but inert in the compiler this guide reads.
 Every collective direct-memory-access register setter is a stub that asserts "CCDMA is not supported for this arch", in every task-descriptor generation present including generation 20, the would-be Ultra path: the body calls the full setter sequence, but the setters abort.
 The collective-enable capability byte at offset `0x48b` reads zero on all twenty-eight targets including the M-class and Ultra-reference targets.
-[Table](#tbl:c36-capbytes) gives the collective and cross-die capability bytes decoded across the twenty-eight targets, with the collective-enable byte clear everywhere.
+The cross-die capability bytes sit alongside it ([table](#tbl:c36-capbytes)).
 
 | Byte | Capability | Floor | M1 (H13) | A14 | A15 | M5 (H17s) | H18 | M-class |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -217,8 +216,7 @@ The collective-enable capability byte at offset `0x48b` reads zero on all twenty
 
 Table: The collective and cross-die capability bytes decoded across the twenty-eight targets, with the collective-enable byte clear everywhere. {#tbl:c36-capbytes}
 
-The compiler thus has the front end of the collective in full: the operation set, mesh and sharding math, reduction-to-atomic map, and per-die dispatch.
-No family in this compiler arms the register encoding that would drive the engine.
+No family in this compiler arms the register encoding that would drive the engine, though the front end is there in full: the operation set, mesh and sharding math, reduction-to-atomic map, and per-die dispatch.
 
 A second-layer gate is in the source-direct-memory-access emitters, where the single-program flag drives an assert "This target does not allow sharding or SPMD functions".
 A third gate in the tasklet emitter asserts "No tasklet for given architecture" when the per-section tasklet bit and the single-program predicate are not both set.
@@ -232,6 +230,5 @@ The distributed unit is the tasklet, the multi-die variant of the descriptor ins
 
 ## What requires newer parts
 
-The fp8 datapath requires an H18-class part to set the capability byte and exercise the native E4M3 multiply.
-The collective layer requires a multi-die part and a newer compiler that arms the collective-enable byte and replaces the register stubs with a real encoding.
+The fp8 datapath requires an H18-class part to set the capability byte and exercise the native E4M3 multiply; the collective layer requires a multi-die part and a newer compiler that arms the collective-enable byte and replaces the register stubs with a real encoding.
 Until that hardware and that compiler are in hand, the encodings here stand as the predicted upper tier of the line.

@@ -4,7 +4,8 @@
 > Secure mode is a working transition that gives one tenant the quiesced, power-cycled engine; exclave mode is inert `mov w0, #0; ret` selector stubs on the M1 but the live, capability-scoped execution substrate on the M5.
 > The engine is a shared timing and occupancy oracle: a confirmed cross-process side channel leaks a co-tenant's presence and a coarse duty cycle at roughly 20 to 50 bit/s, but never a value, weight, or input.
 
-The kernel driver enforces the engine's security model almost entirely above the firmware. It vets every program before the work reaches the engine, secure mode isolates one tenant in time rather than in hardware, and the one confidentiality gap is a timing side channel rather than a data leak.
+The kernel driver enforces the engine's security model almost entirely above the firmware.
+It vets every program before the work reaches the engine, secure mode isolates one tenant in time rather than in hardware, and the one confidentiality gap is a timing side channel that leaks no data.
 
 ## Secure and exclave mode
 
@@ -24,7 +25,6 @@ The kernel driver enforces the engine's security model almost entirely above the
 Table: The secure-mode and exclave mechanisms, with M1 and M5 status and supporting evidence. The M5 was measured with System Integrity Protection enabled. {#tbl:c32-mechanisms}
 
 The firmware has no cryptography of its own, and the secure-boot chain authenticates it externally.
-The trust boundary for user-submitted programs is the kernel driver, which checks the program signature and validates the backing file against the platform trustcache before the work ever reaches the firmware; the firmware then performs only structural bounds checks.
 
 The kernel driver enforces three independent checks on a submitted program before it reaches the firmware.
 The first is a cryptographic signature over the compiled program bytes, run by `AneMachoSignatureCheck` against the platform code-signing trust root, for which the driver links the system cryptography library.
@@ -45,7 +45,7 @@ This is temporal single-engine isolation, not a hardware partition, since the de
 
 The engine firmware has no digital-rights-management or content-decryption code of its own.
 A full string sweep finds no FairPlay, Widevine, PlayReady, or content-decryption module; the only `CDM` token in the image is `CDMediaBusManager`, a Common-DMA media-bus endpoint manager over the inter-processor ring buffers, not a Content Decryption Module.
-Secure-mode exclusivity and the host trust chain handle protected media rather than an in-engine content module.
+Protected media is handled by secure-mode exclusivity and the host trust chain, with no in-engine content module involved.
 The kernel admits a protected workload only after it verifies the program signature and trustcache and puts the engine in secure mode so no other tenant shares it while protected buffers are resident.
 
 Exclave mode is compiled into the loaded binary but dormant on the M1.
@@ -82,8 +82,7 @@ That contention produces a cross-process timing side-channel, confirmed on the M
 A measuring process running a single tiny matmul in a continuous zero-copy loop is near the dispatch floor, where it is sensitive to anything that delays its turn at the engine.
 Alone, that process reads a median per-call latency of 153 microseconds.
 The moment a second process holds the engine with a heavy compute-bound load, the measuring process jumps to a median of about 355 microseconds, a 2.3x increase, because the shared single-in-flight queue serializes its calls behind the contender's.
-Toggling the contender on and off produces a distinct square wave in the victim's latency that tracks the schedule at the exact toggle edges with no false transitions across a 10-second run.
-[Table](#tbl:c32-victim-latency) gives the victim per-call latency as the contender toggles between idle and heavy.
+Toggling the contender on and off produces a distinct square wave in the victim's latency that tracks the schedule at the exact toggle edges with no false transitions across a 10-second run ([Table](#tbl:c32-victim-latency)).
 
 | Contender state | Victim latency p50 | samples |
 | --- | --- | --- |
@@ -97,7 +96,7 @@ The channel reads occupancy, not workload magnitude.
 A near-fixed serialization step of about +178 microseconds appears the instant the contender holds the queue at all, so even its tiniest workload pays almost the full penalty.
 Beyond that step there is only a weak monotonic trend, from 333 microseconds to 395 microseconds as the contender's work grows by a factor of roughly 64.
 The victim thus reliably learns that a co-tenant is running and a rough busy fraction, but cannot finely size individual operations from latency alone.
-The signal is engine-queue serialization rather than unified-memory bandwidth: a concurrent 1 GB-per-loop CPU memory-copy hog moves the victim's latency by only 4 microseconds (a factor of 1.03), so only engine contention drives it.
+The signal tracks engine-queue serialization: a concurrent 1 GB-per-loop CPU memory-copy hog moves the victim's latency by only 4 microseconds (a factor of 1.03), so only engine contention drives it.
 
 As a covert or signature channel the resolution is about 20 to 50 ms.
 Single contender pulses down to 20 ms were each detected.
@@ -110,4 +109,4 @@ All 9000 of 9000 checks were correct with zero mismatches and a maximum relative
 No output ever reflected another process's inputs or weights.
 A separate run held 60 distinct program handles across three processes (20 each) and re-executed every one after all were loaded, with 60 of 60 compiling and re-running and no cross-process eviction at that scale.
 
-The root cause is single-in-flight-per-die scheduling, and there is no per-call isolation control exposed; masking a sensitive workload's duty cycle requires coarse-grain time-slicing, batching, or constant-rate padding above the queue rather than any engine setting.
+The root cause is single-in-flight-per-die scheduling, and there is no per-call isolation control exposed; masking a sensitive workload's duty cycle requires coarse-grain time-slicing, batching, or constant-rate padding above the queue.

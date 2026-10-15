@@ -5,7 +5,7 @@
 > One hard limit is below all of this: a hand-built or self-compiled program is rejected at load with error `0xe00002e2`, so the reachable surface is everything the system daemon's compiler will accept.
 
 The direct route reaches the engine through the execution runtime, below the model framework, with no placement planner in the path.
-The sanctioned route reaches it through the model framework, which adds a segmenter, model container, and set of loader features the direct route does not have.
+The sanctioned route reaches it through the model framework, which adds a segmenter, a model container, and a set of loader features the direct route does not have.
 The direct route reaches the engine's useful compute; four features are behind the framework loader or behind an entitlement.
 This boundary is about technical reachability alone; whether a path is supported by Apple or permitted for distribution is a separate and stricter matter, treated in the front-matter status note.
 
@@ -15,12 +15,12 @@ The operations that on-device perception and numerics networks are built from co
 Two-dimensional convolution and its transpose, matrix multiply, fused attention, the normalizations, the activation tables, pooling, elementwise arithmetic, and the data-movement operations all run, bounded only by the per-chip limits of chapter 4.
 Compressed weights stream where the family supports it and reconstruct to fp16 where it does not.
 The compiler accepts these operations and the runtime dispatches them, and an entitlement gates none of them.
-An entitlement gates a separate set of loader-tier features instead, not the compute the direct route already reaches.
+An entitlement gates a separate set of loader-tier features instead.
 
 ## Features that are gated
 
 Four features are attested in the hardware capability tables or recognized by the compiler frontend, yet do not run on the direct route.
-Each is gated, and the gate is at a different layer in each case, as [table](#tbl:c8-gated) gives with what gates each and how the direct and framework routes behave.
+Each is gated, and the gate is at a different layer in each case ([table](#tbl:c8-gated)).
 
 | Feature | Gated by | Direct path | Entitled/framework path |
 | --- | --- | --- | --- |
@@ -31,8 +31,7 @@ Each is gated, and the gate is at a different layer in each case, as [table](#tb
 
 Table: Features blocked on the direct path, what gates each, and how the direct and framework routes behave. {#tbl:c8-gated}
 
-Each gated feature passes an earlier layer and fails at the one that runs the work.
-[Listing](#lst:c8-attempts) shows where each is admitted and where it stops, for three-dimensional convolution, a bf16 program output, and a symbolic shape.
+[Listing](#lst:c8-attempts) shows where each is admitted and where it stops.
 
 ```python
 # 3D convolution: the frontend recognizes a static-weight 3D conv (it enforces
@@ -55,12 +54,11 @@ tensor<fp16, [1, ?, 64]>
 
 Listing: Where each gated feature is admitted at one layer and rejected at the next, for three-dimensional convolution, a bf16 program output, and a symbolic shape. {#lst:c8-attempts}
 
-A missing backend lowering gates three-dimensional convolution.
 The hardware capability tables advertise a kernel-depth dimension, and the frontend recognizes a three-dimensional convolution with a static weight, but lowering then fails on every device mask with a not-implemented rejection.
 No backend on the M1 has a code-generation path for the three-dimensional convolution operation class.
 The sanctioned route does not run it on the engine either: its segmenter places the operation on the central processor or the graphics processor instead, so on this silicon there is no on-engine path to it for any caller.
 
-An absent hardware primitive gates native stateful types.
+Native stateful types need a hardware primitive the silicon does not have.
 The model framework documents the stateful type and flexible input shapes at developer.apple.com/documentation/coreml, and this account corrects the impression that those documented capabilities run on the engine directly [AppleCoreML].
 The compiler reserves the operation classes for resident state and ring buffers, the operation table even naming a ring-buffer writer and reader and the counter-and-event direct-memory-access opcodes, but the in-place update needs that counter-and-event engine, and it is stubbed out of the M1 hardware descriptor.
 Every register setter for it, the source and destination base addresses, shape and stride setters, atomic-operation and counter-mode setters, and wait-event address and value setters, has a body that asserts the engine is unsupported on this architecture.
@@ -68,7 +66,7 @@ A program that declares native resident state fails the compile, and this gate i
 A resident cache on the M1 is built instead from a shared buffer kept live across dispatches, the documented zero-copy path for this generation.
 The counter-and-event engine arrives on a later generation, so native resident state is a per-family feature there, not an M1 one.
 
-The bf16 program input and output type is gated by the serialization layer and by the datapath.
+The serialization layer and the datapath both block the bf16 program input and output type.
 The dtype enumeration that declares a program's input and output types has eleven codes, covering fp16, fp32, and the integer widths, and bf16 is not among them, so a program that declares a bf16 input or output fails the compile with an unsupported-dtype rejection.
 The framework accepts a bf16 array at its boundary, but it casts to fp16 before the engine segment, so the engine runs no bf16 datapath under the sanctioned route either.
 The fp16 datapath of chapter 3 already holds the accumulation precision a bf16 declaration would otherwise imply.
@@ -93,7 +91,7 @@ The terminal direct-route form is an on-engine integer-to-fp16 dequantization of
 
 The choice between the routes is a choice of loader and convenience, not of reachable compute.
 Vision, encoders, on-device numerics, and training of the supported operation set are built from the operations the direct route compiles and dispatches, none of which the gated set touches.
-The entitled path adds a bounded list: a segmenter that places arbitrary models across three devices with fallback, model container with flexible-shape and stateful wiring, and loader-tier feature set.
+The entitled path adds a bounded list: a segmenter that places arbitrary models across three devices with fallback, a model container with flexible-shape and stateful wiring, and a loader-tier feature set.
 It does not add a different engine: the four gated features are absent on the M1 under both routes, or are matched by a direct-route construction that does the same work.
 
 ## Load-time signature check
@@ -107,10 +105,9 @@ The reachable surface is thus everything the daemon's compiler will accept, not 
 ## Unentitled dispatch path
 
 The kernel driver rejects a binary the client signs itself at load with `0xe00002e2`, so the daemon's compile-and-sign step is not optional.
-The path has three steps.
-First, the client authors the network as intermediate language rather than a loadable binary, since a self-authored binary never passes the load check and the client does not produce the final program itself.
-Second, it hands that intermediate language to the system daemon, the one process able to sign: the daemon compiles and signs it in place, and the returned program carries the signature and trustcache trust the kernel load check requires.
-Third, the client drives the returned signed program over the kernel interface directly, where the corecrypto signature and trustcache checks pass because it is daemon-signed and the program loads onto the engine.
+The client authors the network as intermediate language rather than a loadable binary, since a self-authored binary never passes the load check.
+It hands that intermediate language to the system daemon, the one process able to sign, and the daemon compiles and signs it in place, so the returned program carries the signature and trustcache trust the kernel load check requires.
+The client then drives that signed program over the kernel interface directly, where the corecrypto signature and trustcache checks pass because it is daemon-signed, and the program loads onto the engine.
 
 ## Reference: the boundary constants
 

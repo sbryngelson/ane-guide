@@ -11,8 +11,8 @@ This chapter maps those layers and marks the one this Part enters.
 
 ## Layered stack
 
-Four user-space layers separate an application from the engine, with a system daemon and a kernel driver below them out of the dispatch band.
-[Figure](#fig:c5-stack) shows the full stack from the application down to the silicon, with the two routes that reach the runtime.
+The full stack runs from the application down to the silicon, with two routes reaching the runtime ([figure](#fig:c5-stack)).
+Below the four user-space layers, out of the dispatch band, sit a system daemon and a kernel driver.
 
 ```mermaid
 %% caption: The full stack from an application down through the kernel driver, the engine firmware, and the silicon, with the two routes to the runtime. {#fig:c5-stack}
@@ -42,7 +42,7 @@ flowchart TB
 
 The top layer is the model framework.
 It accepts a trained network, decides which operations the engine can accept, and segments the work across the central processor, graphics processor, and engine under a cost-driven placement planner.
-A caller at this layer does not choose the device and is not told which device ran the work.
+Device choice is not the caller's at this layer, and the placement is never reported back.
 Chapter 1 describes this public surface.
 
 Beneath it is the execution runtime, the layer every path passes through.
@@ -62,7 +62,7 @@ The lowest user-space layer is a thin shim over the kernel driver.
 Its calls translate into driver method invocations on the engine's user client.
 Below that is the kernel driver itself, then the firmware and the silicon.
 
-[Table](#tbl:c5-layers) lists the four user-space layers and their reachability from ordinary user space, with the daemon and kernel driver below them out of the dispatch band.
+[Table](#tbl:c5-layers) lists the four user-space layers and their reachability from ordinary user space.
 
 | Layer | Role | Reachable directly |
 | --- | --- | --- |
@@ -80,7 +80,7 @@ The execution runtime exports a flat C facade over a C++ core in the `E5RT::` na
 The client layer is Objective-C, every class prefixed `_ANE`.
 The daemon communicates over a private interprocess protocol whose selectors hold the arguments verbatim.
 The shim into the kernel driver is the `ANEServices` C and C++ entry points, which lower to the IOKit `IOConnectCall*` calls on the engine's user client.
-[Table](#tbl:c5-symbols) gives the entry-point symbol family that marks each layer, from the execution runtime down to the kernel-driver shim.
+Each family stands beside its layer in [table](#tbl:c5-symbols).
 
 | Layer | Symbol family (entry points) |
 | --- | --- |
@@ -121,7 +121,7 @@ The `force_recompilation` key bypasses the cache fetch and rewrites the bundle u
 The split between the daemon and the client described above resolves to specific kernel-driver selectors, measured by read-only tracing of `IOConnectCall*Method` on this M1.
 Per-inference submit is `IOConnectCallAsyncMethod` selector 2, the `ANE_ProgramSendRequest` handler in the H11ANE dispatch table, and the unentitled client issues it directly: a freshly compiled program issued selector 2 exactly once per execute, observed in the client process and never in the daemon.
 The daemon issues only the lifecycle selectors over its own connection during the same compile and prepare, the synchronous selectors 3 through 6 for program destroy, status, instance create with unprepare, and program create.
-The division of labor is thus precise: the daemon compiles the network and creates, prepares, and destroys the program object over IOKit, while the client submits each inference over selector 2 itself.
+The division of labor is precise: the daemon compiles the network and creates, prepares, and destroys the program object over IOKit, while the client submits each inference over selector 2 itself.
 A warm re-execute on an already-submitted program issued no additional `IOConnectCall` from the client, since the runtime reuses the armed async submit ring and signals the engine without a fresh external method per call.
 This is consistent with the warm-eval cost being firmware round-trip bound rather than dispatch-call bound.
 
@@ -143,7 +143,7 @@ These are documented at developer.apple.com/documentation/coreml [AppleCoreML].
 
 The segmenter is a named pipeline inside the ahead-of-time compiler.
 The compiler canonicalizes the intermediate program for the platform, expands the requested compute-unit mask into a set of backend identifiers, then runs one of three segmenters over the graph.
-[Table](#tbl:c5-segmenter) names the segmenter's stages inside the ahead-of-time compiler, from eligibility through validity and cost to segmentation.
+Its stages run from eligibility through validity and cost to segmentation ([table](#tbl:c5-segmenter)).
 
 | Stage | Component | Role |
 | --- | --- | --- |
@@ -176,7 +176,7 @@ It holds a quality-of-service value on every request and adjusts a client's requ
 A request from a developer-signed program and a request from a system dispatcher arrive at the same broker, and the same queue arbitrates both.
 
 The daemon is the one process holding the kernel gate, and its interprocess surface is the program-lifecycle protocol every client drives.
-The program-instance method holds the per-instance parameters verbatim in its selector, as [listing](#lst:c5-instance-selectors) shows, with the residency, power, and statistics arguments named.
+The program-instance method holds the per-instance parameters verbatim in its selector, the residency, power, and statistics arguments among them ([listing](#lst:c5-instance-selectors)).
 
 ```objectivec
 # the daemon's central program-instance method (recovered selector, NSXPC _ANEDaemonProtocol)
@@ -192,7 +192,7 @@ createProgramInstanceWithWeights:modelToken:qos:baseModelIdentifier:
 
 Listing: The daemon's program-instantiation selectors, with the per-instance residency, power, and statistics parameters held as named arguments. {#lst:c5-instance-selectors}
 
-The on-the-wire instance is a C struct the daemon returns to the client, two opaque pointers, two 512-byte name buffers, the input and output port tables, a procedure record, and counters, whose recovered type encoding [listing](#lst:c5-instance-struct) gives.
+The on-the-wire instance is a C struct the daemon returns to the client, two opaque pointers, two 512-byte name buffers, the input and output port tables, a procedure record, and counters, with its recovered type encoding in [listing](#lst:c5-instance-struct).
 
 ```objectivec
 # ANEProgramInstanceStruct (recovered NSXPC type encoding)
@@ -207,7 +207,7 @@ Listing: The program-instance struct the daemon returns over the interprocess ch
 The device has one user-space entry point.
 The kernel driver denies opening the user client without the entitlement `com.apple.ane.iokit-user-access`, and exactly two binaries on the system hold it: the daemon and its per-user sibling.
 Every other process proves itself to the daemon over the interprocess channel instead, gated by a `com.apple.aned.private.*` entitlement family that the daemon checks per connection and per method.
-[Table](#tbl:c5-entitlements) gives that entitlement family, what each member authorizes, and the count of system binaries holding it in this build.
+[Table](#tbl:c5-entitlements) gives that entitlement family and what each member authorizes.
 
 | Entitlement | What it authorizes | Holders |
 | --- | --- | ---: |
@@ -223,7 +223,7 @@ Table: The entitlement family that gates the engine, with the count of system bi
 A privileged subset of 27 binaries also holds a sandbox exception for the class `H11ANEInDirectPathClient`, which lets a latency-sensitive client open the low-latency user client and drive per-inference submission on its own connection rather than round-tripping each inference through the daemon.
 The exception grants no device access by itself: the daemon still performs the privileged open and returns the program handle.
 A developer-signed binary cannot assert the kernel gate, since it names a restricted user-client class that ad-hoc and development signing cannot claim.
-The direct route thus reaches the engine the same way a sanctioned application does, through the daemon.
+The direct route reaches the engine the same way a sanctioned application does, through the daemon.
 It authors its work at the model and program layer rather than at the kernel interface.
 
 ## Compiler is its own gated service
@@ -235,7 +235,7 @@ The service's `listener:shouldAcceptNewConnection:` delegate calls `valueForEnti
 
 This is the concrete reason the service compiles a hand-authored or self-compiled program rather than the calling process compiling it.
 The service holds two entitlements an ordinary process does not: it writes the system-protected compile cache under `rootless.storage.ane_model_cache`, and it decrypts under `coreml.decypt_allowed`.
-A caller thus hands its network to the service and receives the compiled bundle back, the same separation the daemon imposes on device access.
+A caller hands its network to the service and receives the compiled bundle back, the same separation the daemon imposes on device access.
 
 The service keeps a warm-start cache so a repeat compile of the same network is not re-paid.
 The cache is a nested directory tree of the form `cache/com.apple.e5rt.e5bundlecache/<os-build>/<hash>/`, keyed by the model hash `model.anehash`, which is a double SHA-256 over the program.
@@ -245,7 +245,7 @@ The `force_recompilation` option defeats the warm start and compiles from scratc
 ## Entering the runtime below the framework
 
 A caller that names the engine as the target enters at the execution-runtime layer rather than the model framework, so no placement planner is in the path.
-The runtime compiles a graph to the engine program format, loads it, and dispatches it, and the same call works whether or not a chip is in hand for the cost estimate.
+The runtime compiles a graph to the engine program format, loads it, and dispatches it.
 
 The neutral workflow builds a graph, compiles it to a chip target, and dispatches, with no segmenter between the graph and the engine.
 
@@ -266,5 +266,3 @@ e5rt_execution_stream_create(&stream);
 e5rt_execution_stream_encode_operation(stream, op);
 e5rt_execution_stream_execute_sync(stream);
 ```
-
-The framework layer is one client of this same runtime, and an application that names the engine is another.

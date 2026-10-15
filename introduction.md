@@ -24,7 +24,7 @@ Performance results are staged around a roofline.
 On the M1 Max, the engine holds about 12 fp16 TFLOP/s of compute, bounded above by a DRAM-bandwidth ceiling.
 The roofline has a ridge point near 141 FLOP per byte, a 2 MB working-set threshold, a 0.23 ms floor under any single dispatch, and efficiency near 0.37 picojoules per FLOP at peak compute.
 On a 256-channel 3x3 convolution it runs about 3.8 times faster than the same chip's GPU and is 9 times more energy-efficient.
-The roofline pairs the engine's throughput ceilings with its measured power via shipped device measurement tooling.
+The power side of those figures comes from shipped device measurement tooling.
 
 Reaching the engine is not the same as running an arbitrary computational graph on it.
 The operations the engine executes are distinct from the ones a capability bit advertises.
@@ -38,27 +38,23 @@ The cross-generation predictions checked on a second physical chip held, and a s
 
 ## Related work {.unnumbered}
 
-Reaching the engine below Core ML has both concurrent and prior precedent.
-The closest is [Orion2026], concurrent work that characterizes and programs the engine for large-language-model training and inference.
+The closest precedent is [Orion2026], concurrent work that characterizes and programs the engine for large-language-model training and inference.
 A line of community reverse engineering precedes it: the tinygrad project recovered the HWX program format and the AppleH11ANEInterface IOKit path [tinygrad], Yoon's `ane` project built a reverse-engineered Linux driver and the `anecc` compiler [eilnANE], and Singh's recent series decodes the M4 engine [Singh2026], while Handley reconstructs the engine's hardware architecture from Apple's patent filings [Handley].
 
-Runtime and application work builds on that access.
-The `libane` native runtime exposes the engine to ordinary programs [libane], whisper.cpp reaches it through the Core ML-routed path [whispercpp], and the long-maintained catalog of Hollemans [Hollemans] and Apple's own engineering note on deploying Transformers [AppleANETransformers] collect what is publicly known.
+The `libane` native runtime exposes the engine to ordinary programs [libane], and whisper.cpp reaches it through the Core ML-routed path [whispercpp].
+The long-maintained catalog of Hollemans [Hollemans] and Apple's own engineering note on deploying Transformers [AppleANETransformers] collect what is publicly known.
 Several further repositories document direct access and runtime APIs [CommunityANE], and an earlier thesis treats decoupling on-device intelligence from the application on IoT hardware [Plyenkov2019].
 
-The performance treatment draws on the roofline literature.
-It is organized around the roofline model [Williams2009] and its later refinements: the energy roofline [Choi2013], the cache-aware roofline [Ilic2014], the instruction roofline [Ding2019], hierarchical roofline analysis [Yang2020], and its application to machine-learning accelerators [Verhelst2025].
+The performance treatment is organized around the roofline model [Williams2009] and its later refinements: the energy roofline [Choi2013], the cache-aware roofline [Ilic2014], the instruction roofline [Ding2019], hierarchical roofline analysis [Yang2020], and its application to machine-learning accelerators [Verhelst2025].
 It sits within a wider body of work that measures neural accelerators and edge inference: the in-datacenter analysis of the first tensor processing unit [Jouppi2017], smartphone deep-learning benchmarks [Ignatov2019], edge-platform inference benchmarking [Jayanth2024], energy-and-time roofline studies on edge accelerators [Prashanthi2025], NPU energy efficiency on microcontrollers [Fanariotis2025], LLM inference trade-offs across mobile NPU and GPU under sustained load [Tummalapalli2026], and on-device LLM roofline benchmarking [Bi2026].
 The work closest in workload studies heterogeneous on-device LLM inference: fast NPU inference [Xu2025], GPU-NPU hybrid serving for long context [Moon2025], and mobile-SoC characterization for heterogeneous execution [Chen2025].
 On Apple silicon specifically, Benazir and Lin study mixture-of-experts inference on the NPU [Benazir2026], Hübner and colleagues evaluate the M-series for HPC efficiency [Hubner2025], and the ML.ENERGY project [Zeus2025] treats the programmatic energy measurement the power figures here depend on.
 
 This guide does not claim to be first to reach the engine.
 The direct route it measures is released as the open-source ANEForge runtime [ANEForge2026], which this guide accompanies.
-It differs from prior work in scope and in method: it covers the full stack from the fp16 datapath down to the firmware and command protocol, not a single access path.
+It differs from prior work in scope and in method: the coverage runs the full stack, from the fp16 datapath down to the firmware and command protocol.
 Beyond the access result it adds a reachable-operation census, unentitled weight streaming, a validator-based prediction of an operation's reachability from a callable compiler validator, and an account of how the engine's compiler fuses a whole graph into a single program.
 Earlier Apple-silicon rooflines are GPU-only; this treatment covers the engine, pairs it with measured power, and gives a batched-serving energy crossover.
-
-The references give full bibliographic detail for these works.
 
 ## How to read this guide {.unnumbered}
 
@@ -67,8 +63,8 @@ The front half, Parts I through V, covers using the engine: what the hardware is
 The back half, Parts VI through IX, covers the architecture and system internals beneath that surface, down to the firmware and command protocol.
 The appendices collect the operation-by-device matrix, decoded reference tables, glossary, and provenance record, and the references close the guide.
 
-Every substantive claim has one of three evidentiary marks.
+Every substantive claim carries an evidentiary mark.
 A measured claim was observed directly on Apple silicon, primarily the M1 and M5.
-A decompile-derived claim was read out of the disassembled runtime, compiler, kernel driver, or firmware.
-A predicted claim was inferred from a model or a per-chip table and is not yet confirmed on silicon.
-Appendix E records the mark on every claim, the methodology describes how the engine was reached, and the open questions name what remains unmeasured.
+Decompile-derived claims were read out of the disassembled runtime, compiler, kernel driver, or firmware, while predicted claims were inferred from a model or a per-chip table and are not yet confirmed on silicon.
+Appendix E records the mark on every claim.
+The methodology describes how the engine was reached, and the open questions name what remains unmeasured.

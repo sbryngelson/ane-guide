@@ -16,7 +16,7 @@ The arithmetic per byte of weight read is thus near one multiply-add per weight,
 Decode is bandwidth-bound: the step spends its time streaming weights from DRAM, not multiplying on the array.
 
 A second cost adds on top of the bandwidth cost.
-A single decoder layer is not one operation but a chain of projections, a normalization, attention block, and feed-forward pair, and on the direct path each is a separate dispatch.
+A single decoder layer is not one operation but a chain of projections, a normalization, an attention block, and a feed-forward pair, and on the direct path each is a separate dispatch.
 A token through a transformer layer stack issues on the order of forty to fifty small dispatches, every one paying the per-eval floor of about 0.23 ms measured on the M1 in chapter 11.
 Decode is thus dispatch-bound as well as bandwidth-bound, and both regimes are exactly the ones the engine loses, per the verdict table of chapter 11.
 
@@ -27,10 +27,10 @@ The decoder thus has an accuracy penalty on the engine on top of the speed penal
 ## Hybrid decoder placement
 
 A decoder runs as a hybrid: the bandwidth-heavy, well-conditioned projections execute on the engine in fp16, and two precision-critical sites stay in wider precision off the engine.
-The first is the residual stream.
+One is the residual stream.
 Over twenty-two layers an fp16 residual add drops the small per-layer update, because adding a tiny delta to a large running sum loses the low bits.
-The following normalization rescales but cannot recover them, thus the stream must accumulate in wider precision off the engine.
-The second is the down-projection, the cancellation-heavy step of chapter 3, whose near-cancelled output over a contraction of 5632 takes about 3 percent error in fp16 on the engine, enough to flip the greedy argmax.
+The following normalization rescales but cannot recover them, so the stream must accumulate in wider precision off the engine.
+The other is the down-projection, the cancellation-heavy step of chapter 3, whose near-cancelled output over a contraction of 5632 takes about 3 percent error in fp16 on the engine, enough to flip the greedy argmax.
 
 Per-operation placement follows [table](#tbl:c14-placement).
 The query, key, gate, up, and output-embedding projections fit the engine in fp16; the value projection, output projection, and down-projection take a wider-precision path off the engine.
@@ -44,13 +44,13 @@ The query, key, gate, up, and output-embedding projections fit the engine in fp1
 | Output projection | Fails | Wider precision, off-engine |
 | Down-projection | Fails | Wider precision, off-engine |
 
-Table: Per-projection placement for a hybrid decoder: the engine holds the fp16 projections, three are held off-engine in wider precision. {#tbl:c14-placement}
+Table: Per-projection placement for a hybrid decoder: the engine holds the fp16 projections, while three are held off-engine in wider precision. {#tbl:c14-placement}
 
 Placement follows position, not per-operation error.
 The gate and up projections survive on the engine despite per-operation error comparable to the value and output projections.
 An operation survives on the engine when its result passes through a wider-precision step downstream.
 The gate and up projections send the feed-forward delta through the off-engine down-projection, which insulates them.
-The value and output projections send to the attention output and the residual directly, thus their error compounds through the key-value cache across the layer stack.
+The value and output projections send to the attention output and the residual directly, so their error compounds through the key-value cache across the layer stack.
 
 ## Single stream against many streams
 
@@ -60,8 +60,8 @@ The host issues a dispatch, waits for the result, and issues the next, and the e
 
 Concurrent independent streams behave differently.
 Executing one stream releases the host thread, so several streams interleave their host-side work against each other's engine-side work and lift the aggregate token rate even though each individual stream stays serial.
-This is a serving control for many requests, not a latency reduction for one.
-[Table](#tbl:c14-serving-modes) compares the single-stream, multi-stream, and GPU-batched modes, what each improves, and how its throughput compares with the GPU.
+This lifts aggregate throughput for many requests; it does not cut the latency of any one of them.
+The three modes separate cleanly on what each improves ([table](#tbl:c14-serving-modes)).
 
 | Serving mode | What it improves | Throughput against the GPU |
 | --- | --- | --- |
@@ -145,7 +145,7 @@ The coordination behind residency is a hardware event signal-and-wait primitive 
 
 ## A resident-cache decode step
 
-The procedure of [listing](#lst:c14-cache-step) compiles the decoder once with the cache as a paired input and output, aliases the buffers, then sends only the new token and its slot per step.
+Compile the decoder once with the cache as a paired input and output, alias the two buffers, and thereafter send only the new token and its slot ([listing](#lst:c14-cache-step)).
 
 ```c
 /* Allocate one cache buffer object and bind it to BOTH the cache_in and cache_out ports, */
@@ -169,7 +169,7 @@ Listing: The runtime calls for a resident-cache decode step, binding one cache b
 
 ## Reference: decode placement and the serving caps
 
-[Table](#tbl:c14-reference) collects the decode placement figures and the two device-daemon serving caps this chapter measures.
+The chapter's figures are in [table](#tbl:c14-reference).
 
 | Quantity | Value |
 | --- | ---: |
@@ -193,4 +193,3 @@ The engine's niche is the other side of the same model.
 Encoders and embedding models process a whole sequence in one forward pass of compute-bound matrix multiplies and normalizations, the engine's strong regime.
 Chapter 11 measures a single-sentence encoder about 4.4 times faster than the GPU at low batch, with the crossover to the GPU only near a batch of 23.
 Vision and convolution hold the same verdict more strongly.
-Send the prefill, encoder, and vision front end to the engine, and send the autoregressive decode to the GPU.

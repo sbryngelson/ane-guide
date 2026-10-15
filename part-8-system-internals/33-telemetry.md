@@ -7,7 +7,7 @@
 
 ## Counter block geometry
 
-[Table](#tbl:c33-counter-groups) gives the per-task-descriptor counter groups, the number of counters in each, and a representative counter name.
+The counters group by engine block, with the count in each group and a representative name in [Table](#tbl:c33-counter-groups).
 
 | Group | Counters in group | Representative counter |
 | --- | --- | --- |
@@ -22,7 +22,7 @@
 Table: The per-task-descriptor counter groups, with the count in each and a representative counter name. {#tbl:c33-counter-groups}
 
 The per-task-descriptor counter namespace is twenty-four named counters, every one of them per task descriptor, grouped by engine block.
-[Table](#tbl:c33-counter-namespace) gives the complete namespace, recovered from the counter-name accessor and grouped by engine block.
+[Table](#tbl:c33-counter-namespace) names all twenty-four in those same groups, recovered from the counter-name accessor.
 
 | Group | Counters |
 | --- | --- |
@@ -39,7 +39,7 @@ Table: The complete twenty-four-counter per-task-descriptor namespace, recovered
 The byte counters track data movement along the activation-function to kernel-manager to L2 to neural-engine path, and one per-descriptor counter estimates energy from the digital-power estimator.
 With this set a host can attribute, per scheduling unit, whether a task descriptor is compute-bound, input-stalled, output-blocked, or throttled, directly in hardware counters.
 The master enable is a single field in the program-create argument struct.
-It is the per-task-descriptor stats mask at `ANEProgramCreateArgs+0x6c`, a `u32` that is after the quality-of-service field and the packed boolean flags and before the memory-pool identifier, located in the argument fields of [Listing](#lst:c33-createargs).
+It is the per-task-descriptor stats mask at `ANEProgramCreateArgs+0x6c`, a `u32` that is after the quality-of-service field and the packed boolean flags and before the memory-pool identifier ([Listing](#lst:c33-createargs)).
 
 ```c
 ANEProgramCreateArgs (offsets):
@@ -67,7 +67,7 @@ The host decodes it through a parser that walks a Group to Layer to task-descrip
 ## Free-running timestamp
 
 A monotonic firmware timestamp underlies the whole telemetry surface.
-The firmware reads it from a single free-running memory-mapped counter through the one-line helper of [Listing](#lst:c33-timebase), then stamps each trace-event record from that read.
+The firmware reads it from a single free-running memory-mapped counter through a one-line helper, then stamps each trace-event record from that read ([Listing](#lst:c33-timebase)).
 
 ```c
 /* free-running engine timebase counter, read by the firmware helper @0x30988 */
@@ -91,7 +91,7 @@ Each firmware trace-event record has a `timeStamp` field alongside its task-desc
 Listing: The fields of each firmware trace-event record. {#lst:c33-trace-events}
 
 The host-visible clock residency runs in 24 MHz ticks, one tick every 41.67 ns, read out of the system-on-chip state-residency channels.
-The timestamp is monotonic and survives a power-gate, since the firmware re-anchors it from the same free-running source rather than resetting it across a clock-state transition.
+The timestamp is monotonic and survives a power-gate, since the firmware re-anchors it from the same free-running source across a clock-state transition.
 It is the basis for the per-dispatch wall-clock intervals that the signpost stream exposes, and it is readable with no entitlement beyond root.
 
 ## What the host can read and what it cannot
@@ -133,7 +133,7 @@ The compiled program has no stats-descriptor section, so the size is always zero
 Forcing a non-zero mask thus turns a successful load into a rejected one (`create -> 1; load -> 0`), and no host-side primitive synthesizes the missing section.
 One kernel gate thus blocks both the per-task-descriptor counters and the per-run output buffer: each depends on a stats-descriptor section that only an internal profiling-compile emits.
 
-What remains readable is the whole-engine telemetry outside that gate, the channels of [Table](#tbl:c33-telemetry-channels) with their format, unit, and what each reads out.
+What remains readable is the whole-engine telemetry outside that gate, with each channel's format, unit, and reading in [Table](#tbl:c33-telemetry-channels).
 
 | Channel | Format | Unit | Reads out |
 | --- | --- | --- | --- |

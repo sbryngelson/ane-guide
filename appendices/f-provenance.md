@@ -7,7 +7,7 @@ Each claim below is marked one of three ways: measured on a named generation, de
 
 ## Part I. The Machine {.unnumbered}
 
-Part I was measured on M1/H13 (Apple M1) unless a chapter notes otherwise.
+Unless a chapter below notes otherwise, every figure in Part I was taken on M1/H13 (Apple M1).
 
 ### Chapter 1. What the ANE is {.unnumbered}
 
@@ -30,7 +30,7 @@ The wide accumulator and its radix-4 first stage, activation-table behavior and 
 The slice saturation threshold at 4094 is M1/H13 measured and reproduced on A14/H14 (Apple M2), where 4094 stays finite and 4096 overflows; the clean route arrives at A15 and later.
 The cross-generation accumulator behavior holds family-wide, the M5/H17s difference being a one-unit-in-the-last-place scheduling and tiling reorder rather than an accumulator-width change.
 Denormal preservation inside the M5/H17s accumulator, where the M1 flushes to zero inside the multiply-accumulate, is M5/H17s measured and generational.
-Apple's conversion tooling documents low-precision compression at apple.github.io/coremltools, and the int8 relation here agrees with its affine form $w = s\,(q - z)$; the wide-accumulator and per-product cancellation results have no public counterpart and are reported as reverse-engineered.
+The int8 relation here agrees with the affine form $w = s\,(q - z)$ that Apple's conversion tooling documents for low-precision compression at apple.github.io/coremltools; nothing public covers the wide-accumulator and per-product cancellation results, which are reported as reverse-engineered.
 
 ### Chapter 4. Capability surface {.unnumbered}
 
@@ -38,11 +38,11 @@ The native classes, type limits, compile-legal envelope, and M1 limits are M1/H1
 The attested-is-not-reachable rule is M1/H13 measured: three-dimensional convolution fails backend lowering on every device mask despite its capability byte, and the top-k, sort, and dynamic-slice validators are callable but code-generation-rejected on the M1.
 The cumsum result is M1/H13 measured through the curated runtime path, correcting the earlier no-path status.
 The unsupported-on-every-family set and the per-family unlock points for the texture-engine operations, sin and cos, and the rank and sort bridge are decompile-derived from the operation floors and validators and confirmed on the M1 only at its boundary; the chip that first runs each is predicted from the floor table.
-Apple documents the convertible operation set at apple.github.io/coremltools and developer.apple.com; this chapter extends and partly corrects it, reporting what compiles and runs on the direct path rather than what the public converter accepts, since some accepted operations, such as three-dimensional convolution, do not lower to the engine.
+The public account is the convertible operation set at apple.github.io/coremltools and developer.apple.com, which this chapter extends and partly corrects by reporting what compiles and runs on the direct path, since some operations the converter accepts, such as three-dimensional convolution, do not lower to the engine.
 
 ## Part II. Reaching the ANE {.unnumbered}
 
-Part II was measured on M1/H13 (Apple M1) unless a chapter notes otherwise, with chapter 7 also measured on M2/H14 (Apple M2 Pro) and M5/H17s (Apple M5).
+The same M1/H13 (Apple M1) default carries through Part II, except in chapter 7, which also reports figures from M2/H14 (Apple M2 Pro) and M5/H17s (Apple M5).
 
 ### Chapter 5. Software stack {.unnumbered}
 
@@ -62,7 +62,7 @@ This chapter measures across three endpoints: M1/H13 (Apple M1), A14 on M2/H14 (
 The int4 and sparse streaming speedups and byte ratios, the int8 matmul latency and weight-byte halving, and the M1 folding of the int8 and blockwise forms are M1/H13 measured.
 The A14 int8 and sparse stream and the A14 blockwise fold are M2/H14 measured, and the streaming of all four forms is M5/H17s measured.
 The weight-reconstruction codecs and the per-format hardware-abstraction-layer streaming gates are decompile-derived from the ANE compiler; the A15 floor at which the blockwise form first streams is predicted from the gate pattern and not yet silicon-confirmed.
-Apple's conversion tools document palettization, quantization, and pruning at apple.github.io/coremltools as a model-size feature; this finding extends that account, showing the same forms stream on the unentitled engine for a bandwidth gain.
+Palettization, quantization, and pruning appear in Apple's conversion tools at apple.github.io/coremltools as a model-size feature; the finding here is that the same forms stream on the unentitled engine for a bandwidth gain.
 
 ### Chapter 8. Entitlement boundary {.unnumbered}
 
@@ -73,7 +73,7 @@ Apple documents these capabilities (flexible shapes, the `MLState` type) at the 
 
 ## Part III. Performance and Fit {.unnumbered}
 
-Part III was measured on M1/H13 (Apple M1; M1 Max), with a second pass on M5/H17s (Apple M5) and an A14-class middle point on M2/H14 where a cross-device or cross-generation claim required it.
+Part III rests on two passes, the first on M1/H13 (Apple M1; M1 Max) and the second on M5/H17s (Apple M5), with an A14-class middle point on M2/H14 where a cross-device or cross-generation claim required one.
 Apple publishes no roofline, no per-workload power or efficiency figures, and no cross-processor comparison for the engine, so the figures across this Part are reported as measured rather than against a documented account.
 
 ### Chapter 9. Roofline {.unnumbered}
@@ -105,14 +105,14 @@ The M5 single-program matmul peak of about 9.5 fp16 TFLOP/s and the weight-strea
 
 ## Part IV. Workloads {.unnumbered}
 
-Part IV was measured on M1/H13 (Apple M1 Max) and M5/H17s (Apple M5 Pro), with an A14-class point on M2/H14 where noted, each figure marked for the generation it was taken on.
+Part IV pairs M1/H13 (Apple M1 Max) with M5/H17s (Apple M5 Pro) and adds an A14-class point on M2/H14 where noted, each figure marked for the generation it was taken on.
 
 ### Chapter 13. Vision, convolution, and encoders {.unnumbered}
 
 The convolution speed and efficiency, the convolution-stack and roofline figures, the power gap, and per-eval floor are M1/H13 measured; the M5 convolution-stack, ResNet-18, twelve-layer-encoder, and single-sentence-encoder ratios and the serving crossovers are M5/H17s measured.
 The convolution lowering, Winograd gate, 2 MB working-set constant, per-output-channel fold, and texture-engine operation set with its single A14 family gate are decompile-derived from the ANE compiler and the per-chip parameter table.
 The Q.4 crop-scale saturation threshold, where $4094 \times 16 = 65504$ reaches the fp16 ceiling, is decompile-derived and confirmed by the fp16 range probe on M1/H13 and on A14 (M2); the clean route arrives on A15 and later.
-Apple documents vision and image models on the engine only through the compute-unit selector (developer.apple.com/documentation/coreml, developer.apple.com/documentation/vision), with no direct datapath API or cross-processor figures; this chapter extends that account with the measured economics against the GPU and names the texture-engine preprocessing path the public surface does not expose.
+For vision and image models on the engine the public surface is the compute-unit selector alone (developer.apple.com/documentation/coreml, developer.apple.com/documentation/vision), with no direct datapath API and no cross-processor figures; the measured economics against the GPU are new here, and so is the texture-engine preprocessing path, which that surface does not expose.
 
 ### Chapter 14. LLM case study {.unnumbered}
 
@@ -122,10 +122,10 @@ Apple does not publish engine-versus-GPU decode measurements, so the per-batch d
 
 ### Chapter 15. Training on the engine {.unnumbered}
 
+On-device model update, documented at developer.apple.com/documentation/coreml, is a limited fine-tuning surface whose backward pass runs off the engine; the full forward, backward, and optimizer loop reported here runs as engine graph operations, optimizer state resident across steps.
 The gradient audit, differentiable-vocabulary correctness to a cosine of $1.0000$, conv weight-gradient saturation threshold, M1 training accuracy and loss-scale curves, and two-generation parity (0.9080 on M1 against 0.9070 on M5 for the identical seeded network) are M1/H13 and M5/H17s measured.
 The width-axis slice saturation, exact at loss scale 384 and first overflowing at 512 above $65504 / 16 \approx 4094$, was reproduced on A14 (M2), locating the clean route on A15 and later.
 The absence of an engine-native backward operation is decompile-derived from the shared compiler, which has gradient operations only in the graphics-processor dialect.
-Apple documents on-device model update at developer.apple.com/documentation/coreml, a limited fine-tuning surface whose backward pass runs off the engine; this chapter extends that account with a full forward, backward, and optimizer loop running as engine graph operations, optimizer state resident across steps.
 
 ### Chapter 16. Numerical and scientific computing {.unnumbered}
 
@@ -136,20 +136,20 @@ Apple documents dense linear algebra and signal processing through the accelerat
 
 ## Part V. Practice {.unnumbered}
 
-Part V was measured on M1/H13 (Apple M1), with M5/H17s (Apple M5) as the cross-chip reference where a second generation is needed.
+For Part V the host was M1/H13 (Apple M1), with M5/H17s (Apple M5) standing in as the cross-chip reference where a second generation is needed.
 
 ### Chapter 17. Model-design rules {.unnumbered}
 
 The tensor-dimension boundaries, the convolution kernel and stride limits, the arg-min and arg-max 2048 cap, and pooling-window behavior are M1/H13 measured, swept until compile flipped from accept to reject.
 The per-operation validators, the kernel-format and maximum-dimension fields, the divisibility checks, and working-set and kernel-memory budgets are decompile-derived and joined to those sweeps; the per-family unlock points for the texture-engine padding modes, the square-after-reduction mode, and sin and cos are decompile-derived from the per-chip support flags, confirmed on the M1 only at its boundary and predicted for the chip that first enables each.
-On the public side, Apple documents the conversion-time constraints and supported converter configurations at apple.github.io/coremltools; this chapter reports the argument, shape, and mode limits the on-device validators enforce, which the public converter does not enumerate.
+The conversion-time constraints and supported converter configurations are documented at apple.github.io/coremltools; what this chapter adds is the argument, shape, and mode limits the on-device validators enforce, which the public converter does not enumerate.
 
 ### Chapter 18. Optimization and the cost model {.unnumbered}
 
 The convolution latency fit and the dispatch floor are M1/H13 measured (Apple M1; M1 Max), and the cross-chip bandwidth, floor, and peak re-fit are M5/H17s measured, with the core-scaled bandwidth confirmed by direct streaming at 57.5 GB/s against the M1's 10.4 GB/s.
 The compiler's analytic cost functions (the cycles, roofline, and wall-time chain) are decompile-derived with the per-chip parameters walked live from the hardware-abstraction table; the cross-chip scaling of unmeasured targets is predicted from core-count and clock ratios.
 The cost-model fidelity is M1/H13 measured: a median error near 31 percent with 11 of 68 shapes within plus or minus 17 percent, sound as an ordinal placement tool rather than an absolute-latency oracle, with attention unmodeled and the 9.0 GB/s bandwidth anchor held below the roughly 40 GB/s effective rate because it is jointly calibrated for the convolution fit.
-There is no public counterpart: Apple does not publish the engine compiler's cost model or its per-chip parameters, so the model is reported here as decompile-derived and validated against M1/H13 and M5/H17s measured latency.
+Apple does not publish the engine compiler's cost model or its per-chip parameters, so the model is reported here as decompile-derived and validated against M1/H13 and M5/H17s measured latency.
 
 ### Chapter 19. Pitfalls and limits {.unnumbered}
 
@@ -178,7 +178,7 @@ The compiler name for field `0x1b8`, `MemCacheSize` (also `L2Size`) with its `fl
 
 ## Part VII. The Toolchain and Encoding {.unnumbered}
 
-Part VII was measured on M1/H13 (Apple M1; M1 Max, live string `h13g`), with chapter 25 extending to M2/H14 (Apple M2 Pro) and M5/H17s (Apple M5).
+Part VII shares that M1/H13 host (Apple M1; M1 Max, live string `h13g`), and chapter 25 extends to M2/H14 (Apple M2 Pro) and M5/H17s (Apple M5).
 This Part is mostly decompile-derived from the engine compiler decompile and its constraint-string corpus, the per-chip hardware-abstraction table read by byte offset across 28 target entries, and the runtime serializers and task-descriptor setters; unless a chapter says otherwise, scalar offsets, capability-byte offsets, struct fields, and symbol names are decompile-derived.
 
 ### Chapter 22. Compiler {.unnumbered}
@@ -206,15 +206,15 @@ The HAL table, the capability-byte region, and minimum-family trait have no publ
 ### Chapter 25. Compression internals {.unnumbered}
 
 The bit-layout and address detail are M1/H13 (table-descriptor codegen version five, family two, A13) unless another version or family is named.
+The public account of palettization, quantization, and pruning at apple.github.io/coremltools treats them as a model-size feature; the on-device codec arithmetic and the per-family streaming datapath go beyond it.
 The sparse and int4 speedups and byte ratios, the byte-identical compiled program, and the M1 fold of the int8 and blockwise forms are M1/H13 measured; the A14 int8 stream and blockwise fold are M2/H14 (Apple M2 Pro) measured; the all-forms-stream endpoint is M5/H17s (Apple M5) measured.
 The kernel-format helper tables, affine and palette dequantization codecs, dequantize-to-dense fold path, streaming and palette gates, on-chip-memory budget caps, and Winograd eligibility gate are decompile-derived, with the on-device sparse-format field read from the register map; the A15 floor at which the blockwise form first streams is predicted from the gate pattern, and the resident Winograd transform matrices are predicted, their textbook forms matching the engine's behavior but not byte-confirmable from the binary.
-Apple's conversion tools document palettization, quantization, and pruning at apple.github.io/coremltools as a model-size feature; this chapter extends that account with the on-device codec arithmetic and the per-family streaming datapath.
 
 ### Chapter 26. Hidden layers and direct netplist authoring {.unnumbered}
 
 The fused-attention, ranking, and spatial-rearrange layers were authored, compiled, and dispatched on the M5/H17s byte-exact against a host reference, and the M1 gates and the top-k forbidden band were confirmed on the M1 (measured).
 The native layer-descriptor catalog, its per-layer `ZinParse<Name>Unit` parsers and `_ANECValidate<Name>Layer` checkers, and the constant-string constraint corpus are decompile-derived, joined to the netplist schema read out of the runtime framework.
-On the public side, Apple documents the model converter and its intermediate-language operation set at apple.github.io/coremltools, which does not emit these native layer kinds; this chapter authors them directly, the attention, ranking, spatial-rearrange, geometry, and normalization descriptors being present in the compiler and reachable through the network description even though the converter never produces them.
+The model converter and its intermediate-language operation set, documented at apple.github.io/coremltools, emit none of these native layer kinds; this chapter authors them directly, the attention, ranking, spatial-rearrange, geometry, and normalization descriptors being present in the compiler and reachable through the network description even though the converter never produces them.
 The 33-knot activation-LUT format and the gated `NeuronCustom` netplist path (a parser that requires and then rejects the same field sets) are decompile-derived; the rectifier-basis reproduction of an arbitrary pointwise function is M5/H17s measured.
 
 ## Part VIII. System Internals {.unnumbered}
@@ -255,31 +255,31 @@ The protocol, the command header, and `CSNE_CMD_*` vocabulary have no public cou
 
 The clean 0 mW idle, the 176-second saturating loop holding flat power and throughput under nominal thermal pressure, the first-op power-up tax near 0.5 ms past a 100 ms idle gap, and the single held power state across 56,527 dispatches are M1/H13 measured by read-only tracing.
 The power-block base `0x2_6b8f_0000`, the opaque voltage base `0x2_3b70_c008`, the five-store power-block arm, the `0x11` peak-power control word, the engine and power-manager device-tree nodes (`ane0@84000000`, `compatible "ane,t8020"`, the `0x2_8400_0000` aperture, the `0x2_8E08_0000` power-manager slice), the absence of local DVFS, and firmware seven-step credit sequence are decompile-derived from the H13 firmware Mach-O and live device-tree enumeration.
-There is no public counterpart: Apple documents neither the power model, the fixed operating point, nor the thermal behavior, so this account is reported as reverse-engineered and measured.
+Apple documents neither the power model, the fixed operating point, nor the thermal behavior; with nothing public to check against, this account is reported as reverse-engineered and measured.
 
 ### Chapter 32. Security and isolation {.unnumbered}
 
 The cross-process timing side-channel (a 2.3 times latency jump under contention and a 20 to 50 bit/s occupancy channel) and the intact data isolation across 9000 concurrent results are M1/H13 measured.
 The kernel-side trust boundary and its three program checks (code signature, vnode trustcache, client code-signing identity), the firmware's structural-only check, and the secure and exclave method bodies (the secure-mode transition state machine, the `SwitchExclaveMode not supported` stub, the inert `mov w0, #0; ret` exclave selectors) are decompile-derived from the loaded kernel driver and the firmware image.
-There is no public counterpart: Apple documents neither the secure and exclave transition internals nor the cross-process isolation behavior, so this account is reported as reverse-engineered and measured.
+This chapter is reported as reverse-engineered and measured throughout, Apple documenting neither the secure and exclave transition internals nor the cross-process isolation behavior.
 On the M5 the exclave is live rather than stubbed: the secure component `com.apple.aneexclave`, its capability-scoped segment access, and the Tightbeam submit path are decompile-derived from the M5 exclave bundle and boot kernelcache, with System Integrity Protection enabled.
 
 ### Chapter 33. Telemetry and hardware counters {.unnumbered}
 
 On the Apple M1 and M1 Max, the readable whole-engine channels (DRAM bytes, energy, clock residency), the signpost lifecycle, the all-zero per-run output buffer, and forced-mask load rejection are M1/H13 measured.
 The `ANEProgramCreateArgs` layout, the `+0x6c` stats-mask offset, the twenty-four per-descriptor counter namespace, the stats-buffer ABI `0x0201`, the `initStatsBufferSection` bail branch, and the free-running engine timebase counter at MMIO `0x2_6b17_8000` (read by the firmware helper `@0x30988`) are decompile-derived from the runtime dylibs and the kernel driver.
-There is no public counterpart: Apple documents none of the hardware performance-counter block, per-task-descriptor namespace, stats-mask enable, or firmware timestamp, so the block geometry, master enable, readable-versus-walled split, and kernel gate are reported as reverse-engineered and measured.
+None of the hardware performance-counter block, per-task-descriptor namespace, stats-mask enable, or firmware timestamp is documented anywhere public, so the block geometry, master enable, readable-versus-walled split, and kernel gate are reported as reverse-engineered and measured.
 On the M5 the gate actor (the `aned` daemon forcing `statsMask=0` for a `ThirdPartyAppUsingANE` client), the per-channel `DCS BW / ANE L0` and `L1` State-residency bandwidth histograms readable on the unentitled path, and the fuller `ANE_THROTTLE_*` and `VDD_DRAM_VOLTAGE_CHANGE` trigger family are M5/H17s measured with System Integrity Protection enabled.
 
 ## Part IX. Cross-Silicon Reference {.unnumbered}
 
-Part IX was measured on M1/H13 (Apple M1; M1 Max) with M5/H17s (Apple M5) as the cross-chip reference; the work is decompilation and static analysis of the one engine compiler binary across its full target set, with boundaries reproduced on silicon where a part was in hand.
+Part IX is decompilation and static analysis of the one engine compiler binary across its full target set, with boundaries reproduced on silicon where a part was in hand: M1/H13 (Apple M1; M1 Max) measured, and M5/H17s (Apple M5) as the cross-chip reference.
 
 ### Chapter 34. Cross-silicon targets {.unnumbered}
 
 The 28-target set is measured, extracted by invoking each per-architecture builder on the M1 (host chip irrelevant) and resolving the M5 to `H17s` and the M1 Max to `H13G` by fixed-build-directory compile.
 The target names, the suffix-to-core decode at HAL offset `0x238`, the interchange-format tables at HAL offset `0x658`, and four-byte format decode are decompile-derived; the A14, A15, A16, and A18 targets and their M-series counterparts are decompile-derived from the per-target tables and not individually measured, and the $M(n) \rightarrow H(n+12)$ mapping is confirmed only at the M1 and M5 ends with the middle generations predicted.
-On the public side, Apple's product specifications publish a marketing core count per chip, for example a 16-core engine, a different quantity from the decoded `num_nes`, which counts per-die compute sets: four on the base M1 against the published sixteen.
+Apple's product specifications publish a marketing core count per chip, for example a 16-core engine; the decoded `num_nes` is a different quantity, counting per-die compute sets, four on the base M1 against the published sixteen.
 The 28-target compiler set, the H-architecture naming, the suffix-to-core decode, and interchange tables are not publicly documented and are reported as reverse-engineered.
 
 ### Chapter 35. Per-family code generation {.unnumbered}
@@ -301,7 +301,7 @@ The back-matter chapters rest on M1/H13 as the primary host and M5/H17s for cros
 
 ### Methodology {.unnumbered}
 
-Apple documents the engine only as a compute-unit selector at developer.apple.com/documentation/coreml/mlcomputeunits, with no direct device API; this chapter extends that account by reaching the engine directly below the selector and characterizing it by static analysis and live instrumentation.
+The only public account is the compute-unit selector at developer.apple.com/documentation/coreml/mlcomputeunits, with no direct device API; this chapter goes below the selector, reaching the engine directly and characterizing it by static analysis and live instrumentation.
 The direct dispatch route, the four static-analysis artifacts, and the program-binary capture are decompile-derived and confirmed by the kernel trace; the roofline figures and the compile-service rate condition are M1/H13 measured, and the cross-generation scaling and bounded numeric drift are M5/H17s measured.
 
 ### Open questions {.unnumbered}

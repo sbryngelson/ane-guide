@@ -5,13 +5,13 @@
 > The fp16 ceiling is 65504, and a width-axis slice with a nonzero begin offset applies a fixed gain of sixteen, so a fill above 4094 overflows silently to infinity on the M1 and the A14.
 > Activation lookup tables are accurate to about half a unit in the last place, but they coerce a NaN to a clamp value and have a small origin bias a bit-exact oracle must model.
 
-The Apple Neural Engine computes in fp16 with a wide accumulator.
+Computation on the engine is fp16 with a wide accumulator.
 That property, stated in chapter 1, decides which computations keep their precision on the engine and which lose it.
 
 ## fp16 datapath
 
 The multiply array is fp16 end to end.
-A fp16 value decodes from a sign bit, five-bit exponent, and ten-bit fraction as
+An fp16 value decodes from a sign bit, five-bit exponent, and ten-bit fraction as
 
 $$x = (-1)^s \, 2^{e-15} \left(1 + \frac{m}{2^{10}}\right),$$
 
@@ -37,13 +37,14 @@ Representable sums thus come back near exact.
 A reduction of sixteen thousand ones is bit exact, where a naive fp16 running sum would stall near two thousand once the partial total passes the spacing of its own increments.
 The spacing of fp16 at a partial of magnitude $p$ is $\mathrm{ulp}(p) = 2^{\lfloor \log_2 p \rfloor - 10}$, so once $p > 2048$ the spacing exceeds $1$ and an added unit increment falls below half a step and is swallowed.
 
-The worked case that shows the accumulator is wider than fp16 yet supplied by fp16-rounded inputs is the sum of one value of 4096 followed by 1024 ones. The exact sum is
+The worked case that shows the accumulator is wider than fp16 yet supplied by fp16-rounded inputs is the sum of one value of 4096 followed by 1024 ones.
+The exact sum is
 
 $$[4096] + [1]\times 1024 = 5120,$$
 
 and the engine returns 5116, between the naive-fp16 result $4096$ and the exact total.
 A naive fp16 running sum returns 4096, because each added one falls below half the spacing at 4096 and is swallowed.
-The engine instead holds the 1024 ones that fp16 would drop, and the small deficit from the exact 5120 is the fp16 rounding of the single input tile that holds the 4096, not a narrow running sum.
+The engine instead holds the 1024 ones that fp16 would drop, and the small deficit from the exact 5120 is the fp16 rounding of the single input tile that holds the 4096.
 
 The discriminating test is a cancellation triple.
 A sum of a large value, its negation, and a one, repeated sixteen times near a magnitude of four thousand, returns all sixteen ones intact.
@@ -70,8 +71,8 @@ The threshold is at 4096 because that is the first magnitude where the fp16 spac
 The flat floor of four is the signature of a four-lane tile: a three-element triple period beating against a four-lane tile leaves exactly four unaffected lanes out of sixteen.
 A single one added next to one large resident value cannot expose the tile, because that value forces the whole wide partial onto its own coarse spacing and the one rounds away regardless of which tile it is in.
 
-Both behaviors are reproducible on the engine by reducing a fp16 vector.
-The cancellation probe routes a sum through a matmul against a ones vector so the reduction is in the wide accumulator, and the slice trigger exercises the width-axis crop gain, as [listing](#lst:c3-accum-probe) gives both probes.
+Both behaviors are reproducible on the engine by reducing an fp16 vector.
+The cancellation probe routes a sum through a matmul against a ones vector so the reduction is in the wide accumulator, and the slice trigger exercises the width-axis crop gain ([listing](#lst:c3-accum-probe)).
 
 ```python
 # Pseudocode for the engine's wide accumulator and the width-slice saturation.
@@ -105,7 +106,7 @@ Listing: Probes for the wide accumulator's cancellation behavior and the width-s
 The datapath reconstructs a compressed weight to fp16 before it reaches the multiply array, so the arithmetic is fp16 regardless of the storage format.
 What differs by format and by chip is whether the compressed bytes stream to the engine compressed and decompress on the way in, or fold to dense fp16 in memory first.
 A format that streams moves fewer bytes across the DRAM boundary; a format that folds yields the storage saving but not the bandwidth.
-[Table](#tbl:c3-weight-stream) marks which formats stream and which fold across three chip generations.
+Which formats stream and which fold varies across three chip generations ([table](#tbl:c3-weight-stream)).
 
 | Format | M1 / A13 | A14 / M2 | A16 / M5 |
 | --- | --- | --- | --- |
@@ -136,7 +137,7 @@ The transformer decoder down-projection is the case that fails: a large positive
 The loss does not come from the accumulator, which is wide enough to hold the partial.
 It comes from the per-product fp16 rounding of the inputs and weights before they enter the accumulator.
 Once the operands are quantized to fp16, the cancellation amplifies that quantization into the result.
-A cancellation-heavy step has no fp16-safe form on the engine and needs a wider anchor computed on the CPU or the GPU.
+There is no fp16-safe form for such a step on the engine; the anchor has to be computed wider, on the CPU or the GPU.
 
 ## Activation functions
 
@@ -144,11 +145,10 @@ Lookup tables evaluate the nonlinear activations.
 Identity and plain ReLU are not table-driven, since ReLU is a max, but sigmoid, tanh, gelu, swish, erf, exp, and the rest route through a piecewise-linear table of fixed knots.
 The table is a 33-knot piecewise-linear curve, not a dense sample grid.
 The input maps affinely onto the 32 segments between 33 knots, the bracketing segment evaluates as a slope times the input plus an intercept in fp16, and the value clamps to the end-knot asymptote past the table domain.
-Accuracy comes from the piecewise fit and the per-function domain, not from sample density.
+Accuracy comes from the piecewise fit and the per-function domain.
 A user sigmoid does not lower to the plain sigmoid table.
 It lowers to a high-precision sigmoid table by default, which pushes the domain to a wider range with a finer subdivision near the linear region, so a sigmoid-heavy or attention-gate-heavy model stays accurate under fp16.
 
-The decoded table is accurate enough that it is not a meaningful error source.
 On the standard set, measured on device, the worst absolute error is at the level of the fp16 storage floor: sigmoid 0.0034, tanh 0.0017, gelu 0.0059, each under 0.4 percent of the function range.
 The on-device value matches the fp16-rounded exact function to about half a unit in the last place.
 The table adds nothing measurable on top of fp16 storage rounding.
@@ -163,16 +163,16 @@ A NaN into relu returns infinity, a NaN into sigmoid or tanh returns 1.0, a NaN 
 A NaN into the maximum of two values returns infinity, and a softmax of a lane holding a NaN puts all the mass on that lane.
 The one case where a NaN is not bit-identical to positive infinity is the variance reduction inside layer normalization, where the NaN enters as a large finite magnitude rather than as literal infinity.
 Rms normalization gives identical results for a NaN input and an infinity input.
-An upstream NaN through any gate thus leaves the engine as a finite or infinite value and does not surface as a NaN to downstream code.
+An upstream NaN through any gate leaves the engine as a finite or infinite value and does not surface as a NaN to downstream code.
 
 The engine flushes to positive zero all the indeterminate forms that produce a NaN under IEEE.
 The infinity minus infinity case returns positive zero, the zero times infinity case returns positive zero, $\mathrm{sqrt}(-1)$ returns positive zero, $\mathrm{rsqrt}(-1)$ returns positive zero, and $\log(-1)$ returns positive zero.
 
 The engine preserves denormals elementwise but flushes them inside the multiply-accumulate.
-A fp16 denormal down to $2^{-24}$ (about $5.96 \times 10^{-8}$) echoes bit-exactly through $x + 0$ and $x \times 1$ on the elementwise path, and scales correctly, so the common assumption that the engine flushes denormals globally is false for that path.
+An fp16 denormal down to $2^{-24}$ (about $5.96 \times 10^{-8}$) echoes bit-exactly through $x + 0$ and $x \times 1$ on the elementwise path, and scales correctly, so the common assumption that the engine flushes denormals globally is false for that path.
 A pair of denormals summed inside a matmul, with a representable denormal total, returns positive zero, so the flush-to-zero is a property of the accumulator stage and not of the datapath as a whole.
 The M5 accumulator instead preserves denormals, so a denormal input and a product of two denormals both survive a matmul reduction unflushed.
-The flush is thus an M1-generation property rather than a fixed engine behavior, and the M2 through M4 parts between them were not measured, so the generation at which it changed is unknown.
+The flush is an M1-generation property rather than a fixed engine behavior, and the M2 through M4 parts between them were not measured, so the generation at which it changed is unknown.
 
 Signed zero loses its sign before a reciprocal or a reciprocal square root.
 The reciprocal of negative zero returns positive infinity where IEEE returns negative infinity, and the reciprocal square root of negative zero returns positive infinity where IEEE returns negative infinity, while $\mathrm{sqrt}$ of negative zero stays positive zero per IEEE.
@@ -204,13 +204,13 @@ The compute datapath has no fp32 margin, so a value above that saturates to infi
 The multiply-accumulate output stage saturates earlier than the storage format, at exactly $2^{15} = 32768$, just above half the fp16 ceiling.
 This is a different axis from the width-slice gain below: it is a property of the accumulator output port, and it fires on matrix multiply, linear, and any convolution that accumulates two or more taps, whatever the number of accumulation terms.
 The threshold is pinned to the bit: the largest fp16 value below $2^{15}$, which is $32752$, passes through a linear, and the next fp16 value, $32768$, returns infinity.
-It holds for $K = 1$, for $K = 2$, and for a two-channel convolution, so it tracks the would-be output magnitude at the accumulator port and not the count of accumulated terms.
+It holds for $K = 1$, for $K = 2$, and for a two-channel convolution, so it tracks the would-be output magnitude at the accumulator port.
 An interior partial that exceeds $2^{15}$ overflows to infinity even when a later cancellation would have brought the final result back into range.
 The paths that drive a dedicated reduction or a single elementwise multiply hold the full fp16 range instead.
 A reduce-sum rounds to 65504 first and then overflows, an elementwise multiply overflows at the true fp16 limit of 65504, and a pointwise one-by-one convolution with a single input channel passes a fill of 60000.
 This earlier accumulator ceiling is consistent with the multiply-accumulate datapath having about one bit less margin than the fp16 storage format on the M1, so the guard for a matrix multiply or a multi-tap convolution is to keep the output magnitude below $2^{15}$.
 
-The second saturation a developer encounters is on the slice path.
+A second saturation lies on the slice path.
 A width-axis slice with a nonzero begin offset routes through a crop DMA that applies a fixed gain of sixteen.
 A value at or below 4094 passes through bit exact, because $4094 \times 16 = 65504$ is the fp16 ceiling.
 A value of 4095 or above becomes infinity, because it rounds to 4096 on the fp16 grid and $4096 \times 16 = 65536 > 65504$, past the ceiling.
@@ -227,7 +227,7 @@ The lowered program fixes the accumulation order, so there is no run-to-run drif
 
 Re-executing one compiled program on the same input returns the same fp16 bytes every time, measured at zero units in the last place over 200 repeats for a matrix multiply, two-layer convolution, and long reduction.
 The same holds over 50 repeats for softmax, reduce-mean, and a large matrix multiply.
-Compiling the same graph twice at optimization level zero, the byte-identical lowering path, produces two programs whose outputs agree to the bit, including a real-tiled $[128, 1024] @ [1024, 1024]$ matrix multiply.
+Compiling the same graph twice at optimization level zero, the byte-identical lowering path, produces two programs whose outputs agree to the bit, including a genuinely tiled $[128, 1024] @ [1024, 1024]$ matrix multiply.
 Running the same graph in a fresh subprocess, with a new dispatch client, returns the same output digest as the in-process run, so daemon and process state do not perturb the result.
 
 The result is also independent of batch size and batch position.
@@ -241,15 +241,15 @@ About 31 percent of the elements differ, by about one fp16 unit in the last plac
 Each ordering is itself perfectly reproducible, so this is ordinary fp16 non-associativity of the graph as written and not hardware nondeterminism.
 Two high-level ops that lower to the same kernel agree to the bit.
 A dot product written as a matrix multiply and the same dot product written as an elementwise multiply followed by a reduce-sum return identical bytes here, because the compiler lowered both to the same accumulation order.
-Reassociation bites only when the graph dictates a different order, so the engine is safe to treat as reproducible, and the only nondeterminism source is the accumulation order the graph chooses, never the silicon.
+Reassociation bites only when the graph dictates a different order.
 
 ## Keeping a graph inside the fp16 envelope
 
 Two numeric decisions belong before a graph is compiled.
-A developer anchors a cancellation-heavy reduction off-engine, on the CPU or the GPU, because it has no fp16-safe form on the datapath.
+A developer anchors a cancellation-heavy reduction off-engine, on the CPU or the GPU.
 A width-axis slice avoids a nonzero begin offset, because the fixed gain of sixteen overflows a fill above 4094 to infinity.
 
-The cancellation-heavy step routes to a wider unit, and the rest stays on the engine, as [listing](#lst:c3-safe-graph) works the three rules through one graph.
+The cancellation-heavy step routes to a wider unit, and the rest stays on the engine, with the three rules worked through one graph in [listing](#lst:c3-safe-graph).
 
 ```python
 # Keep a graph numerically safe BEFORE compiling it, by applying three rules

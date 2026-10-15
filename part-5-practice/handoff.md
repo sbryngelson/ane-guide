@@ -6,10 +6,9 @@ Parts I through V describe the engine as a developer uses it: what it computes, 
 That account stops at the programming surface.
 The rest of the guide goes beneath that surface, to the chip and the system around it.
 
-The back half is a reference for readers who need the mechanism rather than the interface.
-It is written at a lower level than the front half, and shows the structures, registers, and command protocol directly.
+The back half is written at a lower level than the front half, and shows the structures, registers, and command protocol directly.
 
-[Table](#tbl:handoff-backhalf) shows how the four back-half parts and the back matter divide, each with its subject and the reader it serves.
+Four back-half parts and the back matter divide the work ([table](#tbl:handoff-backhalf)).
 
 ```{=latex}
 \renewcommand{\thetable}{I.\arabic{table}}\setcounter{table}{0}

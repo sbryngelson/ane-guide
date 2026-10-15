@@ -6,7 +6,7 @@
 > Pace compiles after a failure, roughly 15 seconds apart, so a run of failed compiles does not stall the service.
 
 A few of the engine's failure modes are silent, target-specific, or affect the shared compile service.
-Five of them are what a developer building on the direct path encounters, and each has a concrete trigger and a stated avoidance.
+The ones below are what a developer building on the direct path runs into.
 
 ## Slice saturation hazard on the M1
 
@@ -26,7 +26,7 @@ The A14 generation saturates on the same slice; the A15 generation and every par
 The consequence shows up in training.
 A convolution weight gradient scaled up by a large loss-scale factor can push values past 4094 on the M1 and silently produce infinities.
 Keep the values on a width-offset slice under the bound, which for the training case means capping the loss-scale on M1 targets, and prefer a zero start offset where the layout allows, since a zero last-axis begin avoids the offset-DMA path entirely.
-[Listing](#lst:c19-slice-guard) checks at build time that a nonzero width-offset slice on the M1 stays under the 4094 saturation bound.
+That 4094 bound on the M1 is worth asserting before the compile rather than after it ([listing](#lst:c19-slice-guard)).
 
 ```python
 V_MAX = 65504 / 16   # = 4094.0; the fp16 maximum divided by the Q.4 gain of 16
@@ -52,10 +52,9 @@ The crash is specific to the dynamic-kernel path combined with a batch above one
 A constant-weight convolution at the same batch compiles without issue, and batches of 64 are routine on that path.
 The reproduction is stable across fresh restarts of the compile daemon: batch one passes, batch two fails, every time.
 
-The avoidance follows the capability boundary.
 Single-image dynamic-weight convolution is usable for hypernetwork and per-sample-kernel inference where the batch is one.
-Batched trainable convolution must take a different route: the dynamic-kernel path is closed above batch one, so a build that needs it should reject a dynamic-weight convolution at batch two or more before the program reaches the compiler.
-[Listing](#lst:c19-dynweight-guard) rejects a dynamic-weight convolution at batch two or more before the program reaches the compiler service that the path crashes.
+Batched trainable convolution must take a different route, since the dynamic-kernel path is closed above batch one.
+A build that needs the batched form should reject a dynamic-weight convolution at batch two or more before the program ever reaches the compiler service ([listing](#lst:c19-dynweight-guard)).
 
 ```python
 def guard_dynamic_weight_conv(weight_is_runtime_tensor, batch_n):
@@ -76,7 +75,7 @@ The same compiler binary emits a saturating slice kernel on the M1 target and a 
 Inside the single binary the slice conversion is a C++ template instantiated once per family, so the same intermediate-language slice lowers through a different compiled converter for the M1 than for the M5.
 Per-target hardware-abstraction fields then drive the DMA source path: a width granule used as both a divisor and a stride multiplier, and a set of patch-width clamps that resolve to a power-of-two granule.
 On the M1 the family converter and the format selection pick the times-16 fixed-point DMA format for a last-axis-offset copy; on the M5 the same copy stays in plain fp16.
-The trigger is exactly the M1 family plus a last-axis slice with a nonzero start offset, so the avoidance is the same as for the saturation hazard and the defense belongs in the per-target build path.
+The trigger is exactly the M1 family plus a last-axis slice with a nonzero start offset, which is the saturation hazard again, so the defense belongs in the per-target build path.
 
 ## Pacing compiles after a failure
 
@@ -93,7 +92,7 @@ A trainable convolution compiled over a large batch has a compile cost that scal
 On the M1 the same backward convolution graph compiles in about 1.9 seconds at a batch of 4, about 35 seconds at a batch of 64, about 79 seconds at a batch of 128, and never finishes at a batch of 1000.
 Shrinking the spatial size does not help, since the cost tracks the batch and not the feature-map size.
 The large-batch trainable-convolution stall is the firmware-overload throttle of chapter 29 in action: a submission that overruns the firmware command queue is throttled rather than dispatched, so the fix is to cap the batch or split the program, not to wait it out.
-The defense is to mini-batch real training at a modest batch per step rather than compile one full-batch graph, and the same graph compiles without issue on the M5.
+Real training is mini-batched at a modest batch per step instead of compiled as one full-batch graph, and the same graph compiles without issue on the M5.
 
 A second slow-compile path is a combinatorial subgraph search.
 The compiler clusters a graph by a memoized search over cut points that collapses linear chains safely but is exponential in the width of parallel branches that reconverge into one consumer.
@@ -113,8 +112,7 @@ It produces output byte-identical to a host conversion, saves roughly two millis
 ## A build-time pitfall check
 
 The pitfalls share one defense: gate the graph before it reaches the compiler, keyed on the target family and the offending shape.
-The estimate holds the per-target hazard flags, so a saturating slice, batched dynamic-weight convolution, or four-character-code input is rejected at build time rather than at the silicon.
-[Listing](#lst:c19-pitfall-scan) scans a graph for all five known pitfalls, keyed on the target family and the offending shape, and stops the build before a flagged graph reaches the compiler.
+The estimate holds the per-target hazard flags, so a saturating slice, batched dynamic-weight convolution, or four-character-code input is rejected at build time rather than at the silicon ([listing](#lst:c19-pitfall-scan)).
 
 ```python
 # Scan the graph for the known pitfalls and reject or rewrite before compiling, target = H13.
@@ -170,7 +168,7 @@ The same limit closes the native dynamic-slice and dynamic-offset key-value-cach
 
 ## Reference: the five direct-path pitfalls
 
-[Table](#tbl:c19-pitfalls) collects the five direct-path pitfalls, each with its symptom, its cause, and the workaround.
+All five are set out together in [table](#tbl:c19-pitfalls).
 
 | Pitfall | Symptom | Cause | Workaround |
 | --- | --- | --- | --- |
@@ -184,7 +182,7 @@ Table: The five direct-path pitfalls a developer encounters, each with its sympt
 
 ## Reference: the compile-time and capability limits
 
-Beyond the five silent or service-level pitfalls, three further limits reject or stall a build rather than corrupt a result, which [table](#tbl:c19-compile-limits) gives with each symptom, cause, and workaround.
+Beyond the five silent or service-level pitfalls, three further limits reject or stall a build rather than corrupt a result ([table](#tbl:c19-compile-limits)).
 
 | Limit | Symptom | Cause | Workaround |
 | --- | --- | --- | --- |
@@ -196,8 +194,7 @@ Table: The compile-time and capability limits that reject or stall a build, dist
 
 ## Reference: the firmware fault surface
 
-When a fault does reach the silicon rather than the compiler, the firmware classifies it into one of a few responses, and the response decides whether a workload is rejected, silently dropped, or recovered through a reset.
-[Table](#tbl:c19-fault-surface) gives each fault class, its detection mechanism, and whether the firmware rejects, drops, or recovers through a reset.
+When a fault does reach the silicon rather than the compiler, the firmware classifies it into one of a few responses, and the response decides whether a workload is rejected, silently dropped, or recovered through a reset ([table](#tbl:c19-fault-surface)).
 
 | Fault class | Mechanism | Firmware response |
 | --- | --- | --- |

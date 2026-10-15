@@ -5,13 +5,13 @@
 > The firmware has no thermal logic and reads no temperature; thermal protection is off-engine in the system power manager.
 
 The engine runs at one fixed operating point and manages power through a peak-power regulator, not a frequency sequence.
-The system power manager handles voltage and temperature off-engine.
 
 ## Boot and device tree
 
 The engine appears in the device tree as a single node `ane0@84000000`, class `AppleARMIODevice`, `compatible = "ane,t8020"`, `device_type = "ane"`.
 The match key `ane,t8020` is the kext bind key even on a later die, since the engine block has the t8020-generation identity string across the whole M1 family.
-[Table](#tbl:c31-devicetree) gives the properties of that `ane0` node, with the decoded value and meaning of each.
+
+The node's properties decode as [Table](#tbl:c31-devicetree).
 
 | Property | Decoded value | Meaning |
 | --- | --- | --- |
@@ -70,16 +70,16 @@ The engine runs at a single fixed clock with no local voltage or frequency scali
 The only clock string in the firmware is the boot-time timebase report; the image holds no frequency table, no enumerated operating points, and no voltage string.
 Voltage is the system power manager's concern, reached only through an opaque power-management base address (`0x2_3b70_c008`) that the firmware never interprets.
 
-Two controls modulate performance, neither of them frequency.
+Performance is modulated by two controls, neither of them frequency.
 The first is how many of the four compute clusters are powered.
 The second is a peak-power regulator that limits activity under a fixed budget.
 That regulator is the engine's substitute for a frequency and voltage sequence, and it has three parts the firmware arms once at power-up.
 Dynamic power estimation counts switching activity to estimate instantaneous dynamic power.
 Peak-power tracking watches that estimate against the budget and applies back-pressure on issue when the work would exceed it, throttling activity within the fixed clock rather than dropping frequency.
 Leakage and energy estimation wires the result into the system power manager.
-Three accumulator partitions hold the running energy total that the energy-model telemetry channel reports.
+The running energy total that the energy-model telemetry channel reports is held in three accumulator partitions.
 
-Arming this model is loop-free and idempotent, the five memory-mapped stores of [Listing](#lst:c31-arm-seq) at the fixed base `0x2_6b8f_0000`, gated on two per-instance enable flags at offsets `+0x95` and `+0x96`, with no ramp and no per-frequency programming.
+Arming this model is loop-free and idempotent: five memory-mapped stores at the fixed base `0x2_6b8f_0000`, gated on two per-instance enable flags at offsets `+0x95` and `+0x96`, with no ramp and no per-frequency programming ([Listing](#lst:c31-arm-seq)).
 
 ```text
 this+0x95 (byte)  : dynamic-power-estimation mode enabled?   (tested at entry)
@@ -94,12 +94,12 @@ store  0xf              -> [0x2_6b8e_c5dc]   ; trailing control word (= 0x2_6b8e
 
 Listing: The five-store arm sequence for the power-estimation and peak-power blocks, with the fixed control words at their decoded memory-mapped offsets. {#lst:c31-arm-seq}
 
-The peak-power control word is `0x11`, the leakage-and-energy block is enabled by setting bit 0 of the register at `0x2_6b8f_4000`, and the sequence finishes with two fixed trailing control words, `0x3fff` at `0x2_6b8e_c42c` and `0xf` at `0x2_6b8e_c5dc`.
+The leakage-and-energy block is enabled by setting bit 0 of the register at `0x2_6b8f_4000`, and two fixed trailing control words close the sequence.
 This estimation aperture at `0x2_6b8f_0000` is distinct from the power-gating base `0x2_3b70_c008`, so power gating and power estimation are separate hardware blocks.
 The system-on-chip leakage-and-energy enable bit folds the result into the system power manager.
 The rails drop fully when the engine goes idle, so the estimation block loses state and the firmware re-applies the retained calibration on every wake.
 
-The four compute clusters gate independently through the stride-eight status array of [Table](#tbl:c31-power-domains), polled by the host driver until each domain's low byte reads `0xff`, meaning all eight power straps have settled.
+The four compute clusters gate independently through a stride-eight status array, polled by the host driver until each domain's low byte reads `0xff`, meaning all eight power straps have settled ([Table](#tbl:c31-power-domains)).
 
 | Aperture-relative offset | Poll | Domain |
 | --- | --- | --- |
@@ -123,7 +123,7 @@ $$E = P \, t$$
 
 with measured constants from a sustained saturating loop on the M1: a dense convolution at $P \approx 1.66 \text{ W}$ held flat over $t = 176 \text{ s}$, and a densest-packed peak of $P \approx 4.7 \text{ W}$.
 At that peak the engine delivers $6.96$ TFLOP/s, which gives an efficiency of about $1.5$ TFLOP/s per watt in fp16, rising to about $2.6$ TFLOP/s per watt on weight-reuse convolutions.
-The power scales with cluster engagement and lane density, not with any clock change.
+The power scales with cluster engagement and lane density; no clock change is involved.
 Relative to a single cluster, throughput rises $1.99\times$, $3.02\times$, and $4.00\times$ at the second, third, and fourth clusters.
 The rail then climbs smoothly from $779$ mW to $1429$ mW as channels pack the four clusters, with no discrete steps.
 
@@ -144,13 +144,13 @@ That cost grows from near zero at back-to-back dispatch to about $0.5$ ms once t
 ### Operating points and the absence of local DVFS
 
 The engine has no frequency-or-voltage sequence of its own.
-The kext delegates operating-point selection to the system power manager: the SoC CLPC against ApplePMGR.
+The kext delegates operating-point selection to the system power manager: the SoC CLPC within ApplePMGR.
 The kext holds no clock register addresses.
 A disassembly of `enableAneSysClock` shows it performs no memory-mapped writes itself; it loads an ApplePMGR service object, authenticates the vtable pointer, and calls a PMGR method with the enable argument set, with the only literal in the path being the string `"ApplePMGR"`.
 The `ane0` device-tree node publishes the PMGR clock and power-gate identifiers but has no `dvfm-states`, `voltage-states`, or `perf-states` property, so the per-state frequency in Hz and voltage in mV stay held privately by ApplePMGR behind the power-manager base and are not recoverable from the engine binaries.
 
 What is on the engine side is the firmware `H13TunableManager` register-init table, where `H13` is the M1 family.
-A `TunableManager` descriptor at base `0x2_6b8f_4000` (`aneDpePpt_soc_dpe_lee`, the SoC dynamic-power-estimation control block) holds the 7-step monotonic credit sequence of [Table](#tbl:c31-tunable), written once at firmware bring-up and gated by chip revision.
+A `TunableManager` descriptor at base `0x2_6b8f_4000` (`aneDpePpt_soc_dpe_lee`, the SoC dynamic-power-estimation control block) holds a 7-step monotonic credit sequence, written once at firmware bring-up and gated by chip revision ([Table](#tbl:c31-tunable)).
 
 | Offset | Mask | Value | Decoded |
 | --- | --- | --- | ---: |

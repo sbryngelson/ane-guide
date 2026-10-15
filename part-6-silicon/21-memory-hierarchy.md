@@ -8,7 +8,7 @@ The numbers below come from the engine's hardware-abstraction table, indexed by 
 
 ## 2 MB working-set threshold
 
-The matmul lowering shown in [listing](#lst:c21-matmul-lower) rejects a resident right-hand operand and streams a tiled copy once that operand reaches the working-set bound.
+The bound shows up first in the matmul lowering, which rejects a resident right-hand operand and streams a tiled copy instead ([listing](#lst:c21-matmul-lower)).
 
 ```c
 /* ZinMirMatMul::LowerNEMatMulToNEConv */
@@ -29,7 +29,7 @@ A `[1, 512, 32, 32]` activation is exactly 1 MB and stays resident.
 A `[1, 512, 64, 64]` activation is 4 MB and a `[4096, 4096]` linear weight is 32 MB, and both exceed the bound.
 
 When the largest operand exceeds `0x1b8`, the compiler tiles it and streams the pieces from DRAM.
-The comparison is on the size of one tensor, not the sum of the operands.
+Only one tensor's size enters the comparison; the operands are not summed.
 Past the bound, the streamed tile traffic adds DMA bytes that did not exist below it, so the arithmetic intensity of the layer, the ratio of multiply-accumulate work to bytes moved, falls.
 The design rule that follows is to keep the largest per-layer operand at or under 2 MB by tiling the batch or the spatial extent or by shrinking the channel count, so the layer stays on-chip.
 
@@ -38,7 +38,7 @@ Its compiler tiles over the batch and the output dimensions together, so neither
 The working-set cost then appears in DRAM energy per operation, which bottoms near a 2 MB operand and rises beyond about 4 to 5 MB, around the M5 bound of 4.72 MB.
 
 The measured throughput threshold is slightly above the table value, near 2.28 to 2.34 MB, because the tiler holds roughly 0.3 MB of double-buffer and alignment margin before it splits the weight.
-Sweeping a batched matrix multiply whose weight grows from 1.25 to 3.1 MB resolves the threshold directly, as [table](#tbl:c21-threshold-sweep) shows with the smooth plateau below the bound and the sharp step just above it.
+Sweeping a batched matrix multiply whose weight grows from 1.25 to 3.1 MB resolves the threshold directly, with a smooth plateau below the bound and a sharp step just above it ([table](#tbl:c21-threshold-sweep)).
 
 | weight size | throughput, GFLOP/s |
 | --- | --- |
@@ -52,7 +52,7 @@ Sweeping a batched matrix multiply whose weight grows from 1.25 to 3.1 MB resolv
 
 Table: Measured throughput of a batched matrix multiply as the weight crosses the 2 MB operand bound. {#tbl:c21-threshold-sweep}
 
-The throughput is higher above the threshold, not below it.
+Throughput is higher above the threshold than below it.
 Below the bound the whole weight is one resident operand that must fill before compute starts, a serialized stream into the array.
 Above the bound the weight is tiled and double-buffered, so the fill of tile $n + 1$ overlaps compute on tile $n$ and throughput climbs.
 The threshold is at the same 2.31 MB sweeping the grid up or down, so the boundary holds no memory state.
@@ -65,7 +65,7 @@ An address maps to a bank by
 
 $$\mathrm{bank} = \left\lfloor \frac{\mathrm{addr}}{16} \right\rfloor \bmod 64.$$
 
-In compiler terms the two operands are the two table fields directly, as [listing](#lst:c21-bank-index) computes the bank index from a byte address.
+In compiler terms the two operands are the two table fields directly ([listing](#lst:c21-bank-index)).
 
 ```c
 /* SRAM/L2 bank index from a byte address */
@@ -78,7 +78,7 @@ Listing: The on-chip bank index computed from a byte address using the interleav
 
 The map is direct and modular: there is no second-level grouping above the 64 banks.
 The bank-conflict optimizer reads the same two table fields and chooses a row stride that spreads accesses across banks.
-Over candidate strides bounded by the maximum stride field `0x1f8`, it selects the stride whose per-bank cost is least, as [listing](#lst:c21-bank-optimizer) searches.
+Over candidate strides bounded by the maximum stride field `0x1f8`, it selects the stride whose per-bank cost is least ([listing](#lst:c21-bank-optimizer)).
 
 ```c
 /* ZinMirBankConflictOptimizer::OptimizeL2StrideMinCost */
@@ -103,12 +103,12 @@ The conflict is worst when the granule stride is a high power of two, which driv
 Every accepted stride is a multiple of the 16-byte granule, and the search never proposes a stride above the 2 MB ceiling in field `0x1f8`.
 The on-device throughput period that this structure produces is 64 bytes, which is 32 half-precision elements and four 16-byte granules; that period is the granule-quantized echo of the 64-bank interleave after the optimizer has set the stride, not the raw modulus itself.
 
-The pool is a compiler-managed scratchpad, not a demand-filled cache.
-The compiler decides residency and stride at compile time and writes them into the program; there is no runtime replacement policy on the operand path, so the order in which weights are re-referenced does not change which ones are resident.
+There is no runtime replacement policy on the operand path.
+The compiler decides residency and stride at compile time and writes them into the program, which is why the order in which weights are re-referenced does not change which ones are resident.
 
 ## Resident vs shared output buffers
 
-The output-buffer allocator in [listing](#lst:c21-resident-buffer) decides whether a convolution gets a dedicated resident buffer or the shared default, gated by the residency-threshold field.
+Whether a convolution gets a dedicated resident buffer or the shared default turns on the residency-threshold field ([listing](#lst:c21-resident-buffer)).
 
 ```c
 /* ZinIrLocalRegAlloc::AllocateOutputDMADefaultBuffer */
@@ -144,7 +144,7 @@ Three alignment scales coexist on the M1: the 16-byte DMA-width granule of field
 
 A host buffer reaches the array through two stacked translations: the kernel driver pins the pages to physical memory, then maps them through a device input-output memory-management unit to a device virtual address the engine's DMA engines read.
 The translation unit that serves the engine is the t6000-generation controller bound to the device node `dart-ane0`.
-[Table](#tbl:c21-translation) gives the page size, aperture base, and aperture size read from the live device node.
+[Table](#tbl:c21-translation) gives the page size, aperture base, and aperture size.
 
 | property | value | meaning |
 | --- | --- | --- |
@@ -159,7 +159,7 @@ Each page maps to physical memory through a single 64-bit leaf descriptor: for e
 The descriptor reads $\mathrm{phys} \mathbin{|} \mathtt{0x8000000000000000}$ for an input, weight, intermediate, or output page alike, since the physical frames are 16 KB-aligned and leave the high bits free; unmap clears the descriptor to zero, dropping the valid bit.
 Read-only protection of the inputs is not encoded in the leaf descriptor on the M1: a configuration bit collapses the would-be read-only class into read-write at the translation unit, so input protection is enforced upstream.
 
-Each mapped buffer holds a usage code that records its role, decoded from the mapping call sites and listed in [table](#tbl:c21-usage-codes).
+Each mapped buffer holds a usage code that records its role ([table](#tbl:c21-usage-codes)).
 
 | usage code | role |
 | --- | --- |
@@ -173,11 +173,11 @@ Each mapped buffer holds a usage code that records its role, decoded from the ma
 
 Table: The buffer-role usage code each mapped buffer holds, recovered from the mapping call sites. {#tbl:c21-usage-codes}
 
-The address-translation registers and the full fault path are the subject of chapter 28; this chapter covers the on-chip pool, its banking, and the page granule at which buffers enter the device address space.
+The address-translation registers and the full fault path are the subject of chapter 28.
 
 ## Hierarchy on the M1
 
-[Table](#tbl:c21-hierarchy) gives the on-chip levels and their M1/H13 values, with the table field that holds each one and its role.
+The on-chip levels and their M1/H13 values are gathered in [table](#tbl:c21-hierarchy).
 
 | Level | M1/H13 value | Table field | Role |
 | --- | --- | --- | --- |
@@ -191,7 +191,7 @@ The address-translation registers and the full fault path are the subject of cha
 
 Table: The on-chip memory levels on the M1, each with its value, hardware-abstraction-table field, and role. {#tbl:c21-hierarchy}
 
-[Table](#tbl:c21-residency-gens) gives the cross-generational comparison for the residency-buffer threshold, the field that varies most across parts, with its effect on whether a dedicated buffer is allocated.
+The residency-buffer threshold is the field that varies most across parts ([table](#tbl:c21-residency-gens)).
 
 | Part | `0x1f0` value | Effect |
 | --- | --- | --- |

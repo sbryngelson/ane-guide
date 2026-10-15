@@ -11,17 +11,16 @@ The same model drives an ahead-of-dispatch latency estimate for any chip in the 
 
 ## Three stages of the model
 
-The first stage estimates compute cycles from the operation and its dimensions.
+Compute cycles come first, estimated from the operation and its dimensions.
 For a convolution the cycle count is the input-channel passes times the kernel volume times the output spatial extent, divided by the active compute units, and sparsity scales it down by the fraction of zero weights.
 Pooling and elementwise operations use their own cycle variants of the same form.
 
-The second stage applies a roofline.
+Next comes a roofline.
 Compute time is the cycle count divided by the throughput rate, memory time is the operand bytes divided by the bandwidth, and the layer latency is the larger of the two.
 A layer whose memory time exceeds its compute time is bandwidth-bound; the reverse is compute-bound.
 
-The third stage converts to wall time.
+The last stage converts to wall time, a latency in microseconds.
 The model runs at a clock near 0.8 times the maximum frequency, scales the rates by a per-chip efficiency curve, and adds a fixed overhead for the per-input transfer setup plus a constant dispatch cost.
-The result is a latency in microseconds.
 
 $$t \approx \max\left(\frac{\mathrm{cycles}}{f},\ \frac{\mathrm{bytes}}{B}\right) + t_0$$
 
@@ -32,7 +31,7 @@ On the M1 the model fits the measured convolution latencies with a peak of 3.25 
 
 Only the parameter values change from chip to chip; the three-stage structure is identical across the family.
 The compute-unit count, per-cycle divisor, clock range, and efficiency curve are read from the hardware abstraction table for each target, the table chapter 24 decodes.
-[Table](#tbl:c18-chip-params) gives the source and the fitted M1 and M5 values for each parameter side by side.
+The fitted M1 and M5 values sit side by side in [table](#tbl:c18-chip-params).
 
 | Quantity | Source | M1/H13 | M5/H17s |
 | --- | --- | --- | --- |
@@ -47,14 +46,14 @@ The compute-unit count, per-cycle divisor, clock range, and efficiency curve are
 Table: The cost-model parameters that change from chip to chip, with their source and the fitted values for the M1 and M5. {#tbl:c18-chip-params}
 
 The M1 model takes efficiency as 1.0, meaning it sustains peak at any clock; later generations derate to about 0.84 because the array cannot hold the peak multiply rate at the higher clock ceiling.
-The compute units scale 4 to 16 to 32 to 64 across the die variants, and the clock ceiling rose from 1.43 GHz to 2.36 GHz, which together put the M5 theoretical peak near 5.5 times the M1. The fitted peaks in the table scale more conservatively, about 2.7 times, from 3.25 to 8.9 fp16 TFLOP/s, since the cost model anchors to the rate the array sustains rather than the theoretical product.
+The compute units scale 4 to 16 to 32 to 64 across the die variants, and the clock ceiling rose from 1.43 GHz to 2.36 GHz, which together put the M5 theoretical peak near 5.5 times the M1.
+The fitted peaks in the table scale more conservatively, about 2.7 times, from 3.25 to 8.9 fp16 TFLOP/s, since the cost model anchors to the rate the array sustains rather than the theoretical product.
 
 Bandwidth scales with the compute-unit count rather than the clock.
 The M5 streams the same bandwidth-bound model at 57 GB/s against the M1's 9.0 GB/s, close to the 16-to-4 core ratio, so the per-chip anchor sets bandwidth by core count and the dispatch floor by clock.
 The 9.0 GB/s here is the cost model's jointly calibrated effective fit, and it is not the 51 GB/s single-row saturating weight-stream of chapter 9 nor the roughly 40 GB/s broad-shape effective rate, which measure different things.
 A model anchored to the M1 alone over-predicts M5 latency by a mean of 99 percent: clock-scaling the M1 bandwidth yields about 15 GB/s, which the true 57 GB/s rate exceeds by about 3.8 times.
-Substituting the M5 measured bandwidth, floor, and peak brings four of the five reference convolutions within 13 percent.
-[Listing](#lst:c18-estimate-latency) evaluates the three-stage model against per-chip anchors, taking the larger of the compute and memory terms and adding the fixed dispatch floor.
+Substituting the M5 measured bandwidth, floor, and peak brings four of the five reference convolutions within 13 percent ([listing](#lst:c18-estimate-latency)).
 
 ```python
 def estimate_latency(cycles, op_bytes, chip):
@@ -104,9 +103,7 @@ The optimizer's gate is the test corpus, which holds the cross-chip latency tabl
 
 ## Estimating latency and tuning a graph
 
-The estimate locates a graph against any target's roofline before dispatch, and the autotuner selects the lowest-latency equivalent rewrite under an accuracy bound.
-The estimate returns the three-stage latency for a named target with no device in hand, and the tune step ranks accuracy-preserving rewrites by that same estimate.
-[Listing](#lst:c18-estimate-tune) estimates a graph for a named target with no hardware in hand, then enumerates equivalent rewrites and keeps the lowest-latency one that holds the accuracy tolerance.
+The estimate locates a graph against any target's roofline before dispatch, and the autotuner selects the lowest-latency equivalent rewrite under an accuracy bound ([listing](#lst:c18-estimate-tune)).
 
 ```python
 # Estimate latency for a named target with no hardware in hand, then tune.
@@ -145,11 +142,11 @@ for each rewrite R that computes the same result as G:
 
 Listing: Estimating a graph's latency for a named target with no hardware, then ranking accuracy-preserving rewrites by the same estimate. {#lst:c18-estimate-tune}
 
-A graph whose estimate prints `dispatch` is batched or fused until the compute term clears the floor, since no faster array helps a layer pinned to the 0.23 ms floor on the M1.
+No faster array helps a layer pinned to the 0.23 ms floor on the M1, so a graph whose estimate prints `dispatch` is batched or fused until the compute term clears it.
 
 ## Two cost models and their coefficients
 
-There are two cost models in the toolchain, and they do different jobs.
+There are two cost models in the toolchain.
 The model above is the intra-engine analytic model the compiler holds, the cycles-to-roofline-to-wall-time chain, fit to silicon for a per-chip latency estimate.
 A second model decides backend placement: whether each operation runs on the engine, central processor, or graphics processor, and it is in the segmenter rather than the engine compiler.
 The placement model costs an operation as the same roofline form, `max(flops/peak, bytes/bandwidth) + launch`, but with coarse abstract anchors rather than silicon-fit ones.
@@ -160,14 +157,12 @@ The layer total is the execute cycles plus the overhead cycles.
 The tiling choice is the argument that minimizes the split cost against the unsplit cost, searched once and cached.
 `CalculateExeCycles` reads a precomputed double at layer offset `+0x1e0` and saturates at 65535, the width of the 16-bit task-descriptor field.
 
-This intra-engine per-layer cost model is distinct from the placement cost model that decides engine versus central processor or graphics processor.
 The two answer different questions at different layers: the per-layer model sizes and tiles work already bound for the engine, while the placement model orders the three backends.
 
 The live measurement validates the analytic roofline.
 The measured full-call floor of about 190 microseconds is about 16 percent below the frontend's analytic per-chip anchor of 220 microseconds, inside the model's stated plus-or-minus 17 percent fit.
 
-The placement-model anchors are per-backend, not per-chip.
-[Table](#tbl:c18-backend-anchors) gives the abstract roofline peak and bandwidth each backend is charged against, read from the segmenter cost functions.
+The placement-model anchors are per-backend, not per-chip, and each backend is charged against an abstract roofline peak and bandwidth read from the segmenter cost functions ([table](#tbl:c18-backend-anchors)).
 
 | Backend | Peak (GFLOP/s) | Bandwidth (GB/s) |
 | --- | ---: | ---: |
@@ -180,9 +175,9 @@ Table: The abstract per-backend roofline anchors the placement model uses to ord
 These anchors are deliberately coarse.
 The 800 GFLOP/s engine peak is about four times under the M1 silicon fit of 3.25 fp16 TFLOP/s, and the 50 GB/s engine bandwidth is above the 9 GB/s effective fit, so the two errors run in opposite directions and the net placement order survives.
 The job of these numbers is to separate the engine from the graphics processor by 6.7 times and from the central processor by 40 times, a separation that holds under any single miscalibration.
-Absolute latency accuracy is not their responsibility; it is in a learned per-operation layer described next.
+Absolute latency accuracy is not their responsibility; a learned per-operation layer carries that.
 
-The placement model also charges a launch cost on every segment and a transfer cost on every backend crossing, which is why the segmenter prefers long single-backend runs, as [table](#tbl:c18-penalties) gives in the model's relative units.
+The placement model also charges a launch cost on every segment and a transfer cost on every backend crossing, which is why the segmenter prefers long single-backend runs ([table](#tbl:c18-penalties), in the model's relative units).
 
 | Penalty | To the engine | To another backend |
 | --- | ---: | ---: |
@@ -220,7 +215,7 @@ The learned leaves and the silicon-fit analytic anchors reach calibrated accurac
 The analytic model above replaces the coarse anchors with silicon-fit ones and brings all five reference convolutions within plus or minus 17 percent.
 The placement model keeps the coarse anchors as a binning feature and bolts a learned per-operation tree on top.
 The convolution case shows both against silicon.
-[Table](#tbl:c18-conv-compare) sets the coarse placement roofline, the silicon-anchored analytic estimate, and the measured M1 latency against each other for four convolutions.
+Four convolutions set the coarse placement roofline and the silicon-anchored analytic estimate against the measured M1 latency ([table](#tbl:c18-conv-compare)).
 
 | Convolution | Coarse roofline only | Analytic, h13 anchors | Measured, M1 |
 | --- | ---: | ---: | ---: |
@@ -241,7 +236,6 @@ The plus-or-minus 17 percent fit is a property of the five reference convolution
 A broad sweep of 68 graphs across eight operation families, each estimated by the cost model for the `h13` target and timed against the on-device per-call latency, locates the median absolute error at about 31 percent.
 Only 11 of the 68 shapes are inside plus or minus 17 percent.
 The estimate is sound as an ordinal placement tool rather than as an absolute-latency oracle: it identifies the binding roofline term and orders shapes correctly, so the backend choice and the relative ranking the optimizer needs survive the error.
-The estimate reads as an approximate figure and a ranking, not a calibrated wall-time prediction outside the convolution shapes it was fit on.
 The error is directional and concentrated in the bandwidth-bound regime, where the 9.0 GB/s anchor undershoots the roughly 40 GB/s effective rate the engine sustains and the estimate over-predicts the large-weight shapes by several times.
 
 Attention has no estimate at all.

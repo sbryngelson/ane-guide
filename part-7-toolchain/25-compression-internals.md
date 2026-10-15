@@ -1,20 +1,19 @@
 # 25. Compression internals
 
-> Every weight blob has a format enum, an integer one through thirty-one, that keys five parallel helper tables controlling all packing; the palette range is 7 through 27 and the unity range is 28 through 30.
+> Every weight blob has a format enum, an integer 1 through 31, that keys five parallel helper tables controlling all packing; the palette range is 7 through 27 and the unity range is 28 through 30.
 > The engine reconstructs four compression forms: per-tensor and per-channel int8 affine, int4 lookup-table, structured sparsity, and blockwise affine, each a distinct dequantization chain the converter decodes into a kernel format.
 > Two gates decide whether a compressed weight streams in its compressed bytes or folds to a dense half-precision constant: the kernel-streaming master at offset `0x48f` and the per-format palette and affine cluster at `0x520` through `0x539`.
 > On the M1 only the int4 lookup-table and structured-sparsity forms stream; int8 and blockwise fold to dense through the dequantize-to-dense path.
 
 Chapter 7 stated which compressed weight forms reach the engine and which save bandwidth.
-The mechanism beneath that account follows: how a weight tensor becomes the compiled weight blob, what codec each form holds, and how the compiler decides whether the compressed bytes stream to the engine or fold to a dense half-precision constant first.
+The mechanism beneath that account follows: how a weight tensor becomes the compiled weight blob, and how the compiler decides whether the compressed bytes stream to the engine or fold to a dense half-precision constant first.
 The path runs from a high-level dequantization operation chain down to the per-output-channel-group records the firmware re-bases into on every dispatch.
 Bit-layout and address detail are M1/H13, table-descriptor codegen version five (family two, A13), unless another version or family is named.
 
 ## Kernel-format enum and its tables
 
-Every weight blob has a format enum that names its storage encoding, an integer in the range one through thirty-one.
-Five parallel tables keyed on that enum control all packing, and two structural ranges fall out of their guards and recur throughout the pipeline.
-[Table](#tbl:c25-helpers) names the five kernel-format helper functions and what each one returns.
+Every weight blob has a format enum that names its storage encoding, an integer in the range 1 through 31.
+All packing is controlled by five parallel tables keyed on that enum ([Table](#tbl:c25-helpers)), and two structural ranges fall out of their guards and recur throughout the pipeline.
 
 | helper | returns |
 | --- | --- |
@@ -30,7 +29,7 @@ The palette formats are the enum range 7 through 27, selected by the guard `f - 
 The unity formats, the identity and scale-only weights that skip the multiply array, are the enum range 28 through 30, selected by `f - 0x1c < 3`.
 
 A compiled weight unit is a fixed set of sections, and the descriptor that names them is the authoritative field list.
-The descriptor holds an activation lookup table, palette lookup table, output-channel-group table, per-output-channel scale vector, per-output-channel bias vector, and the packed weight or index blob, the six-section field list [listing](#lst:c25-kernel-unit) reproduces.
+The descriptor holds an activation lookup table, palette lookup table, output-channel-group table, per-output-channel scale vector, per-output-channel bias vector, and the packed weight or index blob ([listing](#lst:c25-kernel-unit)).
 
 ```text
 t%u = s%lu
@@ -45,7 +44,7 @@ t%u = s%lu
 Listing: The per-output-channel-group kernel-unit descriptor, the authoritative six-section field list emitted into the compiled weight section. {#lst:c25-kernel-unit}
 
 The palette table tuple holds the palette format, index bit-depth, codebook count, and codebook byte size; a codebook count above one marks the vector-palettized case.
-The activation table and the palette table are peers in one descriptor and share a single on-chip-memory budget.
+The activation table and the palette table are peers in one descriptor.
 
 The element types the descriptor writes for a weight section are a subset of the 24-entry catalog.
 They are int8 as type 2, uint8 as type 3, half-precision as type 5, the lookup-table tag as type 8, 4-bit unsigned as type 9, the 8-bit floating form as type 16, and 4-bit signed as type 23.
@@ -53,7 +52,7 @@ The half-precision type holds the codebook entries, scale, and bias, so a palett
 
 ## Four codecs
 
-[Table](#tbl:c25-codecs) gives the four weight-compression codecs, each with its dequantization relation, on-device representation, the family it streams on natively, and the compiler gate that selects the stream.
+Each of the four codecs has its own dequantization relation, on-device representation, native-stream family, and selecting compiler gate ([Table](#tbl:c25-codecs)).
 
 | form | dequant relation | representation | streams natively on | gate |
 | --- | --- | --- | --- | --- |
@@ -77,14 +76,15 @@ The per-output-channel scale and bias do not cost a runtime operation: the compi
 The engine applies them at the gain-offset-control stage as $y = s_{\mathrm{out}}\,(\sum_k w'_k x_k) + b_{\mathrm{out}}$ where the coefficient already absorbs the dequantization scale.
 This is why a symmetric quantized convolution on the M1 costs nothing extra for the affine: the compiler folds the scale and the zero point into the stored weights and the per-output-channel arrays before the dispatch.
 
-The int4 lookup-table form stores a four-bit index per element into a sixteen-entry half-precision codebook.
-Reconstruction is a table lookup with no arithmetic, since the codebook entries are already half-precision and supply the multiply array directly. The reconstructed weight is
+The int4 lookup-table form stores a 4-bit index per element into a 16-entry half-precision codebook.
+Reconstruction is a table lookup with no arithmetic, since the codebook entries are already half-precision and supply the multiply array directly.
+The reconstructed weight is
 
 $$w = \mathrm{LUT}\big[g / v\big]\big[\,k\,\big]\big[\,c \bmod v\,\big]$$
 
 with output-channel-group index $g$, palette vector size $v$, the four-bit index $k$ for the element, and channel position $c$.
-For the common per-tensor case the vector size is one and a single codebook holds all sixteen entries, so the relation flattens to one table lookup.
-Four-bit weights have no affine path at all: there is no four-bit underlying scalar type in the type table, so a four-bit weight can only be a palette index.
+For the common per-tensor case the vector size is one and a single codebook holds all 16 entries, so the relation flattens to one table lookup.
+A 4-bit weight has no affine path at all: there is no 4-bit underlying scalar type in the type table, so it can only be a palette index.
 That is why the lookup-table form is structurally a palette and is the one form that streams on the M1.
 
 The palette index width is 2, 4, 6, or 8 bits, but the M1-practical widths are 4-bit, a 16-entry codebook, and 8-bit, a 256-entry codebook.
@@ -95,10 +95,8 @@ A 4-bit codebook is 32 bytes and an 8-bit codebook is 512 bytes per lookup table
 
 Structured sparsity stores a one-bit nonzero mask plus the packed half-precision values of the surviving nonzeros.
 The mask costs one bit per element and the values cost two bytes per survivor, so a weight that is half zeros or more stores well below its dense size.
-Reconstruction walks the mask, consuming one packed value for each set bit and emitting a zero for each clear bit, exact apart from the half-precision rounding of the kept values.
+Reconstruction walks the mask, consuming one packed value for each set bit and emitting a zero for each clear bit, exact apart from the half-precision rounding of the kept values ([Listing](#lst:c25-recon)).
 Blockwise affine assigns a separate scale to each contiguous block of elements, finer than a per-channel scale and so lower in quantization error.
-
-[Listing](#lst:c25-recon) gives the three reconstruction codecs in pseudocode, each the exact relation the engine applies for the affine, lookup-table, and structured-sparsity forms.
 
 ```python
 # int8 / uint8 affine dequant (constexpr_affine_dequantize)
@@ -123,7 +121,7 @@ def densify_sparse(mask_bits, nonzeros, n):
 
 Listing: The three reconstruction codecs in pseudocode, the affine dequantization, lookup-table reconstruction, and structured-sparsity scatter. {#lst:c25-recon}
 
-The sparse layout on the wire is the bitmask blob followed by the packed values blob, the operand layout [listing](#lst:c25-sparse-layout) gives.
+The sparse layout on the wire is the bitmask blob followed by the packed values blob ([listing](#lst:c25-sparse-layout)).
 
 ```python
 constexpr_sparse_to_dense operand layout
@@ -161,7 +159,7 @@ The compressed path thus has far more weight per layer.
 
 ## Per-output-channel-group packing
 
-The weight section is a sequence of per-output-channel-group records, and each record is the fixed 14-word block [Table](#tbl:c25-ocg-record) details word by word with its computed offset and size and its ten unrelocated address slots.
+The weight section is a sequence of per-output-channel-group records, each a fixed 14-word block holding a computed offset and size and ten unrelocated address slots ([Table](#tbl:c25-ocg-record)).
 
 | Word | Field | Initial value |
 | --- | --- | --- |
@@ -173,7 +171,7 @@ The weight section is a sequence of per-output-channel-group records, and each r
 Table: The per-output-channel-group record, the 14-word block with its computed offset and size and its ten unrelocated address slots. {#tbl:c25-ocg-record}
 
 The ten slots left at `-1` are the per-record device addresses the loader patches in: the input and output tile bases, per-buffer coefficient sub-buffer bases, and four coefficient-stream bases for bias, post-scale, palette lookup, and activation lookup.
-Those four streams map one-to-one to four kernel direct-memory-access sub-channels in the kernel-and-common register group, each with the enable, base-offset, and relocation register [Table](#tbl:c25-dma-streams) gives.
+Those four streams map one-to-one to four kernel direct-memory-access sub-channels in the kernel-and-common register group, each with the enable, base-offset, and relocation register in [Table](#tbl:c25-dma-streams).
 
 | Descriptor slot | Enable register | Base-offset register | Relocation register |
 | --- | --- | --- | --- |
@@ -185,10 +183,10 @@ Those four streams map one-to-one to four kernel direct-memory-access sub-channe
 Table: The four kernel direct-memory-access coefficient streams, each with its enable, base-offset, and relocation register. {#tbl:c25-dma-streams}
 
 There is no zero-point stream, since the M1 symmetric form folds the zero point to zero; the per-output-channel scale and bias streams supply the dequantization scale instead.
-The M1 replicates the kernel coefficients per engine core, one copy per core, because it lowers to the per-core layout rather than the shared kernel-memory layout that the A14 generation and later use.
+The M1 replicates the kernel coefficients per engine core, one copy per core, because it lowers to the per-core layout where the A14 generation and later use a shared kernel-memory layout.
 A four-core M1 thus has four per-core records each with its own output-channel-group vector.
 
-The activation lookup table shares the descriptor and the budget with the palette lookup table.
+The activation lookup table shares the descriptor with the palette lookup table.
 It is a 43-entry half-precision record: two input-clamp values, a mode flag, a scale, the 33 knot values uniform in the input domain, four tail extrapolation coefficients, and a packed mode word.
 At runtime the input maps affinely onto the 32 segments between the 33 knots, the integer part selects a segment, and the fraction controls a half-precision linear interpolation, with the output clamping to the end-knot beyond the input-clamp domain.
 The activation lookup table and the palette lookup table are co-located in the weight section and located by one offset cursor, which is why they draw on one shared budget.
@@ -200,7 +198,7 @@ The first is compute-time zero-skip.
 The table descriptor has a detect-zeros bit that is implemented on the M1, and when it is set the multiply array skips a multiply-accumulate whose weight is zero.
 The cost model scans the weight values for their zero density once, caches the ratio, and reduces the convolution cycle estimate by it, adding the implicit zeros that strided and padded convolutions contribute.
 This mechanism is format-independent: it fires on any kernel with zeros regardless of storage encoding, including weights that fold to dense for storage.
-On a bandwidth-bound stack the zero-skip alone moves the limit by about one percent, because skipping multiply-accumulates does not help a layer limited by the weight stream rather than by the array.
+On a bandwidth-bound stack the zero-skip alone moves the limit by about one percent, because skipping multiply-accumulates in the array does not help a layer whose limit is the weight stream.
 
 The second is the sparse-binary store with on-chip decompress, which is the source of the bandwidth gain.
 The mask and the packed nonzeros cross the direct-memory-access stream, and the engine decompresses them on chip into the dense tile.
@@ -219,7 +217,7 @@ The compiler has a complete fp8 datapath that no M1 generation can reach.
 The 8-bit floating form is two distinct things in the binary: the E4M3 form, a gated hardware weight and activation format with element code `0xc`, and the E5M2 form, a conversion format with element code `0xd`.
 E4M3 is the gated one: its kernel-format validity admits it as a native weight element type, but the encoder that writes its element code exists only from the A17 generation.
 The runtime capability byte at `0x52d` that enables the format is set on the A18 generation alone.
-On the M1 the format register is two bits wide with no E4M3 codepoint at all, so passing the format triggers a compile-time assert rather than a runtime refusal.
+On the M1 the format register is two bits wide with no E4M3 codepoint at all, so the format never reaches a runtime refusal; it triggers a compile-time assert.
 The accumulator stays at the wide half-precision-class width on every family, so the 8-bit form is an input and storage width supplying the same multiply array, not an accumulate width.
 Its throughput runs on the same double-multiply path the int8 form uses.
 The full fp8 datapath, format-register delta, E5M2-to-half fold asymmetry, and conversion functions are decoded in chapter 36.
@@ -245,4 +243,4 @@ The sparse-binary index packing, multi-codebook palette, asymmetric quantization
 
 The full Winograd eligibility gate is derived in chapter 20: the enable bit, kernel-axis and tile-size conditions, and the $\mathrm{OCG} \times K_y \times K_x \times K_d \times 2$ work threshold against its non-float, float, and packed floors.
 The compression-relevant point is the weight-format interaction: eligibility requires a non-unity, non-sparse weight, so a sparse or unity-format weight is excluded from the Winograd path and keeps its own datapath.
-The transform matrices $G$, $B^\top$, and $A^\top$ are resident in the array rather than stored in any shippable weight blob, so no codec holds them.
+The transform matrices $G$, $B^\top$, and $A^\top$ are resident in the array and appear in no shippable weight blob, so no codec holds them.

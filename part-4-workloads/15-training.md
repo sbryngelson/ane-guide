@@ -6,8 +6,9 @@
 > The conv weight-gradient saturates above 4094 on the width axis on the M1 and M2, so a preflight check guards that one numeric edge.
 
 There is no backward operation, no gradient layer, and no adjoint primitive in the compiler's operation catalog.
-A network still trains end to end on the engine, optimizer step included, because the forward pass, backward pass, and parameter update are all expressed as ordinary inference-style graph operations the engine already runs.
-This chapter states how that expression works, which gradients are numerically trustworthy, where one path diverges in fp16, and why the result is a capability rather than a speed claim.
+A network still trains end to end anyway, optimizer step included, because every stage of the loop is expressible in the operations the engine already runs.
+This chapter states how that expression works and which gradients are numerically trustworthy, then isolates the one path that diverges in fp16.
+The result is a capability, not a speed claim.
 
 ## A backward pass built from forward operations
 
@@ -43,7 +44,7 @@ The core set matches to a cosine of $1.0000$ against the closed form, at the fp1
 That set covers the activations `relu`, `sigmoid`, `tanh`, and `gelu`, the elementwise `mul`, `add`, `sub`, `square`, the linear `matmul` and batched `matmul`, `softmax`, `conv`, `avg_pool`, `max_pool`, the reductions `reduce_sum` and `reduce_mean`, and the shape operations `transpose`, `reshape`, `flatten`, `slice`, and `concat`.
 The four normalization layers `layer_norm`, `rms_norm`, `group_norm`, and `l2_norm`, the `silu` activation, and a set of unary math operations including `exp`, `sqrt`, `rsqrt`, `log`, `erf`, and `cos` were added later and verified against a finite-difference reference at the same cosine.
 The normalization gradients re-inject the per-channel scale as a supplied value-input, since the engine has no constant-tensor operation to hold it.
-[Table](#tbl:c15-gradients) groups the registered operations by kind, from the activations through the reductions to the normalization layers.
+The registered operations group by kind ([table](#tbl:c15-gradients)).
 
 | Group | Operations with a registered gradient |
 | --- | --- |
@@ -105,12 +106,12 @@ One gradient path diverges in fp16 on the M1 and the M2 generations.
 The convolution is built from a patch-extraction step, a set of width-offset slices, followed by a matmul.
 A nonzero-offset width slice on these generations saturates above 4094, the bound derived in chapter 3 and guarded in chapter 19.
 
-The training-relevant consequence is that the weight-gradient runs the backward activations back through those same width-offset slices.
+The weight-gradient runs the backward activations back through those same width-offset slices.
 When the loss-scaled backward activations exceed about 4094, a few weight-gradient elements saturate to infinity and the gradient is corrupted.
 The break is magnitude-gated and finite-to-infinity, not a small rounding error: at a fixed shape the path is exact at loss scale 384 and produces its first infinity at loss scale 512.
 A larger input magnitude crosses the same threshold at a lower loss scale.
 
-Two independent variables cross the threshold, the input magnitude and the loss scale, as [table](#tbl:c15-saturation) records across a sweep of both.
+The input magnitude and the loss scale cross the threshold independently, as [table](#tbl:c15-saturation) records across a sweep of both.
 
 | Input scale | Loss scale | Result | Infinities |
 | ---: | ---: | --- | ---: |
@@ -134,7 +135,7 @@ The M5 generation takes a different slice route and has no such saturation; the 
 ## Cross-generation parity
 
 The same seeded network trains deterministically on both generations, with the data order and initialization fixed.
-The two accuracy curves track to three decimals through all 300 steps and part by a single borderline prediction at the end, which [table](#tbl:c15-parity) traces step by step from initialization to step 300.
+The two accuracy curves track to three decimals through all 300 steps and part by a single borderline prediction at the end ([table](#tbl:c15-parity)).
 
 | Step | M1 test accuracy | M5 test accuracy |
 | ---: | ---: | ---: |
@@ -153,10 +154,7 @@ The difference does not vanish, but it is far too small to affect the trained mo
 
 ## A resident-state training loop
 
-A training loop on the engine builds three graphs from the same forward operations: the forward pass, a backward graph from the registered gradients, and an adaptive update.
-The weights and optimizer moments stay resident across steps, and the host sends only the per-step minibatch and the scalar learning rate, where the learning rate already absorbs any loss scaling.
-
-The procedure of [listing](#lst:c15-loop) marks the weights as trainable graph inputs, keeps the optimizer state resident, and advances the network one optimizer step per dispatch.
+The weights are declared as trainable graph inputs and the optimizer moments allocated once, both outside the step loop ([listing](#lst:c15-loop)).
 
 ```python
 graph G:
@@ -181,11 +179,9 @@ W_final = read(W)                             # read the weights back at a check
 
 Listing: A resident-state training loop, keeping the weights and optimizer moments resident across all 300 steps. {#lst:c15-loop}
 
-All three stages submit as one engine graph per step, so the weights and moments never cross the host boundary between steps.
-
 ## Reference: training correctness and the numeric edge
 
-[Table](#tbl:c15-reference) collects the training correctness figures and the single guarded numeric edge this chapter establishes, from the gradient cosine through the final accuracies to the saturation threshold.
+Everything this chapter establishes about correctness reduces to a handful of figures and one guarded numeric edge ([table](#tbl:c15-reference)).
 
 | Quantity | Value |
 | --- | ---: |

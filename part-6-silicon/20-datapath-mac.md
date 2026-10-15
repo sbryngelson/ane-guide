@@ -7,7 +7,7 @@
 
 The array is a set of cores, accumulators, and lanes whose dimensions are constants in the compiler and in a per-chip hardware-abstraction table.
 The compiler supplies it by re-basing direct-memory-access engines per tile.
-[Table](#tbl:c20-geometry) gives those dimensions and the roofline that follows from them, with each constant's hardware-abstraction-table offset and the scope over which it holds.
+Those dimensions and the roofline that follows from them are in [table](#tbl:c20-geometry).
 
 ## Geometry constants
 
@@ -26,7 +26,7 @@ The compiler supplies it by re-basing direct-memory-access engines per tile.
 Table: The multiply-accumulate array geometry constants, with hardware-abstraction-table offset, M1 value, and the scope over which each holds. {#tbl:c20-geometry}
 
 The compiler's performance model reads the array geometry from these fields in the per-chip hardware-abstraction table.
-The die, not the generation, keys the core count.
+The core count is keyed to the die rather than to the generation.
 The decoded four-core figure on the M1 counts physical compute sets, which the per-core power-rail step confirms below.
 Apple's published per-chip figure, the 16-core count the I/O registry also reports, is a different quantity [AppleANE].
 The M1 has four cores; the M5 generation has sixteen; small reference variants have one.
@@ -35,7 +35,7 @@ An operation fits single-buffered when its accumulator demand is at most eight, 
 
 ## Output channels per cycle and the lane width
 
-Two accessors of the performance model set the lane width, listed in [table](#tbl:c20-lane-accessors) with what each returns and the input that selects the value.
+Two accessors of the performance model set the lane width ([table](#tbl:c20-lane-accessors)).
 
 | accessor | returns | selected by |
 | --- | --- | --- |
@@ -44,7 +44,7 @@ Two accessors of the performance model set the lane width, listed in [table](#tb
 
 Table: The two lane-width accessors of the performance model, with what each returns and the input that selects the value. {#tbl:c20-lane-accessors}
 
-The second accessor selects among four per-accumulator channel counts by source-patch size, which [table](#tbl:c20-oc-per-acc) maps to the hardware-abstraction-table offset that holds each value.
+The second accessor selects among four per-accumulator channel counts by source-patch size, each held at its own hardware-abstraction-table offset ([table](#tbl:c20-oc-per-acc)).
 
 | HAL offset | output channels per accumulator | selected when |
 | --- | --- | --- |
@@ -60,26 +60,25 @@ The values are uniform across every chip in the set, so the multiplexing law is 
 The source-patch mode is set by `ComputeSmallSourceMode`, which classifies an operation as default, small, or tiny from the output tensor dimensions against the kernel: tiny mode requires a source of at least 2 that fits the field at `0x338`, which is 4 on the M1.
 
 The lane width is the column dimension of the systolic tile.
-`GetNumOutputChannelsPerCycle` returns eight in the int8 fast path and four in the default fp16 path, degrading to two or one for narrow modes.
-One core streams an input patch and produces up to eight output channels per cycle in double-int8 mode and four output channels per cycle in fp16.
+`GetNumOutputChannelsPerCycle` sets the per-cycle count: eight in the int8 fast path, four in the default fp16 path, and two or one for narrow modes.
+One core streams an input patch and emits up to that many output channels per cycle, the eight-wide case being double-int8 mode.
 `GetNumOutputChannelsPerAccumulator` sets how many output channels time-share one physical accumulator slot.
-A tiny input patch underuses the array spatially, so the compiler packs eight output channels onto one accumulator to keep the multipliers busy.
-A large patch lets each output channel keep its own accumulator.
+A tiny input patch underuses the array spatially, so the compiler packs eight output channels onto one accumulator to keep the multipliers busy; with a large patch each output channel keeps its own accumulator.
 
 ## Radix-4 reduction and wide accumulator
 
 The reduction that supplies one accumulator runs in two stages.
 The first stage groups input lanes into tiles of four, each rounded to fp16.
-Those fp16-rounded tiles supply one wide running accumulator of fp32 class, and the result rounds to fp16 only at the output port.
+Those fp16-rounded tiles then feed a single wide running accumulator of fp32 class, with the rounding back to fp16 deferred to the output port.
 
-The fan-in of four is measured, not inferred from the table.
+The fan-in of four comes from measurement rather than from the table.
 A reduction of `[+B, -B, +1]` triples, repeated sixteen times so that the true sum is sixteen, returns sixteen survivors below a partial magnitude of 4096 and saturates to exactly four survivors for every `B` at or above 4096.
 The saturation count of four is the radix-4 tile signature: once a tile holds a partial at or above 4096, the unit increments sharing that tile fall below half of the fp16 spacing and vanish, and the three-element triple period beats against the four-lane tile to leave four unaffected lanes.
 The threshold is at 4096 because that is where the fp16 spacing first reaches four.
 The result is layout-independent: the `[+B, -B, +1]` and `[+B, +1, -B]` orderings return byte-identical values, so the hardware reduction order is a fixed lattice over lane index and not the source order.
 
 The cross-tile accumulator is wider than fp16.
-A reduction of one value of 4096 followed by 1024 ones returns 5116, between the naive-fp16 result 4096 and the exact 5120, and sixteen unit increments all survive next to a partial of 8192 where a fp16 accumulator would drop most of them.
+A reduction of one value of 4096 followed by 1024 ones returns 5116, between the naive-fp16 result 4096 and the exact 5120, and sixteen unit increments all survive next to a partial of 8192 where an fp16 accumulator would drop most of them.
 The radix-4 first stage is consistent with the eight-work-unit accumulator file, since four input lanes plus margin fit the per-core budget.
 
 ## Output-channel-group tiling
@@ -103,7 +102,7 @@ OCG        = min( ComputeMaxOcg(budget, acc_per_oc), byte_cap )
 Listing: How the compiler computes the output-channel-group size for one pass from the accumulator budget, kernel-element count, and per-format byte cap. {#lst:c20-ocg-size}
 
 A 1-by-1 convolution has a kernel-element count of one, so it admits a large group.
-A 3-by-3 convolution has a kernel-element count of nine, so its group is roughly nine times smaller and it needs more passes over the input.
+At a kernel-element count of nine, a 3-by-3 convolution gets a group roughly nine times smaller and needs more passes over the input.
 The compiler relieves that pressure by selecting Winograd for dense 3-by-3 stride-1 convolutions, since the transform cuts the effective kernel-element count.
 
 Once the output-channel count exceeds what one pass holds, the array re-streams the input for a second pass.
@@ -117,7 +116,7 @@ A 3-by-3 convolution reaches the same threshold at fewer output channels per pas
 
 ## Winograd selection gate
 
-The eligibility gate is `CanUseWinogradMode`, a fixed conjunction of conditions that all must hold, each given in [table](#tbl:c20-winograd-gate) with its meaning.
+The eligibility gate is `CanUseWinogradMode`, a fixed conjunction of conditions that all must hold ([table](#tbl:c20-winograd-gate)).
 
 | condition | meaning |
 | --- | --- |
@@ -135,7 +134,7 @@ Table: The conditions of the Winograd eligibility gate, each of which must hold 
 The axis-equals-3 plus orthogonal-axis-below-6 pair pins the supported tile set to two forms: $F(2 \times 2, 3 \times 3)$, with an output tile of 2 and an input tile of 4, and $F(4 \times 4, 3 \times 3)$, with an output tile of 4 and an input tile of 6.
 The work threshold on the term $\mathrm{OCG} \times k_H \times k_W \times k_D \times 2$ is precision-dependent: it is 32 for work-unit modes 1 and 2, 8 for a non-float kernel, and 16 for a float kernel.
 The higher float threshold is the compiler's guard against the precision cost of the $F(4 \times 4, 3 \times 3)$ transform, since the float convolution must clear a larger work bar before the transform is taken.
-There is no accumulator widening tied to Winograd: the precision safety is the eligibility and threshold gating, not a wider accumulator.
+No accumulator widening is tied to Winograd; the precision safety comes from the eligibility and threshold gating instead.
 
 Eligibility is not selection.
 Even when the gate passes, Winograd is taken only when it beats both direct convolution and the accumulator-double-buffering path, decided by a cost-model comparison that reads the same accumulator and lane-width accessors.
@@ -151,9 +150,9 @@ On the M1 with four cores, channel $c$ is on core
 
 $$\mathrm{core}(c) = c \bmod 4 .$$
 
-The active-core count is shape-driven, not user-selectable.
+The active-core count is not something the developer sets.
 The compiler sets it from the output-channel count and the group size, rounds it up to the next power of two, and writes it into the task descriptor.
-`GetNumNeededNEsNextPow2` sets the count, which [listing](#lst:c20-core-map) gives alongside the channel-to-core map and the pass count.
+`GetNumNeededNEsNextPow2` sets the count ([listing](#lst:c20-core-map)).
 
 ```python
 # ZinMirNECoreAssignment: strided round-robin channel-to-core map (M1: num_nes = 4)
@@ -185,7 +184,7 @@ Driving a single 1-by-1 convolution at each output-channel count below the core 
 Each added core does one more output channel's worth of multiply-accumulates in the same wall time.
 The power rail confirms the count independently: the engine draws a step of about 10 milliwatts per added core over an always-on floor of about 800 milliwatts, matching the firmware's one always-on base domain plus four independently power-gated compute sets, one per core.
 
-A live capture of the compiler during a real M1 compile pins the geometry it costs against, which [table](#tbl:c20-live-geometry) records with the active-engine count and the candidate split geometries it speculates.
+A live capture of the compiler during a real M1 compile pins the geometry it costs against ([table](#tbl:c20-live-geometry)).
 
 | quantity | live M1 value |
 | --- | --- |
@@ -230,11 +229,10 @@ $$P_{\mathrm{MAC}} = \mathrm{cores} \times \mathrm{lanes} \times f,$$
 and the floating-point rate is twice that, since one multiply-accumulate is two floating-point operations.
 On the M1 the best fp16 mode is four cores times four output channels per cycle, and the int8 fast path doubles the lane width to eight.
 The measured all-four-cores-saturated rate for a large 1-by-1 convolution is about 3.48 trillion multiply-accumulates per second, about 7 fp16 TFLOP/s at the engine output: above the 4.8 fp16 TFLOP/s large-matmul saturating ceiling of chapter 9, because this convolution stays under the 2 MB working-set threshold and remains compute-bound, and below the overhead-subtracted roofline anchor of 12 fp16 TFLOP/s.
-The full-saturation power at that rate is about 4.7 watts, which is on the convolution power anchor and within 0.3 watts of the 4.4 watt large-matrix-multiply anchor, so the rail readings are calibrated.
+The full-saturation power at that rate is about 4.7 watts, which is on the convolution power anchor and within 0.3 watts of the 4.4-watt large-matrix-multiply anchor, so the rail readings are calibrated.
 
 The frontend does not reach that doubled lane.
 The int8 compile flag quantizes the weights and leaves the multiply-accumulate in fp16, so it halves the streamed weight bytes and never emits the eight-channel int8 compute path.
-The flag thus changes weight bandwidth, not compute rate.
 A 3-by-3 convolution at 256 input and output channels and a square matmul both run within a few percent of fp16.
 The int8 path reaches about 1.5 times faster only where the weight is large enough to stream from main memory, near a 4096-by-4096 weight at a batch of 256 or more.
 
@@ -244,9 +242,9 @@ Past that, the operand is tiled and streamed from main memory, which adds traffi
 
 ## Task descriptor that holds the geometry
 
-The compiler does not address the array directly: it fills a per-partition task descriptor, a flat register image organized into seven register groups, then serializes each group into the address-value pairs the firmware writes.
+Rather than addressing the array directly, the compiler fills a per-partition task descriptor, a flat register image organized into seven register groups, then serializes each group into the address-value pairs the firmware writes.
 On the M1 the descriptor is the version-10 layout, one of fourteen versioned descriptor structs the compiler builds, selected by chip family.
-[Table](#tbl:c20-descriptor-groups) lists the seven register groups of that layout, each with its register count, address base, and contents.
+[Table](#tbl:c20-descriptor-groups) lists the seven register groups of that layout.
 
 | group | register count | address base | contents |
 | --- | --- | --- | --- |
@@ -265,7 +263,7 @@ Input width, height, and depth are 15-bit fields masked `0x7fff`, while the chan
 The output-channel-group size is a 3-bit field, and the active-core count is the `ActiveNE` field, a 3-bit value that records how many cores the task runs on, set from the shape by `GetNumNeededNEsNextPow2`.
 
 A fused convolution folds its per-channel affine and its activation into four separate kernel-coefficient streams, each a distinct sub-buffer with its own base offset and a relocation slot the loader patches at load.
-[Table](#tbl:c20-coeff-streams) names the four streams, each with the relocation register the loader patches and the role it holds.
+Each of the four streams has its own relocation register ([table](#tbl:c20-coeff-streams)).
 
 | stream | relocation register | role |
 | --- | --- | --- |
@@ -280,6 +278,9 @@ A convolution with batch normalization and a following activation thus does not 
 
 ## Cross-source corroboration
 
-The accumulator and output-channel-group geometry decoded in this chapter from the compiler is independently described in Apple's neural-engine patents, analyzed in Maynard Handley's AArch64-Explore vol. 7 (ANE). The patents describe a 256-by-8-by-32-byte accumulator with eight storage channels per multiply-accumulator, splittable into two four-channel halves, with a per-pass channel interleave; this matches the eight-deep accumulator file, the demand-four double-buffering, and the output-channel-group tiling derived here. The patents' rasterizer loop manager is the kernel-rasterizer unit, and their account of descriptors held in a configuration queue and switched in order is the register-write task descriptor of chapter 23. The two derivations are independent: one read from the shipped compiler and the live engine, the other from the patent record.
+The accumulator and output-channel-group geometry decoded in this chapter from the compiler is independently described in Apple's neural-engine patents, analyzed in Maynard Handley's AArch64-Explore vol. 7 (ANE).
+The patents describe a 256-by-8-by-32-byte accumulator with eight storage channels per multiply-accumulator, splittable into two four-channel halves, with a per-pass channel interleave; this matches the eight-deep accumulator file, the demand-four double-buffering, and the output-channel-group tiling derived here.
+The patents' rasterizer loop manager is the kernel-rasterizer unit, and their account of descriptors held in a configuration queue and switched in order is the register-write task descriptor of chapter 23.
+The two derivations are independent: one read from the shipped compiler and the live engine, the other from the patent record.
 
 The patents describe a configurable design rather than one chip, so the absolute counts there (a 256-wide multiply-accumulator array, an eight-core organization) are family ceilings rather than M1 figures; the per-chip core count read from the hardware-abstraction table, four on the M1, is the value that holds for a given part.

@@ -18,8 +18,7 @@ The compiler runs four phases in execution order, each listed in [Table](#tbl:c2
 
 Table: The four compiler phases in execution order, each with its job and representative passes. {#tbl:c22-phases}
 
-Each phase has a fixed job, and the phase structure decides what is free to emit and what costs a separate dispatch.
-The [figure](#fig:c22-pipeline) traces the same pipeline as a dataflow, from the network description through the intermediate forms to the loadable program on the engine.
+Traced as a dataflow, the same pipeline runs from the network description through the intermediate forms to the loadable program on the engine ([figure](#fig:c22-pipeline)).
 
 ```mermaid
 %% caption: The compile pipeline from a network description to the loadable program. {#fig:c22-pipeline}
@@ -51,8 +50,7 @@ The branch decision that keeps the live set on chip reads the same 2 MB field: w
 Phase 4 lays out the buffers the partitions read and write: it re-strides the destination buffers to avoid bank conflicts on the main engine, folds padding, and packs the weight stream.
 
 The allocator runs alongside phases 3 and 4.
-It tags every root tensor with an allocation type from a nine-state set that records whether the tensor is resident on chip, streamed from dynamic memory, chained directly into the next operation in the on-chip cache, or held as a ring buffer.
-[Table](#tbl:c22-alloc-states) decodes the nine allocation-type values, each with its meaning.
+It tags every root tensor with an allocation type from a nine-state set that records whether the tensor is resident on chip, streamed from dynamic memory, chained directly into the next operation in the on-chip cache, or held as a ring buffer ([Table](#tbl:c22-alloc-states)).
 
 | value | meaning |
 | --- | --- |
@@ -86,7 +84,7 @@ Chaining and co-issue are mutually exclusive: an operation is either pipelined i
 ## Lowering one operation
 
 A frontend operation lowers to one or more backend `anec.*` operations through the operation-converter pass, most of them one to one.
-A matrix multiply lowers to `anec.matmul`, which holds the contraction as two attributes rather than as a fixed operand order, as [listing](#lst:c22-matmul-lower) gives with its operands, attributes, and pre-lowering constraints.
+A matrix multiply lowers to `anec.matmul`, which holds the contraction as two attributes rather than as a fixed operand order ([listing](#lst:c22-matmul-lower)).
 
 ```text
 mps.MatMulOp  ->  anec.matmul
@@ -105,7 +103,7 @@ Listing: The matrix-multiply lowering, with its operands, the transpose attribut
 The contraction direction is parametric: `transpose_lhs` and `transpose_rhs` select which operands are transposed before the product, so one backend operation covers every transposed and non-transposed matrix-multiply form.
 The compiler rewrites a matrix multiply whose right-hand weight fits the on-chip working set into a resident convolution, a single fused operation; a weight above the 2 MB ceiling stays a tiled matrix multiply.
 
-A convolution lowers the same way and absorbs more of its neighborhood, as [listing](#lst:c22-conv-lower) gives with its folded weight and bias, its attributes, and its pre-lowering constraints.
+A convolution lowers the same way and absorbs more of its neighborhood ([listing](#lst:c22-conv-lower)).
 
 ```text
 mps.Conv2DOp  ->  anec.convolution
@@ -152,8 +150,7 @@ Listing: The `ZinNEBypassLayer` constructor, whose argument order fixes the seve
 A convolution, matrix multiply, pool, or elementwise operation absorbs, in slot order, a texture remap, broadcast, pre-GOC activation, the gain-offset affine, a post-GOC activation, output transpose, and output requantization.
 The bias-add fills the GOC offset, the scale or batch-norm gain fills the GOC gain, and the activation fills one of the two activation slots.
 The pass that forms the offset is `ScaledEWOrEWWithConstInToGOC`, and an internal guard reads `"Must have 2 inputs when convert EW to GOC"`: the elementwise-to-GOC rewrite needs exactly one live operand and one constant operand.
-That guard is the dividing line between a fusable epilogue and a fusion barrier.
-[Table](#tbl:c22-fusion) gives each pattern, how it fuses, and the gating pass, alongside the barriers that keep operations as separate layers.
+That guard is the dividing line between a fusable epilogue and a fusion barrier ([Table](#tbl:c22-fusion)).
 
 | pattern | fuses as | gating pass |
 | --- | --- | --- |
@@ -178,8 +175,7 @@ Concat is a boundary unless it qualifies as fusable, scaled-dot-product attentio
 
 Before an operation lowers, a per-layer validator checks it.
 The validators are a family of exported `_ANECValidate{Op}Layer` entry points, one per operation class, with an umbrella `_ANECValidateNetworkCreate` that iterates a network's layers and invokes the per-layer validator for each.
-The export table has 55 symbols whose name starts `_ANECValidate`, which split into 50 per-layer `…Layer` validators and 5 non-layer exports.
-[Table](#tbl:c22-nonlayer) names the five non-layer exports and the role of each.
+The export table has 55 symbols whose name starts `_ANECValidate`, which split into 50 per-layer `…Layer` validators and 5 non-layer exports, whose roles are in [Table](#tbl:c22-nonlayer).
 
 | non-layer export | role |
 | --- | --- |
@@ -198,8 +194,7 @@ The matrix-multiply validator requires exactly two inputs, depth one on both, th
 It rejects with `"Matrix mult. layer can only have two bottoms"`, `"depth > 1 is not supported for MatMult"`, and `"can not fit the Kmem"`.
 The convolution validator checks the kernel against the per-chip bounds and the channel-group divisibility, rejecting with `"Invalid conv kernel %s = %zd, It should be in [%zd,%zd]"` and `"input/output channels should be divisible by num group"`.
 
-The validators that gate a feature on the chip read a per-chip support byte, so the same operation can validate on one generation and reject on another.
-[Table](#tbl:c22-feature-gates) lists representative feature-gated validators, the support byte each reads, and the generation it gates on.
+The validators that gate a feature on the chip read a per-chip support byte, so the same operation can validate on one generation and reject on another ([Table](#tbl:c22-feature-gates)).
 
 | operation | support byte | gated on |
 | --- | --- | --- |
@@ -213,7 +208,7 @@ The validators that gate a feature on the chip read a per-chip support byte, so 
 Table: Representative feature-gated validators, the per-chip support byte each reads, and the generation it gates on. {#tbl:c22-feature-gates}
 
 The reject strings name the constraint plainly: a softmax on a target without `0x815` returns `"Softmax is not supported by this ANE architecture"`, a dropout without `0x4a9` returns `"Dropout layer is not supported on this architecture."`, and an affine transform without the texture engine returns `"affine transform is not supported on this architecture"`.
-The network-level umbrella adds its own checks, rejecting a module newer than the current schema, bonded network the target cannot run, unit-name collision, or missing conversion record.
+The network-level umbrella adds its own checks, rejecting a module newer than the current schema, a bonded network the target cannot run, a unit-name collision, or a missing conversion record.
 The reject strings include `"Bonded networks are not supported on the target"` and `"ANE internal error: Unit name \"%s\" collision during MIL to ANEC IR conversion."`.
 
 Every per-layer validator is an exported, user-callable symbol: an operation whose validator accepts the schema is reachable by direct network authoring.
@@ -232,7 +227,7 @@ Below both, an in-kernel `ZinComputeProgramValidate*` family validates the compi
 
 The 50 per-layer validators pair with 45 native hardware layer descriptors, the operation classes the engine silicon implements.
 A few of these never reach the engine through the conversion-tool front door, since that path always decomposes them, yet they are reachable by authoring the network description directly.
-The fused scaled-dot-product-attention layer is the clearest case: its descriptor takes four or five inputs, the query, key, value, scale, and an optional additive mask, and its validator rejects with `"4 or 5 bottoms must be present for SDPA"` and `"Mask format must be same as Q, K and V"`.
+The fused scaled-dot-product-attention layer is one such: its descriptor takes four or five inputs, the query, key, value, scale, and an optional additive mask, and its validator rejects with `"4 or 5 bottoms must be present for SDPA"` and `"Mask format must be same as Q, K and V"`.
 Its one parsed parameter is the max-subtraction flag, which defaults to off and must be set on for a numerically correct softmax, and the causal-decode form is not a separate descriptor but the additive-mask variant.
 
 The network description is a property-list document, the netplist, schema version 1.0.10, whose keys the compiler reads verbatim and [Table](#tbl:c22-netplist) names with the role of each.

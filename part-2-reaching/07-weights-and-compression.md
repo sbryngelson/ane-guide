@@ -29,7 +29,7 @@ The reconstruction is the affine dequantization
 $$w = s\,(q - z)$$
 
 with stored quantized byte $q$, fp16 scale $s$, and zero point $z$, the encode being $q = \mathrm{round}(x / s) + z$.
-The zero point folds to zero on the M1 generation, so the int8 form there is symmetric and the relation reduces to $w = s\,q$ with $z = 0$, as [listing](#lst:c7-int8-dequant) shows at the multiplier input alongside the symmetric form.
+The zero point folds to zero on the M1 generation, so the int8 form there is symmetric and the relation reduces to $w = s\,q$ with $z = 0$ ([listing](#lst:c7-int8-dequant)).
 
 ```python
 # affine int8 dequant, evaluated at the multiplier input
@@ -40,7 +40,7 @@ w_fp16 = scale * q                       # M1: zero_point folds to 0, symmetric 
 
 Listing: The affine int8 dequantization evaluated at the multiplier input, with the symmetric form the M1 reduces to. {#lst:c7-int8-dequant}
 
-Each compressed form is declared to the compiler as a single `constexpr_*` reconstruction op that folds into the weight descriptor rather than becoming a standalone backend operation, one per form as [listing](#lst:c7-constexpr-ops) names them.
+Each compressed form is declared to the compiler as a single `constexpr_*` reconstruction op that folds into the weight descriptor rather than becoming a standalone backend operation, one per form ([listing](#lst:c7-constexpr-ops)).
 The op count per form is fixed, and a violation is a hard validation error.
 
 ```python
@@ -68,7 +68,7 @@ Blockwise affine holds a separate scale for each contiguous block of elements, f
 
 ## What streams on each family
 
-[Table](#tbl:c7-streams) gives, for each compressed weight form, whether it streams or folds to dense on each chip generation, with the measured speedup.
+[Table](#tbl:c7-streams) gives the per-form outcome on each chip generation.
 
 | Form | M1/H13 | A14/M2 | A15/M3 and later | M5/H17s | Speedup |
 | --- | --- | --- | --- | --- | --- |
@@ -85,7 +85,7 @@ Structured sparsity also streams natively on the M1: a convolution stack that is
 The output is bit-faithful to the dense reference apart from fp16 rounding.
 
 The int8 and blockwise forms fold on the M1.
-The accuracy cost is the per-output int8 quantization: the int8 weight tracks the fp16 result at a cosine near 1.0, with a relative error near one percent against an fp32 reference where fp16 is near two parts in ten thousand.
+The accuracy cost is the per-output int8 quantization: the int8 weight tracks the fp16 result at a cosine near 1.0, with a relative error near one percent against an fp32 reference; fp16 against the same reference is near two parts in ten thousand.
 
 From the A14 generation the int8 and sparse forms also stream, alongside int4, measured on the M2 of the H14 generation at 0.64 and 0.54 times fp16 on a bandwidth-bound matmul.
 On the A14 and M2 the int8 weight is dispatched as int8 and reconstructed from half the bytes.
@@ -115,7 +115,7 @@ The int8 floor at A14 is confirmed on the M2 silicon, and the blockwise floor at
 On the M1 the int8 fold is a stored-size saving only.
 The weight is half the size on disk, but it is expanded to a dense fp16 constant in DRAM before the data-movement step, so a weight-streaming-bound matmul moves full-width fp16 bytes and runs at the fp16 latency, with no bandwidth gain.
 The int8 weight first streams as int8 on the A14 and M2 generation, where it is dispatched as int8 and dequantized at the multiplier input rather than materialized to a dense fp16 constant in DRAM.
-A matmul-path measurement on the A14 and M2 makes this concrete, and [table](#tbl:c7-int8-matmul) gives it: at a weight matrix wide enough to leave the dispatch floor, the int8 and fp16 weight streams reach the same effective bandwidth against their stored bytes, while the int8 form moves half the bytes.
+A matmul-path measurement on the A14 and M2 makes this concrete: at a weight matrix wide enough to leave the dispatch floor, the int8 and fp16 weight streams reach the same effective bandwidth against their stored bytes, while the int8 form moves half the bytes ([table](#tbl:c7-int8-matmul)).
 
 | Weight width $K=N$ | fp16 latency | int8 latency | int8 / fp16 |
 | --- | ---: | ---: | ---: |
@@ -129,11 +129,11 @@ Table: The int8 matmul-path weight stream against fp16 on the A14 and M2, the la
 
 What streams on the target drives the choice of compression form, chip by chip.
 On the M1, prefer structured sparsity for a weight that is half zeros or more, since it streams and is lossless apart from fp16 rounding, and prefer the int4 lookup table otherwise, since it is the densest form that streams there.
-Reserve int8 on the M1 for the case where sixteen levels are too coarse, taking it for its halved stored size, since the form folds to fp16 in DRAM and yields no bandwidth there.
+Reserve int8 on the M1 for the case where sixteen levels are too coarse, taking it for its halved stored size.
 On the M5 and the newer generations, where every form streams, choose by accuracy per byte rather than by what streams.
 
 The wide accumulator of chapter 3 is what makes streamed low-precision weights safe on the layers that tolerate them.
-A streamed weight is reconstructed to fp16 and then enters the same fp16 multiply and wide reduction as a dense weight, so the only precision lost is the quantization of the weight itself, not the accumulation.
+A streamed weight is reconstructed to fp16 and then enters the same fp16 multiply and wide reduction as a dense weight, so the quantization of the weight itself is the only precision lost.
 On convolution, matrix multiply, and normalization, whose partial sums stay in range, the reduction holds and the compressed weight keeps the layer's accuracy.
 A cancellation-heavy step has no fp16-safe form, compressed or not, for the reason given in chapter 3.
 
@@ -151,7 +151,6 @@ The descriptor names the operations and binds the buffers, and a weight-value ed
 
 The estimate classifies a layer as compute bound or bandwidth bound so the procedure chooses a form only where the layer is bandwidth bound and a stream would help.
 The procedure keeps the smallest form that streams natively on the target and clears an accuracy tolerance against an fp32 reference.
-A form that folds to dense fp16 moves the same bytes as fp16, so it cannot help a bandwidth-bound layer; only a streaming form does.
 Which forms stream depends on the target: the M1 streams int4 and sparse while int8 and blockwise fold, and the A14 and later stream int8 as well.
 Sparsity applies only when at least half the weight is zero, and the candidates are tried smallest-bytes-first, int4 before sparse before int8.
 Here `accuracy_error` round-trips the weight through the candidate form and compares the layer output against the fp32 reference.
@@ -182,7 +181,7 @@ On the M1 the procedure chooses a folding form, int8 or blockwise, only where th
 
 ## Reference: per-form streaming and measured cost
 
-[Table](#tbl:c7-reference) collects the per-form streaming behavior and measured cost by chip generation.
+The figures behind this chapter's streaming claims are collected in [table](#tbl:c7-reference).
 
 | Constant | Generation | Value |
 | --- | --- | ---: |
@@ -206,7 +205,7 @@ Table: The per-form streaming behavior and measured cost, by chip generation. {#
 
 The compressed weight element types are a subset of the engine element-type catalog the kernel descriptor records.
 The forms that bear on weight encoding are the integer lanes, fp16 dense and codebook entries, and packed palette indices.
-[Table](#tbl:c7-element-types) gives those weight-relevant entries of the catalog with the width each has.
+[Table](#tbl:c7-element-types) gives those entries of the catalog.
 
 | Element type | Width | Role in weight encoding |
 | --- | ---: | --- |

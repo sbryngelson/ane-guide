@@ -12,7 +12,7 @@ An M(n) chip has the H(n+12) ANE architecture, the compact relation $M(n) \right
 M1 is H13, M2 is H14, M3 is H15, M4 is H16, and M5 is H17.
 The A-series anchor is one generation over: the A13 and the M1 share H13, and the A17 and the M5 share H17.
 
-[Table](#tbl:c12-family) is the family map of the core count and clock that scale across the generations, with the un-measured upper generations decompile-derived from the device tables.
+Core count and clock are what scale across the generations ([table](#tbl:c12-family)).
 
 | Chip | A-series anchor | ANE architecture | NE cores | Clock |
 | --- | --- | --- | --- | --- |
@@ -45,7 +45,7 @@ Gated operations arrive at a known generation and stay: the texture-engine sampl
 A network that avoids them runs everywhere, and a network that uses them runs from its unlock generation forward.
 No operation the M1 can compute is missing on the M5, because each newer engine is an operation superset of the one before it.
 
-Each generation adds one capability over the one before it, then stops, and [Table](#tbl:c12-caps) names the single capability each engine generation adds, read off the per-target capability bytes.
+Each generation adds one capability over the one before it, then stops ([table](#tbl:c12-caps)).
 
 | Generation | Capability added |
 | --- | --- |
@@ -85,8 +85,7 @@ The one finite-to-infinity axis, a slice saturation that occurs on the M1, takes
 ## fp16 divergence axes
 
 That data-selected codegen surface reduces to four axes.
-Three of them are at most a unit in the last place, and one is a finite-to-infinity saturation that occurs on the older parts.
-[Table](#tbl:c12-axes) names the four axes, the codegen route each selects, and the bounded magnitude of each.
+Three of them are at most a unit in the last place, and one is a finite-to-infinity saturation that occurs on the older parts ([table](#tbl:c12-axes)).
 
 | Axis | Mechanism | Effect | Magnitude |
 | --- | --- | --- | --- |
@@ -104,7 +103,7 @@ The reduction-then-square fusion never manifests on silicon: the M1, M2, and M5 
 A divergence is thus predictable from a small set of fields without running every chip: a reduction or normalization denominator can differ by at most one unit in the last place where the tiling or route fields differ.
 A width-offset slice has saturation risk only when its values can exceed 4094.
 
-## Developer policy
+## Targeting and per-chip verification
 
 Choose the generation a network requires from its operation set, then let the program run across every part at and above that generation.
 Verify per chip only the numerics that can move: the cancellation-sensitive reductions, the variance and normalization denominators, and any width-axis slice whose values can exceed the saturation bound.
@@ -112,11 +111,10 @@ Everything else is portable by construction: the same source, the same operation
 
 ## Compiling for a target generation
 
-The naming rule lets a network name its target by generation rather than by probing the silicon.
 The compiler constructs any target from its per-chip table, so a developer compiles a program for the oldest generation it must support, then runs it unchanged on every part at and above that generation.
-A static estimate against a target reads back that target's core-and-clock scaling without the part in hand.
+A static estimate against a target reads back that target's core-and-clock scaling, no silicon required.
 
-The procedure compiles for the floor generation a network requires, then estimates against the newer targets to read the core-and-clock speedup.
+Set the floor generation in the compiler options, then estimate against the newer targets to read the core-and-clock speedup.
 
 ```c
 /* The target generation is held in the compiler options as a TargetArchitecture string, */
@@ -137,7 +135,7 @@ A network compiled to `h13` runs on every generation from the M1 through the M5;
 
 ## Reference: per-family scaling constants
 
-[Table](#tbl:c12-constants) collects the per-family scaling constants and the figures that fix cross-generation behavior, with the silicon each was measured on.
+Everything this chapter pins down is gathered in [table](#tbl:c12-constants).
 
 | Quantity | Value | Silicon |
 | --- | --- | --- |

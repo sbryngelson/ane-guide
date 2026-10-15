@@ -9,7 +9,7 @@ This chapter covers the wire protocol between the host-side execution model of c
 
 ## Command header
 
-`sCSneControllerCmdHdr` prefixes every ring message with the six fields of [Table](#tbl:c30-cmd-header) that name the command and bind it to a loaded program.
+`sCSneControllerCmdHdr` prefixes every ring message with six fields that name the command and bind it to a loaded program ([Table](#tbl:c30-cmd-header)).
 
 | Field | Offset | Width | Meaning |
 | --- | --- | --- | --- |
@@ -30,7 +30,7 @@ The signed `programId` and `processId` hold `-1`, which reads as `0xFFFFFFFF`, a
 The firmware resolves the pair against `progProcInfo[builtinProgramId]` with the fields `.valid`, `.progId`, and `.procId`, under `builtinProgramId < maxProgramServerSupported` and `id < CAneBuiltInNetworkId::ANE_NET_TOT`.
 The resident cache-request commands prepend one further field, an opaque 64-bit `cacheHandler` logged as `cacheHandler: 0x%llx`, naming a long-lived request object rather than a single submission.
 
-The scheduler maps the eight priority levels onto the two admitted classes of [Table](#tbl:c30-priority).
+The scheduler maps the eight priority levels onto two admitted classes ([Table](#tbl:c30-priority)).
 
 | Level | Class | Firmware gate |
 | --- | --- | --- |
@@ -46,7 +46,9 @@ The full-range bound is `fwPriority < 8`, with `maxPriorityNbr <= 8`, and a subm
 The dispatched space is 93 entries, identifiers `0x00` through `0x5c`.
 The firmware enumerates them in one contiguous, ordered string table, `CAneControllerStringsH11`, which begins at firmware file offset `0xa83b4` and runs sequentially.
 The command logger indexes that table by identifier to render each `CMD = %#04x [%s]` log line.
-The dispatched identifiers group into subsystems rather than ninety-three unrelated commands: lifecycle and power bring the controller and engine up and down, property reads and writes config and registers, stats drives printing, profiling, and tracing, ipc binds endpoints, buffer configures and recycles the channel pool, and program, execution, cache, and secure carry the inference path itself.
+The dispatched identifiers group into subsystems.
+Lifecycle and power bring the controller and engine up and down, property reads and writes config and registers, and stats drives printing, profiling, and tracing.
+The rest bind and feed the engine: ipc binds endpoints, buffer configures and recycles the channel pool, and the program, execution, cache, and secure families carry the inference path itself.
 The complete set in numeric-identifier order, with each command's direction, subsystem, and recovered request struct, is in [Table](#tbl:apc-command-table).
 
 Most identifiers are host-to-firmware requests; fourteen in the same space are firmware-to-host notifications, and one, `BACK_CHANNEL_RPC` at `0x5b`, flows in both directions.
@@ -55,7 +57,7 @@ Two further strings the firmware contains are not dispatched identifiers: `CSNE_
 
 ## Command lifecycle
 
-A submission moves through the four stages of [Figure](#fig:c30-lifecycle): the host posts, the controller picks it up, executes it, and notifies completion.
+A submission moves through four stages: the host posts, the controller picks it up, executes it, and notifies completion ([Figure](#fig:c30-lifecycle)).
 
 ```mermaid
 %% caption: A submission moving between the host, controller, and engine. {#fig:c30-lifecycle}
@@ -84,7 +86,7 @@ Performance signposts captured during a run originate in the firmware as `CSNE_C
 ## Procedure-call body
 
 The body of a procedure call is `sCSneCmdProcedureCall`, a shared container whose trailing variable-length arrays spill into an over-allocated `sCSneCmdProcedureCallCopyContainer`.
-The counted fields after the header describe the call's shape, each bounded by a firmware assert, as [Table](#tbl:c30-proccall-body) gives.
+The counted fields after the header describe the call's shape, each bounded by a firmware assert ([Table](#tbl:c30-proccall-body)).
 
 | Field | Type | Bound |
 | --- | --- | --- |
@@ -116,7 +118,7 @@ The `WITH_SIGNAL_EVENTS` variant adds the `procCallWithSignalEvents` sub-struct,
 
 Table: The per-call and per-request numeric limits on the M1 generation. {#tbl:c30-percall-limits}
 
-The resident cache-request family is the firmware substrate behind keeping a buffer set on the engine across calls.
+The resident cache-request family is what keeps a buffer set on the engine across calls.
 An install command at `0x45` returns the 64-bit `cacheHandler` and creates a long-lived request indexed internally by `cacheReqIdx` in the range `0 <= cacheReqIdx < maxCacheRequest`, allocated from a `CIndexPool`.
 A trigger command at `0x46` names that handle and fires it, holding an `execTimestamp` that must be strictly monotone against `pCacheReq->lastTriggerExecTimestamp`, and checking that the handle is live first.
 The firmware drops a trigger on a handle not in the `ANE_DATA_CHAINING_CACHE_REQUEST_IN_USE` state with `cacheHandler (0x%llx) in wrong state (%d) for trigger. trigger dropped`.
@@ -139,7 +141,7 @@ This is the `ECSneCmdId` enum, 94 named entries plus a trailing zero-id terminat
 The array is reached through a fixed-up pointer with no `adrp`+`add` cross-reference, consistent with a shared name-lookup helper.
 The protocol enum and the dispatched logger ordering are not the same numbering in the `0x2xx` region, so this enum is the wire vocabulary while the table in the preceding section is the firmware's own logger index.
 
-The named ids partition by high byte into the families of [Table](#tbl:c30-id-families), each a contiguous range.
+The named ids partition by high byte into families, each a contiguous range ([Table](#tbl:c30-id-families)).
 
 | Family range | Count | Subsystem | What the family covers |
 | --- | --- | --- | --- |
@@ -163,7 +165,7 @@ Each such slot is an arm64e auth-rebase chained pointer in `__DATA.__const` whos
 The procedure-call slot at `+0x200` targets `0x7374c` and the inference slot at `+0x190` targets `0x74510`.
 [Table](#tbl:c30-exeloop-ids) gives the ids the ExeLoop dispatcher implements, with each id's vtable offset and behavior.
 
-| ExeLoop id | Meaning | Vtable offset | Behaviour |
+| ExeLoop id | Meaning | Vtable offset | Behavior |
 | --- | --- | --- | --- |
 | `0x2d` | `CH_DATA_FILE_LOAD2` | `+0x250` | guarded by the engine flag at `[x19,#0x2bb]` |
 | `0x204` | procedure call | `+0x200` | validate `(programId, procId)` then dispatch, the inference trigger |
@@ -184,4 +186,4 @@ The back-channel RPC handler at `0x47818` caps its payload length at `0x800000` 
 The `0x00xx` config, power, trace, and profile commands are present in this image only as enum names and as the per-command struct and assert strings, for example `sCSneCmdReset`, `sCSneCmdConfigGet`, `sCSneCmdTraceEnable`, and `sCSneCmdPowerSupplyControl`.
 Exhaustive `adrp`+`add` and constant-pointer scans find zero references to any of those handler strings anywhere in `__text` or `__DATA.__const`, so the strings are linked in from a shared protocol header while the handlers are not compiled into this M1 and H13 build.
 `AppleH11ANEInterface` and `AppleANELoadBalancer`, the kext that owns power, IPC-endpoint, and buffer management, service those config-command handlers host-side, so their status is opaque by absence rather than undecoded.
-The `0x01xx` notification family is firmware-to-host output emitted on the channel rather than dispatcher input, so it does not appear in the ExeLoop compare tree either.
+The `0x01xx` notification family is firmware-to-host output emitted on the channel, so it is not dispatcher input and does not appear in the ExeLoop compare tree either.

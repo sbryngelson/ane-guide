@@ -1,13 +1,14 @@
 # 29. Firmware
 
-> The engine controller runs a C++ application over a real-time kernel, distributed as an unencrypted preload executable. Every subsystem is a long-lived message-pumped task, and all kernel objects sit in fixed build-time pools.
+> The engine controller runs a C++ application over a real-time kernel, distributed as an unencrypted preload executable.
+> Every subsystem is a long-lived message-pumped task, and all kernel objects sit in fixed build-time pools.
 > The execution loop accepts four command classes on the shared channel, three procedure-call variants plus the cache-request trigger, and rejects anything else as unsupported.
 > The scheduler is fixed-priority with eight levels, no hardware watchdog, and a software deadline of about 2 seconds that aborts a stuck queue.
 > Recovery is serialized behind a single command gate and rate-limited, so crashes arriving faster than the recovery cycle keep the channel not-ready.
 
 The engine's controller runs a small real-time operating system, not bare metal.
 A real-time kernel hosts an application that loads compiled programs, schedules their task descriptors, drives the multiply array and the data-movement engines, and reports faults back to the host.
-That controller is CHINOOK, an embedded ARM core with eleven hardware thread contexts (`CHINOOK_CPU_IMPL_THID0` through `THID10`), its own level-two cache, and pipeline error-capture and power-down-save registers, so the firmware runs on a real multithreaded processor rather than a sequencer.
+That controller is CHINOOK, an embedded ARM core with eleven hardware thread contexts (`CHINOOK_CPU_IMPL_THID0` through `THID10`), its own level-two cache, and pipeline error-capture and power-down-save registers, so the firmware runs on a real multithreaded processor.
 
 ## Substrate
 
@@ -22,7 +23,7 @@ An interrupt handler never runs subsystem logic in interrupt context.
 It pushes a record into an interrupt buffer, posts the target task's interrupt queue, and returns, deferring the work to task context.
 The named tasks include an idle task, task terminator, execution-loop pump, address-translation manager, tunable-register loader, load monitor, interrupt manager, call manager, server, and host remote-procedure-call daemon.
 
-Each task is in one of the five scheduler states of [Table](#tbl:c29-task-states), recovered from the task-list dumper.
+Each task is in one of five scheduler states, recovered from the task-list dumper ([Table](#tbl:c29-task-states)).
 
 | State | Meaning |
 | --- | --- |
@@ -43,7 +44,7 @@ A hard boot invariant ties the heap to the system reservation: the initial heap 
 
 ## Bring-up
 
-The three-level kernel bring-up call chain of [Listing](#lst:c29-bringup) separates device attach from firmware bring-up.
+A three-level call chain separates device attach from firmware bring-up ([Listing](#lst:c29-bringup)).
 
 ```cpp
 ANEHWDevice::start()              attach + provider + RTBuddy client + 7 MMIO banks + clocks
@@ -85,7 +86,7 @@ The endpoint lookup resolves the named service, retrieves the endpoint object, a
 `ANE_Init` then runs the firmware handshake in program order.
 It quiesces pending work, brings up the `0xe400` endpoint, initializes the scratch mailbox registers, and selects a warm or cold boot by writing `1` or `0` to scratch register 7.
 It reads the firmware boot address and writes it to the reset-vector register `rANE_H11_CHINOOK_IO_RVBAR`, then releases reset and polls.
-Three scratch handshakes follow, observed by the kernel in the order [Table](#tbl:c29-handshakes) gives.
+Three scratch handshakes follow, in the order the kernel observes them ([Table](#tbl:c29-handshakes)).
 
 | Handshake | Register | Meaning |
 | --- | --- | --- |
@@ -114,7 +115,7 @@ The resource-information query returns the engine count, cache-request limits, a
 
 ## Execution loop
 
-The execution loop accepts the four command classes of [Listing](#lst:c29-exeloop-cmds) on the shared channel.
+The execution loop accepts four command classes on the shared channel ([Listing](#lst:c29-exeloop-cmds)).
 
 ```c
 union uCExeLoopSupportedCmd          ; insize <= sizeof(union uCExeLoopSupportedCmd)
@@ -142,7 +143,7 @@ The dispatcher checks each command identifier on every event against a fixed acc
 The complete decoded command set is in chapter 30.
 The firmware drops and counts a procedure call addressed to a process that is not running rather than faulting it.
 
-The procedure-call command structures hold the buffer-access registers and optional event and execute-order arrays under the fixed field limits of [Table](#tbl:c29-field-limits), recovered from the firmware assertion strings.
+The procedure-call command structures hold the buffer-access registers and optional event and execute-order arrays under fixed field limits, recovered from the firmware assertion strings ([Table](#tbl:c29-field-limits)).
 
 | Field | Limit |
 | --- | --- |
@@ -158,14 +159,14 @@ Table: The field limits on a procedure-call command, recovered from the firmware
 
 Each buffer-access register binds a buffer base and size that a task descriptor references by index, with at most 32 hardware register slots addressing the distinct buffer regions for one operation, and at most 16 input buffers per trigger.
 
-The data-chaining trigger is the firmware mechanism behind resident state across dispatches.
+Resident state across dispatches comes from the data-chaining trigger.
 A cache request chains one execution's output set onto the next execution's input set, so a value produced by one dispatch is available to the next without a copy back to the host.
 The resident key-and-value cache and the resident optimizer state described in chapter 2 use this native chaining path.
 The firmware can chain procedures, running several in sequence on the engine without returning to the host between them.
 
 ## Doorbell emit
 
-[Listing](#lst:c29-doorbell-emit) gives the guarded doorbell-emit sequence that brackets the host-notify store with the window-gate bit clear and set.
+The host-notify store is bracketed by the window-gate bit clear and set ([Listing](#lst:c29-doorbell-emit)).
 
 ```armasm
 ring_doorbell(DoorBellReg, DoorBellBit):     ; host-notify site @0x4c890
@@ -234,11 +235,10 @@ Table: The firmware scheduler properties. {#tbl:c29-scheduler}
 The scheduler is fixed-priority with eight levels, numbered zero through seven.
 The levels split into two bands: levels zero and one are reserved for the system, and levels two through seven are application priorities.
 Preemption within a task does not occur: each message pump runs to completion, and preemption happens only between pump threads by kernel priority.
-Two priority axes coexist.
-The kernel thread priority orders the worker tasks, and the application job priority orders queued inference jobs onto the per-priority task queues.
+Priority exists on two axes: the kernel thread priority orders the worker tasks, and the application job priority orders queued inference jobs onto the per-priority task queues.
 They are distinct numbers on distinct objects.
 No hardware watchdog panics the engine.
-The firmware self-polices with a software deadline: a task queue that will not quiesce within about two seconds is force-aborted rather than left hung.
+The firmware self-polices with a software deadline: a task queue that will not quiesce within about two seconds is force-aborted.
 
 The submit path pushes work onto numbered task queues keyed by a network identifier in the range 1 through 255, with identifier 0 reserved.
 The submit path guards the queue identifier below 8, polls the queue for vacancy, enables the queue, copies a 35-word task-descriptor register block into the queue's register file, and rings a submit doorbell.
@@ -261,7 +261,7 @@ The firmware-overload throttle is the mechanism behind the large-batch trainable
 
 ## Control state machine
 
-A finite-state machine drives the execution loop through the states of [Table](#tbl:c29-control-fsm), each described by what it does.
+A finite-state machine drives the execution loop ([Table](#tbl:c29-control-fsm)).
 
 | State | What it does |
 | --- | --- |
@@ -284,14 +284,14 @@ Roughly seven independent handlers gate hardware work on the same test: the curr
 A switch into or out of the secure phase quiesces the engine first, with the task queues disabled, and the machine passes through `PAUSE` between the two phases.
 Any event delivered while in `PAUSE` is a firmware invariant violation and asserts.
 
-Three smaller state machines are alongside the execution loop, each with explicit named states.
+Alongside the execution loop sit three smaller state machines, each with explicit named states.
 A two-state process machine marks each process slot idle or running.
 A three-state cache-request machine moves a resident chain through available, in-use, and invalidating.
 A two-state output-set machine marks a chained output buffer available or in-execution.
 
 ## Per-run statistics buffer
 
-[Listing](#lst:c29-stats-path) traces the per-run statistics-buffer path, from the host size query and map through the firmware completion write.
+The path runs from the host size query and map through to the firmware completion write ([Listing](#lst:c29-stats-path)).
 
 ```text
 host: stats-buffer size-get            -> {hdr 0x28, evDesc 0x14, dbg 0x10, perEngine 0x20}
@@ -310,7 +310,7 @@ The firmware reports per-run timing and event counts into a statistics buffer th
 `CAneProgramManagerH11` packs the records on inference completion, but it never allocates the destination.
 The host first queries the layout sizes, then maps a buffer through the address-translation manager, and the firmware writes into that mapping at completion.
 
-The record begins with the `0x28`-byte header of [Table](#tbl:c29-stats-header).
+The record begins with a `0x28`-byte header ([Table](#tbl:c29-stats-header)).
 The first two bytes are the magic value `0x0101`, a version stamp.
 
 | Offset | Width | Field |
@@ -349,7 +349,7 @@ When the host never maps a buffer, the mapped pointer stays null, the completion
 A separate mechanism reads the performance-monitoring-unit aperture at the fixed base `0x2_8e08_c000`.
 Those reads are 32-bit power-status registers at a stride of eight bytes, up to five entries, whose low byte is a per-engine power state.
 They drive power and frequency-scaling decisions and are never packed into the statistics buffer.
-The kernel hardware performance-counter block is a third mechanism again, armed and drained by the kernel rather than the firmware, and the firmware does not touch it.
+The kernel hardware performance-counter block is a third mechanism again, armed and drained by the kernel, and the firmware does not touch it.
 
 ## Faults and recovery
 
@@ -357,7 +357,7 @@ A failed invariant routes into the kernel fault handler, which produces a post-m
 The dump records the exception class, fault-address and exception-syndrome registers, full general-purpose register file, cache-controller error registers, a restart count that persists across restarts, and a replay of the recent-command ring newest first.
 The firmware keeps that command ring so a crash dump shows what the engine was running when it died.
 The platform exception handler stringifies four exception classes for the dump: non-maskable interrupt, interrupt, fast interrupt, and synchronous abort.
-The dump names the faulting task by name, marks whether the fault occurred in interrupt context rather than a task, gives the processor identifier, and prints a call stack.
+The dump names the faulting task by name, marks whether the fault occurred in interrupt context or in a task, gives the processor identifier, and prints a call stack.
 
 The fault model below a true exception is abort-and-recover per task queue.
 The firmware aborts a stuck queue through the engine driver's hardware-abort path, and an abort that does not clear within the two-second deadline escalates to a panic.
@@ -378,4 +378,4 @@ A command failing integrity, section, or argument validation is rejected without
 A failed invariant, a processor exception, or an uncorrectable cache error faults into the dump-and-reset path.
 
 The recovery sequence is serialized behind a single command gate.
-A fault stages a firmware dump, cancels outstanding commands, and re-boots the firmware to the ready handshake before the gate frees, so a fault has a recovery cost rather than completing instantly.
+A fault stages a firmware dump, cancels outstanding commands, and re-boots the firmware to the ready handshake before the gate frees.

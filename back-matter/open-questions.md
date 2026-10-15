@@ -11,27 +11,26 @@ M5/H17s closes none of the upper-tier items, because it is a 16-core H17s part r
 
 ## Why an item is open
 
-Each open item falls into one of three kinds, which set the three tables below.
 A chip-measurement item has its structure decoded but needs another generation, the upper tier, or an on-silicon probe to read the realized values.
 An entitlement item is attested in the hardware-abstraction layer or the intermediate language but is reachable only through the sanctioned model path.
 An impossible item cannot be resolved at all: either the data does not exist, or the behavior is irreducible silicon that leaves no trace in any result and no artifact to decode.
 
 ## Ledger
 
-Three tables sort the open items by how each could be resolved.
-[Table](#tbl:openq-chip) gives the items another chip or an on-silicon probe would resolve, each with its decoded structure and the measurement that would close it.
+The open items sort into three tables by how each could be resolved.
+[Table](#tbl:openq-chip) gives the items another chip or an on-silicon probe would resolve.
 
 | Open item | Why it is open | What would close it |
 | --- | --- | --- |
 | Live values of the single-shot fault and translation-fault capture registers | The registers are located (four fault descriptors and a status word at engine+0xe028) and the ANE-side handler has a benign branch, but the IODART substrate panics on a real fault, so the live values are uncaptured | A fault path that recovers instead of panicking the IODART substrate |
 | Realized A15 / M3 / H15 silicon behavior | The dedicated A15 compiler branch is decoded (its cost table, its 45-operation family set, the full H15 targets, the YUV420 input it alone accepts), only the realized numbers need the part | On-chip measurement of an H15 part |
 | Realized upper-tier behavior: 64-core H17d, H18-gated fp8 datapath, Ultra multi-die collective | The encodings are decoded (the core-count parameter, the fp8 e4m3 and e5m2 convert-and-quantize path, the Ultra device-mesh collective) and the upper tier adds only cores over A16, no new operations, but none of it materializes without the part | An H17d, H18, or Ultra part |
-| Set behavior of the family-gated abstraction-layer fields | The fields are named and the silicon-capability subset is complete, their set behavior needs later silicon | A part where the gate is on, for example the A18 or H17-plus FIFO-mode field |
+| Set behavior of the family-gated abstraction-layer fields | The fields are named and the silicon-capability subset is complete, but their set behavior needs later silicon | A part where the gate is on, for example the A18 or H17-plus FIFO-mode field |
 | Per-state frequency and voltage of the operating-point sequence | The engine has no local DVFS and is driven by the SoC power controller, the firmware seven-step credit sequence is recovered, the per-state frequency and voltage stay behind the opaque power-management base | A power-management-side probe |
 
 Table: Open items a further on-silicon measurement would resolve: the structure is decoded, the realized values need the part or the probe. {#tbl:openq-chip}
 
-[Table](#tbl:openq-entitlement) gives the items the sanctioned entitlement would resolve, attested in the binaries but gated off the direct path.
+Another group of items waits on the sanctioned entitlement alone ([table](#tbl:openq-entitlement)).
 
 | Open item | Why it is open | What would close it |
 | --- | --- | --- |
@@ -40,7 +39,7 @@ Table: Open items a further on-silicon measurement would resolve: the structure 
 
 Table: Open items the sanctioned entitlement would resolve, attested but gated off the direct path. {#tbl:openq-entitlement}
 
-[Table](#tbl:openq-impossible) gives the items that cannot be resolved: the data does not exist, or the behavior is irreducible silicon that leaves no trace in any result.
+No further access would close the last group ([table](#tbl:openq-impossible)).
 
 | Open item | Why it cannot be resolved |
 | --- | --- |
@@ -54,5 +53,5 @@ Table: Open items that cannot be resolved externally: irreducible silicon behavi
 ## Form of the residual
 
 The impossible items are few: the gate-level reduction wavefront and the internal fp16 rounding order are irreducible silicon, and the flat status enumeration and the execution-loop state labels do not exist as stored data.
-Everything else is decoded in structure and waits only on a part, a probe, or the entitled path: the chip-measurement items the tables above list, and the entitlement items attested in the binaries but gated off the direct path.
+Everything else is decoded in structure and waits only on a part, a probe, or the entitled path.
 Static analysis closed the firmware address rebase that once sat at the host and firmware boundary, and the M5 measurement confirmed the cross-silicon model without reaching any of the parts the hardware items need.

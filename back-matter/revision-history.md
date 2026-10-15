@@ -3,9 +3,8 @@
 > This guide has two editions: a living web and PDF edition that updates as findings are added or corrected, and a periodic arXiv snapshot that carries a fixed version number.
 > Each edition is numbered and dated; v1 is the original release and the arXiv edition is the stable point to cite.
 
-The guide is maintained as a living document.
-The web edition and the PDF rebuild whenever a finding is added, corrected, or hardened, and each edition is numbered and dated on the title page: v1 is the original release and every later version is a living edition.
-The arXiv edition, arXiv:2606.22283, is a periodic snapshot taken at milestones rather than on every change, so its version is the stable point to cite and, after v1, may lag the current edition number.
+The web edition and the PDF rebuild whenever a finding is added, corrected, or hardened, and each edition is numbered and dated on the title page, beginning with v1.
+The arXiv edition, arXiv:2606.22283, is a snapshot taken at milestones, so its version number may lag the current edition after v1.
 The revisions below are listed newest first; the ones promoted to an arXiv version are marked.
 
 Each entry separates additions and corrections to the text from changes in the evidentiary status of a claim, since a claim moving from predicted or decompile-derived to measured is the change a returning reader most needs to see.

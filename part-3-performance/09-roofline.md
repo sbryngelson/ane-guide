@@ -25,7 +25,7 @@ The 4.8 TFLOP/s figure is the rate one large matrix multiply holds after it cros
 That is why chapter 10 gives a fused steady state near 8.1 TFLOP/s.
 The 5.5 TFLOP/s figure is a convention derived from the marketed int8 TOPS rather than a measured hardware ceiling.
 
-The int8 path is faster than fp16 rather than equal to it.
+The int8 path is faster than fp16.
 A measured int8 convolution runs about 1.4 times faster than the fp16 form and trends toward 2 times at scale.
 The multiply array has a double-int8 mode that packs two int8 products into one multiply-accumulate, so int8 arithmetic runs at about twice the fp16 rate on the same array.
 This is distinct from the compressed-weight path of chapter 7, where an int8 weight is dequantized to fp16 and then enters an ordinary fp16 multiply: there the saving is in stored bytes, here the saving is in compute cycles.
@@ -35,7 +35,6 @@ The bandwidth ceiling is the rate at which operands cross the DRAM boundary.
 The engine sustains about 85 GB/s of DRAM bandwidth measured at the memory controller, and the roofline below holds that figure as its B.
 A direct wall-clock measurement of weight streaming runs lower: a large matrix multiply with one output row reads each weight once and saturates at about 51 GB/s, roughly 60 percent of that 85 GB/s ceiling.
 That figure matches the compiler's own internal bandwidth constant of 50 GB/s.
-The achieved-streaming rate is noted alongside the ceiling in [the constants table](#tbl:roofline).
 A small elementwise op reaches less than either.
 A single relu stream saturates near 10 GB/s effective, because the per-dispatch overhead caps it well below the DRAM rate.
 
@@ -48,8 +47,7 @@ The ridge point is where the two ceilings cross, near 141 FLOP per byte, the com
 
 $$I^{*} = \frac{P}{B} = \frac{12 \times 10^{12}}{85 \times 10^9} \approx 141\ \text{FLOP/byte}$$
 
-A layer above 141 FLOP per byte is compute-bound and is on the 12 TFLOP/s roof; a layer below it is bandwidth-bound and is on the memory slope.
-[Figure](#fig:c9-ridge) routes a kernel to its bound by comparing its arithmetic intensity against the 141 FLOP-per-byte ridge point.
+Comparing a kernel's arithmetic intensity against that 141 FLOP-per-byte crossing routes it to its bound ([figure](#fig:c9-ridge)).
 
 ```mermaid
 %% caption: How a kernel's arithmetic intensity locates it against the roofline. {#fig:c9-ridge}
@@ -108,7 +106,7 @@ The M1 ceilings above locate a layer against one engine.
 Taken on three devices, the same two measurements locate a layer against the whole machine, and the difference between the three rooflines is the device map.
 Each device's compute roof comes from a saturation sweep and its bandwidth roof from a streaming sweep, and the ratio of the two is the device's ridge point, the arithmetic intensity at which a layer crosses from bandwidth-bound to compute-bound.
 
-The three ridge points are far apart, as [Table](#tbl:c9-perdevice) gives the compute roof, bandwidth roof, and ridge point of the engine, GPU, and CPU side by side.
+The three ridge points are far apart ([table](#tbl:c9-perdevice)).
 
 | Device | Compute roof (GFLOP/s) | Bandwidth roof (GB/s) | Ridge (FLOP/byte) |
 | --- | ---: | ---: | ---: |
@@ -134,7 +132,7 @@ Such an op is thus dispatched to the GPU, not the engine: against the engine's o
 
 ## Fusion as a control
 
-Fusion moves the engine's operating point to the right of its ridge, and the move is measured rather than argued.
+Fusion moves the engine's operating point to the right of its ridge, and the measurements below fix how far.
 Fusing operations into one program keeps intermediate activations on chip and streams each weight once for reuse across the whole graph, raising the program's effective arithmetic intensity above that of any single operation in it.
 A real three-convolution stack fused into one program reaches an effective rate of 20718 GFLOP/s.
 That rate is above the single-convolution saturation peak of 18771 GFLOP/s, at 110 percent of the convolution roof.
@@ -144,12 +142,11 @@ A fused convolution or attention graph runs in the compute-bound region where th
 
 ## Locating a layer before it is built
 
-Two questions locate any layer.
-First, is its arithmetic intensity above 141 FLOP per byte, where it is compute-bound against the 12 TFLOP/s roof, or below, where it is bandwidth-bound against the 85 GB/s roof.
-Second, does its activation fit under 2 MB, since above that it is forced onto the memory slope no matter its nominal intensity, and the working set must shrink before any other tuning helps.
+Arithmetic intensity and working-set size together locate any layer.
+A layer above 141 FLOP per byte is compute-bound against the 12 TFLOP/s roof and one below it is bandwidth-bound against the 85 GB/s roof, but an activation over 2 MB is forced onto the memory slope whatever its nominal intensity, so the working set must shrink before any other tuning helps.
 The 0.23 ms dispatch floor sets a latency a small op cannot beat, so the developer batches or fuses small ops until their compute clears the floor.
 
-The cost estimate locates a layer against the roofline statically, with no device in hand.
+The estimate below is static: it takes a layer's shape and returns the bound and the control that moves it.
 
 ```python
 # Locate a layer against the roofline BEFORE building it, from its shape alone,

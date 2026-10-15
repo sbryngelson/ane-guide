@@ -4,10 +4,7 @@
 > On the M1 it delivers 2 to 14 times the GPU energy efficiency.
 > The advantage holds across the M1, M2, and M5, so it is a property of the fixed-function fp16 datapath, not of one chip.
 
-## Headline
-
-Across the measured workload classes the engine runs at a few watts where the GPU runs at tens of watts.
-On the M1 the engine delivers 2 to 14 times the GPU's energy efficiency, measured as throughput per watt of idle-subtracted total-package power.
+That 2 to 14 times envelope is throughput per watt of idle-subtracted total-package power.
 A stack of sixteen 3x3 convolutions sets the high mark: the engine reaches 2063 GFLOP/s per watt against the GPU's 142, a 14.5 times efficiency advantage, while also running about 2 times faster.
 The M5 holds the same shape at 2289 GFLOP/s per watt on the engine against 175 on the GPU, a 13 times advantage.
 
@@ -20,15 +17,14 @@ The engine's draw stays in the single digits of watts across these classes; the 
 
 The map covers the workload classes a perception or encoder deployment is built from.
 Convolution appears as a single 3x3 layer and as a sixteen-deep resnet-style stack.
-Matrix multiply is measured at three sizes: a dispatch-bound floor, bandwidth-bound mid size, and compute-bound 4096 square.
-Attention is measured at a short vision-transformer sequence and a longer 512 sequence.
-The normalization family covers layer norm, rms norm, and group norm.
-A set of scientific kernels covers a discrete Fourier transform as a matrix multiply, five-point stencil, and fixed-iteration linear solve.
+There are three matrix-multiply sizes, a dispatch-bound floor, a bandwidth-bound mid size, and a compute-bound 4096 square, and two attention lengths, a short vision-transformer sequence and a longer 512 sequence.
+Layer norm, rms norm, and group norm stand in for the normalization family.
+The scientific kernels are a discrete Fourier transform as a matrix multiply, a five-point stencil, and a fixed-iteration linear solve.
 
-[Table](#tbl:c10-headline) collects the efficiency standouts named above, with the engine and GPU throughput per watt and their ratio on each chip generation.
+Only the efficiency standouts of that set are tabulated below, with the ratio on each chip generation.
 
 | Workload | Engine GFLOP/s/W | GPU GFLOP/s/W | Ratio | Silicon |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | --- |
 | Conv-resnet stack (16x 3x3) | 2063 | 142 | 14.5x | M1/H13 |
 | Conv-resnet stack (16x 3x3) | 2289 | 175 | 13x | M5/H17s |
 | Large square GEMM (inner 4096) | 4.4 W | 32.5 W | 4.0x | M1/H13 |
@@ -37,22 +33,20 @@ A set of scientific kernels covers a discrete Fourier transform as a matrix mult
 
 Table: Engine versus GPU energy efficiency across workloads and chip generations, in GFLOP/s/W or absolute watts. {#tbl:c10-headline}
 
-The large square GEMM row reports absolute package power rather than throughput per watt, because the GPU is faster on that workload on raw throughput while the engine still draws fewer watts to compute it.
+The large square GEMM row of [table](#tbl:c10-headline) reports absolute package power rather than throughput per watt, because the GPU is faster on that workload on raw throughput while the engine still draws fewer watts to compute it.
 The efficiency lead is largest on the convolution stack and on the fused multi-step stencil, where the engine does sustained compute at low power and the GPU spends proportionally more power to keep its units supplied.
-The stencil reaches a 49 times energy advantage on the M5, the widest single number in the map.
-On the small normalization reductions the lead narrows, with both devices finishing in well under a millisecond and the per-watt numbers close to a tie.
-It narrows again on the large 4096 square matrix multiply, which favors the GPU on speed and on fp16 accuracy, though the engine keeps its lower absolute draw there.
+It narrows on the small normalization reductions, where both devices finish in well under a millisecond and the per-watt numbers are close to a tie, and again on the large 4096 square matrix multiply, which favors the GPU on speed and on fp16 accuracy though the engine keeps its lower absolute draw there.
 Only at the trivial dispatch-bound region, the 256-inner matrix multiply, does the engine lose the efficiency comparison outright, where the FLOP count is too small to matter and the lowest call overhead is the better choice.
 
 ## Two-generation result
 
 The same sixteen-class harness was run on an M1 and on an M5, with package power taken from hardware instrumentation on both.
 Both silicons return the same verdict: the engine is the efficiency device on every substantial workload class.
-The convolution stack reads 2063 GFLOP/s per watt on the M1 and 2289 on the M5, against GPU figures of 142 and 175, so the efficiency advantage holds at 14.5 times and 13 times across the generation gap.
+On the convolution stack the advantage holds at 14.5 times and 13 times across the generation gap.
 A third run on the M2, an A14 part, fills the middle and reproduces the same shape, with the convolution stack at 2234.6 GFLOP/s per watt on the engine against 172.8 on the GPU, a 12.9 times advantage.
 The engine rail never exceeds about 6 watts where the GPU pulls 13 to 21 watts on the same classes.
 
-The per-class efficiency rows on the M2 trace the same split the M1 and M5 maps draw, and [Table](#tbl:c10-m2) gives the per-class engine and GPU throughput per watt with the total-package energy ratio.
+The per-class efficiency rows on the M2 trace the same split the M1 and M5 maps draw ([table](#tbl:c10-m2)).
 
 | Workload | Engine GFLOP/s/W | GPU GFLOP/s/W | Energy ratio (GPU over engine) |
 | --- | ---: | ---: | ---: |
@@ -110,7 +104,7 @@ The engine rail, sampled read-only at five-second cadence, pins at about 5.5 wat
 Thermal pressure reads Nominal on every sample, and the engine never leaves its single clock state, with the steady draw set by the workload's utilization as the previous section describes.
 The M1 engine does not throttle on this workload over 3.5 minutes: it runs at one clock state and stays there.
 
-The behaviors that move first-call latency are at the boundaries of a burst, not in steady state, and [Table](#tbl:c10-phases) gives the warmup, steady-state, and idle re-wake costs the flat steady state hides.
+What moves first-call latency sits at the boundaries of a burst, not in steady state ([table](#tbl:c10-phases)).
 
 | Phase | Behavior on the M1 |
 | --- | --- |
@@ -135,7 +129,7 @@ A single-call loop draws about 755 milliwatts, about half the hot-loop figure, b
 
 Streaming a weight in a narrower format cuts energy per inference even though instantaneous power stays roughly flat.
 On a bandwidth-bound 4096-inner matrix multiply on the M2, the engine draws between 2.06 and 2.59 watts across fp16, int8, int4, and sparse, with the sparse stream drawing the most watts.
-The energy per inference still falls with the narrower format because latency falls faster than power rises, as [Table](#tbl:c10-formats) gives the power, latency, and energy per inference across fp16, int8, int4, and sparse.
+The energy per inference still falls with the narrower format, because latency falls faster than power rises ([table](#tbl:c10-formats)).
 
 | Weight format | Engine power | Latency | Energy per inference | Versus fp16 energy |
 | --- | ---: | ---: | ---: | ---: |
@@ -148,19 +142,18 @@ Table: Power, latency, and energy per inference across weight formats on a bandw
 
 An int4 weight stream reaches the same answer at 0.41 times the fp16 energy on this part, a 2.4 times energy reduction at equal work, with no efficiency-versus-latency tradeoff to weigh: the narrower format is faster and more efficient.
 
-## Developer takeaway
+## Where the lead comes from
 
 The fp16 datapath is why the lead holds even where the GPU is faster on latency: a narrow multiply and a fixed-function pipeline move and compute far fewer bits per result than a general-purpose vector unit.
 The engine thus spends less energy reaching the same answer wherever the math stays in its precision range.
 
-## Estimating a layer's energy before it is built
+## Reading a layer's energy off its shape
 
 A workload's efficiency follows from where the roofline locates it.
 A layer that is compute-bound on the engine spends its energy in the fixed-function multiply array, which is the regime where the engine outruns the GPU on throughput per watt by the wide margins in the map above.
 A layer pinned to the memory slope, or below the dispatch floor, spends its energy moving bytes or paying call overhead, where the efficiency lead narrows toward a tie.
-The cost estimate locates the layer statically, so the energy regime can be read before any device is in hand.
 
-The procedure estimates the layer, reads its bound, and locates it against the efficiency map: a compute-bound layer is where the engine is most efficient, a dispatch-bound one is not.
+So the energy regime can be read off a shape at design time: count the work and the bytes, take the bound, and look up which region of the map the layer falls in.
 
 ```python
 # Estimate the energy of one layer before any hardware is in hand.
@@ -202,7 +195,7 @@ A layer that prints `compute` runs in the region where the convolution-stack fig
 
 ## Reference: engine versus GPU efficiency constants
 
-[Table](#tbl:c10-constants) collects the power and efficiency constants of this chapter with the silicon each was measured on.
+[Table](#tbl:c10-constants) holds every figure quoted in this chapter.
 
 | Quantity | Value | Silicon |
 | --- | ---: | --- |

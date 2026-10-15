@@ -65,7 +65,7 @@ The MLIR `symbolize*` enums are a length-dispatched chain of packed integer stri
 
 Table: The symbolized attribute tokens and the integer values each one maps to. {#tbl:apc-symbolize}
 
-A second class of enum is in a packed pointer table in the data segment, the internal `Zin` enums the lowering layer dispatches on, listed in [table](#tbl:apc-zin-enums).
+A second class of enum sits in a packed pointer table in the data segment, the internal `Zin` enums ([table](#tbl:apc-zin-enums)).
 
 | enum | value to token |
 | --- | --- |
@@ -85,7 +85,7 @@ A second class of enum is in a packed pointer table in the data segment, the int
 
 Table: The internal `Zin` enum value-to-token maps the lowering layer dispatches on. {#tbl:apc-zin-enums}
 
-The op-class selector is the `ZinUnitType` table, 79 entries, the engine-unit each layer routes to, given in full as [table](#tbl:apc-zinunittype).
+The op-class selector is the `ZinUnitType` table of 79 entries, reproduced in full as [table](#tbl:apc-zinunittype).
 
 | int | unit | int | unit | int | unit |
 | --- | --- | --- | --- | --- | --- |
@@ -217,8 +217,7 @@ The opcode `0x3f` is spelled `AFFINE_TRANFORM` in the binary, a vendor source ty
 ## C.2 Operation-attribute schema and IOKit external-method struct layouts {.unnumbered}
 
 The attribute schema is string-keyed: the token is the wire encoding the compiler matches on, and most integer constants are not recoverable statically.
-The converter recognizes 171 literal attribute keys, of which roughly 140 are op-facing.
-[Table](#tbl:apc-attribute-keys) gives representative keys with their value types, meanings, and wire encodings.
+The converter recognizes 171 literal attribute keys, of which roughly 140 are op-facing ([table](#tbl:apc-attribute-keys)).
 
 | key | type | meaning | value encoding |
 | --- | --- | --- | --- |
@@ -233,8 +232,7 @@ The converter recognizes 171 literal attribute keys, of which roughly 140 are op
 
 Table: Representative operation-attribute keys with their value types, meanings, and wire encodings. {#tbl:apc-attribute-keys}
 
-The host-to-kernel IOKit dispatch key is the (selector, struct-size) tuple, not the selector alone.
-[Table](#tbl:apc-iokit-selectors) gives the control-client selectors with their method names and decoded input and output struct sizes.
+The host-to-kernel IOKit dispatch key is the (selector, struct-size) tuple, not the selector alone ([table](#tbl:apc-iokit-selectors)).
 
 | sel | method | in-struct | out/scalar |
 | --- | --- | --- | --- |
@@ -269,7 +267,7 @@ The full 171-key attribute set, the decoded enum-value tables, and the per-selec
 ## C.3 Numeric error, status, and return codes {.unnumbered}
 
 The ANE stack has no flat numeric status enum.
-The fixed numeric values that exist are the IOKit return constants and the firmware magic and sentinel words, the first of which [table](#tbl:apc-ioreturn) gives with their meanings on the dispatch path.
+The fixed numeric values that exist are the IOKit return constants and the firmware magic and sentinel words; [table](#tbl:apc-ioreturn) collects the first group.
 
 | macro | hex | ANE path meaning |
 | --- | --- | --- |
@@ -293,7 +291,7 @@ The client-visible surface above IOKit is an error factory that wraps the lower-
 Its factory methods are the taxonomy: a generic wrapper, a missing-code-signing form, program-load and new-instance-load forms that hold the lower-layer code, surface map and unmap forms, and a virtualization-kernel form.
 The single most look-up-worthy client-visible value is `0xe00002c7` (`kIOReturnUnsupported`), returned on a disabled or unsupported path and when a gated feature's entitlement is absent.
 
-[Table](#tbl:apc-firmware-magic) gives the fixed firmware magic words and sentinel constants with their meanings.
+The second group is in [table](#tbl:apc-firmware-magic).
 
 | constant | hex | meaning |
 | --- | --- | --- |
@@ -314,7 +312,7 @@ The firmware-to-host notification names, inline `status=0x%x` print sites, AArch
 ## C.4 The tunable register-init table {.unnumbered}
 
 The per-chip register init is a sequence of 12-byte `(offset, mask, value)` records, each applied as a masked read-modify-write, `reg = (reg & ~mask) | value`, where `reg` is the block MMIO base plus the offset.
-The M1 (ASC AscChinook) firmware has 1994 records across 10 named MMIO blocks, each block reached through a 32-byte descriptor of name, MMIO base, record pointer, and count, the blocks and their counts given in [table](#tbl:apc-reginit-blocks).
+The M1 (ASC AscChinook) firmware has 1994 records across 10 named MMIO blocks, each block reached through a 32-byte descriptor of name, MMIO base, record pointer, and count ([table](#tbl:apc-reginit-blocks)).
 
 | block name | MMIO base | records |
 | --- | --- | --- |
@@ -331,7 +329,7 @@ The M1 (ASC AscChinook) firmware has 1994 records across 10 named MMIO blocks, e
 
 Table: The named MMIO register-init blocks with their bases and record counts. {#tbl:apc-reginit-blocks}
 
-[Table](#tbl:apc-reginit-records) gives representative records, one or more per block, with their address, mask, value, and meaning.
+One or more records from each block are reproduced in [table](#tbl:apc-reginit-records).
 
 | regAddr | mask | value | meaning |
 | --- | --- | --- | --- |
@@ -357,7 +355,7 @@ All 1994 decoded records are from collected data not reproduced here.
 
 The host-to-firmware command set is 93 entries, numbered `0x00` through `0x5c`, indexed by `eCSneCmdId` into the firmware command-name string table, whose index is the numeric command identifier.
 `0xFFFFFFFF` is the no-command sentinel.
-[Table](#tbl:apc-command-table) gives the full set; its `dir` column is `H->FW` for a host request and `FW->H` for a firmware notification, and the subsystem codes are lifecycle, power, secure, program, execution, cache, ipc, buffer, property, and stats.
+The full set follows in [table](#tbl:apc-command-table), whose `dir` column reads `H->FW` for a host request and `FW->H` for a firmware notification; the subsystem codes are lifecycle, power, secure, program, execution, cache, ipc, buffer, property, and stats.
 
 | id | name | dir | subsystem | purpose |
 | --- | --- | --- | --- | --- |
@@ -463,7 +461,7 @@ The dispatch caps are at most 16 signal events per call, at most 32 custom barri
 Priority levels run 0 through 7, split into a privileged band of 0 and 1 and a normal band of 2 through 7.
 The single dispatch path takes exactly one output buffer set, one task-descriptor partition, and one engine request per list.
 
-[Table](#tbl:apc-command-header) gives the fixed-header layout (`sCSneControllerCmdHdr`) that prefixes every ring message, with each field's offset, width, and meaning.
+A fixed header, `sCSneControllerCmdHdr`, prefixes every ring message ([table](#tbl:apc-command-header)).
 
 | field | offset | width | meaning |
 | --- | --- | --- | --- |
@@ -481,7 +479,7 @@ The full 93-entry table with file offsets, the decoded request structs, and the 
 ## C.6 The task-descriptor hardware register map {.unnumbered}
 
 A captured `ane_reg` record is a `(regAddr, regValue)` pair whose low address selects one of 7 aperture groups.
-[Table](#tbl:apc-aperture-map) is the aperture map that converts a raw address to a group, with the image base and window of each.
+The aperture map converts a raw address to a group ([table](#tbl:apc-aperture-map)).
 
 | regAddr range | group | image base | window |
 | --- | --- | --- | --- |
@@ -495,7 +493,7 @@ A captured `ane_reg` record is a `(regAddr, regValue)` pair whose low address se
 
 Table: The register-address ranges and the aperture group, image base, and window each maps to. {#tbl:apc-aperture-map}
 
-[Table](#tbl:apc-g1-fields) gives representative G1 dimension fields, which also pack the format and control bits, with the bit range and width of each.
+The G1 dimension fields also pack the format and control bits, a representative set of them in [table](#tbl:apc-g1-fields).
 
 | regAddr | field | bits | width | meaning |
 | --- | --- | --- | --- | --- |
@@ -514,7 +512,7 @@ To invert a raw value: DMA strides are 26-bit signed at bits [31:6]; L2-result b
 The complete inventory of roughly 190 register fields across the 7 groups, 11 reloc slots, and on-M1 stubbed engines (CCDMA, atomic scatter, LDTID) is from collected data not reproduced here.
 
 Each operation descriptor in the task-descriptor stream has a 32-bit opcode word.
-[Table](#tbl:apc-opcode-words) gives the words decoded from a live M1 program for three operations.
+Three such words were decoded from a live M1 program ([table](#tbl:apc-opcode-words)).
 
 | operation | opcode word |
 | --- | --- |

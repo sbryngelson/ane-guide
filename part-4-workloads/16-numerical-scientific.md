@@ -8,7 +8,6 @@
 The Apple Neural Engine is a dense fp16 matrix engine with a wide accumulator.
 That hardware structure decides which numerical and scientific kernels run on it without a precision penalty and which the architecture bars.
 Dense linear algebra and fixed-iteration numerics fit; the dense factorizations and full spectral decompositions run by unrolling into one static graph; the discrete Fourier transform fits as a matrix multiply while the fast-transform butterfly fits only as a static unroll.
-The one architectural limit is a runtime-sized output, not pivoting: a data-dependent pivot is reached by cutting the graph at the pivot selection.
 
 ## What the dense engine computes well
 
@@ -23,11 +22,11 @@ Power iteration for a dominant eigenpair, conjugate-gradient sweep for a symmetr
 Because the matrix is a fixed weight, the program size does not grow with $n$: a symmetric positive-definite solve runs unchanged from a small system up to $n = 512$ at the same relative error.
 Across these solvers the wide accumulator holds the precision to a condition number of roughly $10^4$ before fp16 input rounding, not the accumulator, sets the error floor.
 
-The measured envelope on the on-engine iterative solvers is a relative error near $10^{-3}$ at a condition number at or below $10^2$.
+The measured envelope for the on-engine iterative solvers is a relative error near $10^{-3}$ at a condition number at or below $10^2$.
 A dominant eigenpair from power iteration returns to about $10^{-15}$, limited by the spectral gap and not by the datapath, because the iteration is a repeated matmul whose fixed point is exact in the representable range.
 
 The accumulator that holds the precision is measured, not assumed: a reduction accumulates in a register of fp32 class and rounds to fp16 only at the output port, with the silicon-probe worked examples and the radix-4 fan-in derived in chapter 3.
-The consequence for these kernels is that a representable sum comes back near exact while a cancellation-heavy reduction has the input lanes round in radix-4 groups first, so the matrix-multiply contraction path is the more accurate route, exact to fp32 then rounded once at the output.
+A representable sum thus comes back near exact, while a cancellation-heavy reduction has its input lanes round in radix-4 groups first, which makes the matrix-multiply contraction path the more accurate route, exact to fp32 and rounded once at the output.
 The compiler emits a precision warning steering a narrow reduction toward it.
 
 ## Factorizations and spectral decompositions by static unrolling
@@ -48,7 +47,7 @@ Pivoting is reached by cutting the graph at the pivot.
 A pivoted LU runs with an on-engine `argmax` selecting the pivot row, expressed as a segmented graph: the `argmax` cuts the program into segments, and the data-dependent pivot index flows between them as a value rather than as a branch.
 The measured relative error on the segmented pivoted LU is about $5 \times 10^{-4}$ at small $n$.
 
-The single architectural limit is a runtime-sized output, not pivoting and not the recurrence.
+What the architecture actually bars is a runtime-sized output, and neither pivoting nor the recurrence is the obstacle.
 A rank-revealing or adaptive-tolerance factorization emits only the values above a tolerance, and how many that is depends on the data, so a static program cannot emit a runtime-sized result and can only emit all $n$ values plus a mask.
 That limit is independent of whether the arithmetic is fp16 or fp64.
 What fp16 limits separately is the conditioning range, the roughly $10^4$ ceiling above; the Jacobi spectral decompositions hold to a condition number of about $10^1$ to $10^2$ because the squared system $A^\mathrm{T} A$ doubles the conditioning.
@@ -103,15 +102,15 @@ For the transform sizes the engine handles in range, use the matmul form.
 
 A sparse matrix gives a speed gain, not only a storage gain, when it is a constant weight.
 The engine has two independent sparsity mechanisms.
-The first is a compute-time zero-skip: the multiply array detects a zero weight and skips the multiply, driven by a scan of the weight values, so it applies to any operand with zeros regardless of its storage format and pays off in a compute-bound layer.
-The second is a sparse stream: the weight is stored as a one-bit keep-mask plus the packed fp16 nonzeros, fewer bytes cross DRAM, and the operand is reconstructed on chip, which pays off in a bandwidth-bound layer.
+One is a compute-time zero-skip: the multiply array detects a zero weight and skips the multiply, driven by a scan of the weight values, so it applies to any operand with zeros regardless of its storage format and pays off in a compute-bound layer.
+The other is a sparse stream: the weight is stored as a one-bit keep-mask plus the packed fp16 nonzeros, fewer bytes cross DRAM, and the operand is reconstructed on chip, which pays off in a bandwidth-bound layer.
 
 On the M1 the sparse stream is the measured gain for a pruned operand.
 A convolution stack at about 63 percent zeros streamed as a mask plus nonzeros runs 1.55 to 1.64 times faster than the same weights stored dense.
 The streamed weight file is at 0.43 times the dense size, and the effective bandwidth rises from about 29.5 to about 47.8 GB/s, the engine's weight-stream ceiling.
 The reconstruction is lossless apart from the fp16 rounding of the kept values, so the result matches the dense computation to a cosine of $1.0000$.
 The zero-skip mechanism, by contrast, returns about 1.01 times on the same bandwidth-bound stack, because skipping multiplies does not move a layer whose wall time is set by the DMA, and it needs a compute-bound layer to show.
-[Table](#tbl:c16-sparsity) sets the zero-skip and sparse-stream mechanisms side by side: what each cuts, where it pays off, and its measured result on a pruned stack.
+The two mechanisms sit side by side in [table](#tbl:c16-sparsity).
 
 | Sparsity mechanism | What it cuts | Where it pays off | Measured M1 result |
 | --- | --- | --- | --- |
@@ -120,9 +119,9 @@ The zero-skip mechanism, by contrast, returns about 1.01 times on the same bandw
 
 Table: The two sparsity mechanisms on the M1 and where each one pays off, with the measured result on a pruned convolution stack at about 63 percent zeros. {#tbl:c16-sparsity}
 
-## Discrete Fourier transform as one matmul
+## The Fourier transform compiled
 
-The Fourier matrix is embedded as a constant weight, and the transform runs as one matmul against the real and imaginary parts of the signal, which [listing](#lst:c16-dft-graph) builds as a compiled engine program.
+The Fourier transform of the earlier section writes out as an engine program with the real and imaginary halves of $W$ as separate constant weights ([listing](#lst:c16-dft-graph)).
 
 ```python
 # The length-N discrete Fourier transform expressed as matrix multiplies.
@@ -164,7 +163,7 @@ Listing: The length-N discrete Fourier transform as a compiled engine program, w
 
 ## Reference: what fits and what is architecture-limited
 
-[Table](#tbl:c16-reference) collects the numerical kernel classes this chapter covers, marking each as fitting the engine or architecture-limited with the binding constraint on each.
+Every kernel class above is either a fit or architecture-limited, with one binding constraint behind the verdict ([table](#tbl:c16-reference)).
 
 | Kernel class | On the engine | Bound |
 | --- | --- | --- |

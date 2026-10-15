@@ -24,7 +24,7 @@ The M1 compiles as `A13` (index 2) and the M5 compiles as `A17` (index 6), and `
 Two string parsers build the per-target objects from the target name: `CreateTargetFromString` constructs the `ZinIrTarget` instance, and `CreateHalFromString` constructs the matching `ZinIrHalParameters` blob.
 Both branch on string length and the first characters compared as little-endian shorts, `0x3168` for "h1", `0x3074` for "t0", `0x396d` for "m9", and `0x316d` for "m1".
 
-The numeric hardware version maps to the family enum through a fixed table, the `unordered_map<int, Family>` named `ANEFamilyToMLIR`, whose data table [table](#tbl:c35-fammap) decodes key to value along with the targets that resolve to each family.
+The numeric hardware version maps to the family enum through a fixed table, the `unordered_map<int, Family>` named `ANEFamilyToMLIR`, whose data table decodes key to value ([table](#tbl:c35-fammap)).
 
 | Hardware version | Family index | Targets |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ The per-chip hardware-abstraction blob is a fixed-size per-target structure whos
 
 ## Operation floors: the minimum-family trait
 
-[Table](#tbl:c35-floors) gives the four minimum-family floors, the families each is native on, and representative operations at each floor.
+[Table](#tbl:c35-floors) gives the four minimum-family floors and representative operations at each.
 
 | Floor | Native on | Representative operations |
 | --- | --- | --- |
@@ -69,7 +69,7 @@ Table: The four minimum-family floors, the families each is native on, and repre
 Native operation support is declared by the `MinimumFamily<N>` trait held on each backend operation, the operation-side member of the two capability gates chapter 24 defines.
 An operation is natively legal only inside a region whose family index is at least `N`; below that floor the compiler decomposes it into a sequence of supported operations.
 The trait is the mechanism, not the dynamic-legality registration: `addDynamicallyLegalOp` wraps only the eight region operations and four texture-gated operations, while every backend operation has the `MinimumFamily<N>` impl.
-88 compute operations have the trait, 52 at F0, 31 at F2, two at F3, and three at F4.
+The trait is held by 88 compute operations, 52 at F0, 31 at F2, two at F3, and three at F4.
 These operation floors are measured on physical silicon for the M1 and M5; the M3, M4, and upper-tier figures are decompile-derived, predicted from the per-chip tables rather than measured.
 
 No operation in the decoded compute-op floor table floors above F4, so almost nothing is exclusive to `A16`, `A17`, or `A18`: the upper-tier generations add Neural Engine cores rather than a usable operation set.
@@ -89,7 +89,7 @@ On A13 and above divide is a native `anec::ElementwiseDiv` over arbitrary dynami
 
 ## Same operation, a different kernel
 
-[Table](#tbl:c35-kernels) gives the five categories where the shared lowering emits different machine code or different numbers per chip, with the per-chip parameter that drives each.
+In five categories the shared lowering emits different machine code or different numbers per chip, each driven by its own per-chip parameter ([table](#tbl:c35-kernels)).
 
 | Category | Divergence | Driven by |
 | --- | --- | --- |
@@ -133,7 +133,7 @@ A convolution with a large stride factorizes the stride through `DecomposeConvWi
 
 ## What the M1 blocks and which chip enables it
 
-[Table](#tbl:c35-blocks) gives the operations and behaviors the M1 blocks, the first Apple family that enables each, and the cause.
+The M1 blocks a specific set of operations and behaviors, each enabled by a particular later family ([table](#tbl:c35-blocks)).
 
 | Operation or behavior | M1 / H13 | Enabling family | Cause |
 | --- | --- | --- | --- |
@@ -175,7 +175,7 @@ The A14 and later chips route the large kernels through the shared builder inste
 Below the family enum is the descriptor emitter `ZinAneTd<Nu>`, instantiated for the generations $\{1, 4, 5, 6, 7, 8, 10, 11, 17, 19, 20\}$.
 Only the generations $\{7, 8, 10, 11, 17, 19, 20\}$ have the patch-width path; the legacy generations $\{1, 4, 5, 6\}$ use `HandleCcdmaLayer` with no patch settings.
 The same logical field is at a different byte offset per generation, so a field written at the wrong offset for the target corrupts an unrelated descriptor word.
-[Table](#tbl:c35-descoffset) gives the patch-width descriptor offset per task-descriptor generation.
+The patch-width offset moves with the generation ([table](#tbl:c35-descoffset)).
 
 | Descriptor generation | Family | Patch-width offset |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ The per-target literals are deferred; the offsets, consumers, and mechanism are 
 `getDeviceInfo` fills a device-information struct from the family enum and the operation size.
 It writes a constant `0.0008` at offset `0x30`, a size-scaled pair at offsets `0x14` and `0x18`, a bandwidth clamp at offset `0x20`, and a setup-latency and throughput pair at offsets `0x8` and `0xc` from a data block.
 The dispatch reads family 5 and 6 as the A16 and A17 tier, family 4 as the M1, and family 3 as A12, and buckets the size at thresholds of 6, 10, 20, and 40.
-[Table](#tbl:c35-costmodel) gives the bandwidth-clamp sequence and setup ramp per family in the analytic cost model.
+The bandwidth-clamp sequence and the setup ramp both key off the family ([table](#tbl:c35-costmodel)).
 
 | Family | Bandwidth clamp sequence by size bucket | Setup ramp |
 | --- | --- | --- |
@@ -265,7 +265,7 @@ No equivalent named gate exists for any other family; the rest gate numerically 
 The per-generation versioning that chapter 23 reads out of the descriptor accessors can be observed directly in the emitted program.
 Because the compiler is one binary that lowers for any target from any machine, the target is a command-line flag rather than a property of the host: a single `ANECompile` build, here `9.509.0`, lowers the same network for `h13` through `h17` while only the `-t` target varies.
 A diff across those programs isolates the per-generation divergence from the compiler version and the operating-system version, which a diff across physical machines confounds.
-Lowering one convolution and one matmul for the five base M-series targets, `h13` through `h17`, gives the comparison that [Table](#tbl:c35-crossgen) records.
+Lowering one convolution and one matmul for the five base M-series targets, `h13` through `h17`, gives the comparison in [table](#tbl:c35-crossgen).
 
 | Target | Silicon | cpusubtype `+0x08` | Convolution op-config word | Aperture base-record stride |
 | --- | --- | --- | --- | --- |
@@ -284,7 +284,7 @@ The version-7 op-config words in the `0x5000a0..` range, `0x5000a021` and `0x500
 
 What does not move is the addressing aperture and the descriptor prologue.
 The aperture virtual addresses, input `0x30004000` and the `0x30008000`, `0x3000c000`, and `0x30010000` that follow, are byte-identical across all five targets, as is the descriptor header through its first `0x300` bytes.
-What moves is the register program below them: the relocation records that carry the aperture base addresses are packed at an 8-byte stride on the M1 and move to a 16-byte stride from the M2 on, the concrete instance of the rule that the byte offsets and field widths move between versions (chapter 23) and of the per-generation descriptor-offset [Table](#tbl:c35-descoffset).
+What moves is the register program below them: the relocation records that carry the aperture base addresses are packed at an 8-byte stride on the M1 and move to a 16-byte stride from the M2 on, the concrete instance of the rule that the byte offsets and field widths move between versions (chapter 23) and of the per-generation descriptor-offset [table](#tbl:c35-descoffset).
 Both operations show the same stride shift at the same boundary.
 
 The largest single step is the M1 to the M2, the version-7 descriptor to the A14 descriptor.

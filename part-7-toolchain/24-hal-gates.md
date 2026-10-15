@@ -5,13 +5,11 @@
 > Operation legality is declared on the operation as a `MinimumFamily<N>` trait: native only when the target family index is `N` or greater, and decomposed below the floor, with no compute operation floored above A15.
 > A capability in the table attests support at the layer that reads it and does not prove the operation runs: three-dimensional convolution has its kernel-depth attestation at `0x70` and fails backend lowering on every device mask.
 
-The compiler that targets the Apple Neural Engine is one binary that builds any chip in the line on demand.
 What separates one target from the next is a per-chip data table, read at compile time, that records every size limit and every per-operation switch for that silicon.
 
 ## HAL property table
 
-The hardware-abstraction-layer table is the compiler's profile of a target, one packed structure that holds both the numeric limits and the feature gates for a chip.
-[Table](#tbl:c24-hal-scalars) gives representative scalar fields of the hardware-abstraction table, each with its offset, meaning, M1 value, and the generation at which it changes.
+The hardware-abstraction-layer table is the compiler's profile of a target, one packed structure that holds both the numeric limits and the feature gates for a chip, with representative scalar fields and their M1 values in [Table](#tbl:c24-hal-scalars).
 
 | Offset | Field | Meaning | M1 (H13) | Changes at |
 | --- | --- | --- | --- | --- |
@@ -41,10 +39,8 @@ The second is a dense region of single-byte boolean flags, the capability bytes,
 A family of constructors, one per architecture, builds the structure per target inside the compiler.
 The scalar region runs from offset `0x18` to roughly `0x348` as plain data, with non-scalar members such as the format map and the cost-model curve extending past it.
 The capability-byte region occupies offsets `0x48f` through `0x8cc` and holds on the order of 165 single-byte flags, of which 24 have recovered field names and the rest are enumerated by offset and classified by the family that enables them.
-The compiler reads a scalar as a value at its offset and a capability byte as `hal[offset] & 1`, so every limit and every gate is one indexed read into this one table.
+The compiler reads a scalar as a value at its offset and a capability byte as `hal[offset] & 1`, so every limit and every gate is one indexed read into this one table ([Listing](#lst:c24-hal-struct)).
 The same structure holds the cost model: a policy-name string at `0x580`, frequency-to-efficiency curve at `0x7a8`, and per-cycle divisor at `0x228`, which the roofline of chapter 18 reads from this table rather than from a separate file.
-
-[Listing](#lst:c24-hal-struct) gives a partial C view of the structure, with each selected scalar field and the capability-byte region at its recovered offset.
 
 ```c
 /* ZinIrHalParameters, selected fields at their byte offsets (M1/H13 values) */
@@ -74,7 +70,7 @@ Operation legality is declared not in the HAL table but on the operation itself,
 The trait is a minimum-family index: the operation `MinimumFamily<N>` is natively legal only inside a compilation whose family index is `N` or greater, and below that floor the compiler decomposes it into legal operations.
 The family index orders the generations: `A11Legacy` is 0, `A12` is 1, `A13` is 2, `A14` is 3, `A15` is 4, and so on, with the M1 at `A13` and the M5 at `A17`.
 
-The check the compiler runs on each backend operation is the trait floor against the target family index, which [listing](#lst:c24-family-gate) gives as the native-or-decompose decision.
+The check the compiler runs on each backend operation is the trait floor against the target family index ([listing](#lst:c24-family-gate)).
 
 ```python
 # mlir::OpTrait::anec::MinimumFamily<N>: native iff target family >= N
@@ -103,7 +99,7 @@ A capability byte read as `hal[offset] & 1` decides a route inside a single oper
 The minimum-family trait decides whether the operation is native at all.
 When either gate is closed, the compiler either emits a decomposition into legal operations or rejects the operation with a message naming the architecture, depending on whether a legal decomposition exists.
 
-[Table](#tbl:c24-floors) gives the minimum-family floors a developer reaches, each with the families it is native on and its representative operations.
+The floors a developer reaches, and the families each is native on, are in [Table](#tbl:c24-floors).
 
 | Floor | Native on | Representative operations |
 | --- | --- | --- |
@@ -114,13 +110,12 @@ When either gate is closed, the compiler either emits a decomposition into legal
 
 Table: The minimum-family floors a developer reaches, with the families each is native on and representative operations. {#tbl:c24-floors}
 
-Because the floor is an attribute of the operation and the limits are a table keyed to the chip, the per-chip difference is data, not code.
 The compiler text that rewrites an operation is identical across the family, and the chip selects a different limit, gate, or decomposition strategy from the table beneath it.
 
 ## Capability-byte gates across the line
 
 A capability byte is a single-byte switch in that table that turns one operation or feature on or off for a target.
-[Table](#tbl:c24-capbytes) gives the named capability bytes, each with its gate and its value across the M1 and the later generations.
+The named capability bytes, each with its gate and its value across the M1 and the later generations, are in [Table](#tbl:c24-capbytes).
 
 | Byte | Gate | M1 (H13) | A14 | A15 | A16 | A18 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -146,7 +141,7 @@ The compiler builds the table for a target by calling that target's constructor,
 
 ## Per-family scalar matrix
 
-The scalar parameters across the generation anchors show the same pattern: a value holds for a span of generations and then steps once, as [Table](#tbl:c24-scalar-matrix) gives across the generation anchors.
+The scalar parameters show the same pattern across the generation anchors: a value holds for a span of generations and then steps once ([Table](#tbl:c24-scalar-matrix)).
 
 | Field (offset) | M1 (H13) | A14 | A15 | A16 (M4) | A17 (M5) |
 | --- | --- | --- | --- | --- | --- |
@@ -181,7 +176,7 @@ Listing: The kernel-memory split, where a streamable weight under the streaming 
 
 An ordinary non-streamed weight over 64 KB, or any weight over 16 MB, is thus split into multiple sub-layers on the M1, which raises the dispatch count and the compile time.
 A streamed compressed weight is sized against the 16 MB cap and has far more weight per layer.
-This is the weight path; it does not bound the activations, which stay within the maximum-tensor-dimension caps, so a layer with a tiny weight and a large activation is bounded by tiling cost in the partition passes rather than by this discrete limit.
+This is the weight path; it does not bound the activations, which stay within the maximum-tensor-dimension caps, so a layer with a tiny weight and a large activation hits the tiling cost in the partition passes before it hits this discrete limit.
 
 ## Dead and family-gated fields
 
@@ -202,7 +197,7 @@ The names survive in one place only.
 The compiler retains full mangled C++ symbols, and a reader function whose signature has `ZinIrHalParameters const&` reads each field, so the reader's name labels the field it reads.
 A read is attributed to the table only when the load's base register is the function's `ZinIrHalParameters const&` argument, since the same byte displacement aliases dozens of other by-reference structures.
 
-Cross-referencing the unnamed offsets against these reader functions names 95 more of them, of which roughly 30 resolve to a precise individual meaning with the base register verified against the table argument, the recovered names [Table](#tbl:c24-named-flags) attributes each to its reader function.
+Cross-referencing the unnamed offsets against these reader functions names 95 more of them, of which roughly 30 resolve to a precise individual meaning with the base register verified against the table argument ([Table](#tbl:c24-named-flags)).
 
 | Offset | Field | Reader function |
 | --- | --- | --- |
@@ -231,7 +226,7 @@ The same base-register test that found the five dead fields above also rules the
 With this round the silicon-capability subset of the packed bitfield, the part the compiler reads to gate a feature per family, is fully named.
 The struct is `0x938` bytes, and the few entries inside it that are not capability flags are the cost-model coefficient block at offsets `0x580` through `0x7f0`.
 This block holds the frequency-to-efficiency curve, rate indices, performance multiplier that the roofline of chapter 18 reads, and about two soft fp64 coefficients.
-These are all performance coefficients rather than legality caps.
+These are all performance coefficients, with no legality cap among them.
 A small number of capability fields are also true holdouts, read only off aliased bases.
 The offsets past `0x938` hold no table: an earlier reading that located an A12 operation-emulation catalog at `0xa30` through `0xe84` was a read into the adjacent zeroed memory beyond the struct, not a real field.
 
@@ -246,7 +241,6 @@ The HAL scalar at offset `0x70` records a 3D-conv kernel depth of 16 on the M1, 
 It still fails backend lowering on every device mask, returning the message that it is not supported on any backend.
 The capability is in the table and the operation does not run.
 
-The gap appears in the other direction as well, where a checker accepts an operation the code generator rejects.
-On the M1 the top-k, sort, and dynamic-slice validators are all callable and all three are refused at code generation.
+The gap appears in the other direction as well, where a checker accepts an operation the code generator rejects: on the M1 the top-k, sort, and dynamic-slice validators are all callable and all three are refused at code generation.
 A bit in the table, a frontend that recognizes an operation, or a validator that passes are each a claim about one layer; only a compile-and-run on the target confirms the operation at the layer that executes it.
 This is why the reachable surface of chapter 4 is smaller than the surface the table advertises, and why each native entry there was compiled and run on the M1 rather than inferred from a capability byte.

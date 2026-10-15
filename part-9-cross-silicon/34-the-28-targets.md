@@ -2,14 +2,15 @@
 
 > The compiler builds 28 architecture targets, one per silicon profile, under the fixed relation $M(n) \rightarrow H(n+12)$.
 > A suffix letter selects the NE-core count, and the operation surface stops expanding at A15, so the surface measured on the M5 is the surface for everything above it.
-> A device's runtime architecture string is a separate identifier from the compiler target name. A resolver-derived board-type sequence maps every shipping chip onto its generation.
+> A device's runtime architecture string is a separate identifier from the compiler target name.
+> A resolver-derived board-type sequence maps every shipping chip onto its generation.
 
 The compiler that builds for the Apple Neural Engine has 28 architecture targets, one per silicon profile it knows how to construct.
 Each target is a named hardware-abstraction-layer table the compiler builds by calling one per-architecture constructor, `ZinIrHal<T>::GetParams()`, and calling every constructor on a single host recovers the full set regardless of which chip runs it.
 
 ## Full set
 
-[Table](#tbl:c34-targets) gives all 28 targets, each with its silicon class and decoded NE-core count.
+[Table](#tbl:c34-targets) gives all 28 targets.
 
 | Target | Silicon and class | NE cores |
 | --- | --- | --- |
@@ -52,7 +53,7 @@ It is an efficiency-class engine that has the A16-class feature flags but the A1
 
 ## Capability tiers
 
-[Table](#tbl:c34-tiers) groups the targets into capability tiers, giving each tier its dimension limit and the four gated capabilities that separate the generations.
+Four gated capabilities separate the generations, and with the dimension limit they sort the targets into capability tiers ([table](#tbl:c34-tiers)).
 
 | Tier | Targets | Max dimension | 3D conv | Texture engine | `sin`, `cos` | Dropout |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -77,7 +78,7 @@ The operation behavior measured on the M5, an H17 part, is thus the operation be
 The map from a shipping chip to its architecture is a resolver Apple distributes that decompiles cleanly.
 The method `aneArchitectureType` on the private device-info class builds the architecture string from a board-type value read from the platform configuration store, switching on a strictly increasing board-type sequence.
 The live anchor on an M1 Max reads board type 96, which resolves to `h13g` with a 16-core count, matching the registry exactly.
-[Table](#tbl:c34-silicon) gives the resolver-derived map from system-on-chip to runtime architecture and compiler target across the M1 through M5 generations.
+That resolver yields the map from system-on-chip to runtime architecture and compiler target for the M1 through M5 generations ([table](#tbl:c34-silicon)).
 
 | Chip | Product | Runtime arch | Compiler target |
 | --- | --- | --- | --- |
@@ -104,7 +105,6 @@ The board-type kext for an absent chip cannot be read on a different host, since
 The architecture name a device reports at runtime is not the compiler target name.
 The runtime string is the coarse form, `h1N` for a base part and `h1Ng` for a Pro, Max, or Ultra part, the only two variants the runtime emits on the desktop platform.
 The compiler target is the finer set, the full `H17`, `H17s`, `H17c`, `H17d`, `H17g` family, of which the runtime collapses several onto one string.
-A developer names the target by its compiler form and treats the runtime string as a separate identifier.
 
 The direct compile entry point accepts any of the 28 target names and rejects an unknown name.
 The dispatch library, in contrast, falls back silently when handed an unknown architecture, so a developer gates a cross-target compile against the known-name set before dispatching it.
@@ -112,7 +112,7 @@ The dispatch library, in contrast, falls back silently when handed an unknown ar
 ## Interchange formats across the set
 
 Each target has a per-chip table of accepted image-input formats, the interchange-format map at hardware-abstraction-layer offset `0x658`, keyed by a four-byte ASCII format tag.
-[Table](#tbl:c34-formats) gives the accepted image-input format count by generation tier, with the format set each tier adds.
+Both the count and the set differ by generation tier ([table](#tbl:c34-formats)).
 
 | Tier | Chips | Format count | Set |
 | --- | --- | --- | --- |
@@ -125,8 +125,7 @@ Each target has a per-chip table of accepted image-input formats, the interchang
 Table: The accepted image-input format count by generation tier, with the format set each tier adds. {#tbl:c34-formats}
 
 The tag is a one-byte compression-variant prefix on a three-byte base pixel format.
-The compiler does not parse the prefix character by character: it validates the whole four-byte tag against a 34-entry allow-list, and the prefix's meaning is the third byte of the format's packed-integer value, a packing-mode index on a uniform stride.
-[Table](#tbl:c34-prefix) gives the compression-variant prefix on an interchange tag and the packing-mode index it selects.
+The compiler does not parse the prefix character by character: it validates the whole four-byte tag against a 34-entry allow-list, and the prefix's meaning is the third byte of the format's packed-integer value, a packing-mode index on a uniform stride ([table](#tbl:c34-prefix)).
 
 | Prefix | Mode index | Meaning |
 | --- | --- | --- |

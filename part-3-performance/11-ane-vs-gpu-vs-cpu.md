@@ -10,12 +10,6 @@ It has three candidates, and the right one depends on the form of the work.
 This chapter maps which of the engine, GPU, and CPU leads on which class of work, on raw speed and on energy per result, from a single harness across sixteen workload classes on the same silicon.
 The map is two-dimensional: a processor can lead on latency, on energy, on both, or on neither.
 
-## Form of the map
-
-The engine is the efficiency processor for convolution and vision, and a low-latency processor for encoders at low to moderate batch.
-The GPU is the throughput processor for large square matrix multiply and for the bandwidth-bound work of autoregressive decode.
-The CPU collects the work too small for either, where dispatching to an accelerator costs more than the arithmetic.
-
 ## Where the engine leads
 
 The engine is faster and more efficient on convolution, convolution stacks, stencil-like fixed-iteration numerics, short-sequence attention, and mid-size matrix multiply.
@@ -31,7 +25,7 @@ On the M1 the engine draws 4.4 W on a large compute-bound matrix multiply where 
 
 ## Where the GPU leads
 
-The GPU leads on raw speed on large square matrix multiply, long-sequence attention, and bandwidth-bound autoregressive decode.
+Large square matrix multiply, long-sequence attention, and bandwidth-bound autoregressive decode all run faster on the GPU.
 A 256 by 4096 by 4096 matrix multiply runs about 2.8 times faster on the GPU than on the engine, and the gap grows to 3.0 times at saturation, about 30.9 fp16 TFLOP/s against the engine's 10.2 TFLOP/s peak.
 The engine's single fused matrix multiply stalls on weight streaming once a square operand passes its on-chip working set near N of 2048.
 Long-sequence attention shifts to the GPU as the sequence grows: at sequence length 512 the GPU is about 2.1 times faster, though the engine keeps a 1.8 times energy edge.
@@ -50,7 +44,7 @@ On any larger class the CPU is not competitive, reaching about 1.9 fp32 TFLOP/s 
 ## M1 per-class measurement
 
 The verdicts above are taken from one harness across sixteen workload classes, and the M1 rows make the per-class split concrete.
-The engine leads on energy on every class but the dispatch-bound floor, and it is fastest on the convolution-heavy and mid-bandwidth classes, as [Table](#tbl:c11-m1class) gives the per-class engine and GPU speed and efficiency on idle-subtracted package power.
+The engine leads on energy on every class but the dispatch-bound floor, and it is fastest on the convolution-heavy and mid-bandwidth classes ([table](#tbl:c11-m1class)).
 
 | Workload | Engine GFLOP/s | Engine GFLOP/s/W | GPU GFLOP/s | GPU GFLOP/s/W | Engine efficiency advantage |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -72,7 +66,7 @@ A single small operation is overhead-bound on the engine: it costs about 0.23 mi
 A relu, sigmoid, average pool, and small convolution are all between 0.24 and 0.26 milliseconds, with a 64-element linear at 0.23 milliseconds.
 That floor is host dispatch and operand transfer, not engine compute, so it sets a latency a small operation cannot beat.
 
-A convolution amortizes the floor as its spatial size grows, and [Table](#tbl:c11-convramp) traces the throughput climbing roughly twenty-fold from the floor to the saturated shape.
+A convolution amortizes the floor as its spatial size grows, and its throughput climbs roughly twenty-fold from the floor to the saturated shape ([table](#tbl:c11-convramp)).
 
 | Spatial size | Latency | GFLOP/s |
 | --- | ---: | ---: |
@@ -108,7 +102,7 @@ Table: The batch at which the GPU overtakes the engine for each serving workload
 
 ## Verdict table
 
-[Figure](#fig:c11-verdict) is the decision tree that maps a workload to the engine, GPU, or CPU.
+Taken together, the verdicts above route a workload to one of the three processors ([figure](#fig:c11-verdict)).
 
 ```mermaid
 %% caption: Which processor suits which workload. {#fig:c11-verdict}
@@ -122,8 +116,7 @@ flowchart TD
     style CPU fill:#e7ebef,stroke:#5b6b7b
 ```
 
-The per-class verdicts collapse into one table.
-[Table](#tbl:c11-verdict) names for each workload class the processor that is fastest, the processor that is most efficient on energy per result, and the headline figure from the sections above.
+The per-class verdicts collapse into one table ([table](#tbl:c11-verdict)), which pairs each class with its fastest processor, its most efficient one on energy per result, and the headline figure behind the verdict.
 
 | Workload | Fastest | Most efficient | Standout number |
 | --- | --- | --- | --- |
@@ -141,7 +134,7 @@ Table: The fastest and most efficient device among engine, GPU, and CPU for each
 ## Picking the processor for a workload
 
 The device choice is the workload's regime read against the thresholds above.
-The procedure estimates the layer, then routes it: compute-bound and resident to the engine, large-square or long-sequence to the GPU, below the floor to the CPU.
+Estimate the layer, then route it: compute-bound and resident to the engine, large-square or long-sequence to the GPU, below the floor to the CPU.
 
 ```python
 # Pick the processor for a workload from its regime, before choosing a device.

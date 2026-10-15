@@ -5,8 +5,6 @@
 > Selector 2 alone reaches a hardware doorbell from user space, through a four-layer call path ending in an MMIO mailbox write.
 > The size tuples match across the M1 and M2-class kernel cache, so the ABI at this layer is family-invariant.
 
-This chapter covers the driver class hierarchy, the two user-client selector spaces with their exact struct sizes, the dispatch-array record format the kernel validates against, the path from a user-space call down to the hardware doorbell, and the broker model that fronts the device with one privileged daemon.
-
 ## Driver stack and class hierarchy
 
 The three cooperating kexts, their bundles, principal classes, and provider matches appear in [Table](#tbl:c27-kext-stack).
@@ -19,14 +17,14 @@ The three cooperating kexts, their bundles, principal classes, and provider matc
 
 Table: Bundle, principal class, and provider match for each of the three kernel extensions. {#tbl:c27-kext-stack}
 
-Three version-locked kexts cooperate, all at build `9.511.3` on the M1 generation.
+All three are version-locked, at build `9.511.3` on the M1 generation.
 The interface and hardware driver registers the device, vends the user clients, and rings the firmware.
 A per-die hardware abstraction layer supplies the clock, power, and topology constants.
 The load balancer owns the program-to-engine residency map and arbitrates across physical engines on parts that have more than one.
 The engine attaches as an Apple RTKit coprocessor endpoint, so the interface driver is the host side of a real-time-operating-system mailbox client.
-Three kernel families handle the work: the address-translation family that drives the device IOMMU, surface family that backs zero-copy tensor buffers, and real-time mailbox family that holds firmware commands.
+The work is spread over three kernel families: the address-translation family that drives the device IOMMU, the surface family that backs zero-copy tensor buffers, and the real-time mailbox family that holds firmware commands.
 
-`ANEHWDevice::newUserClient(task*, void*, uint type, IOUserClient**)` vends the two distinct user clients plus a hint-only client of [Listing](#lst:c27-userclients).
+`ANEHWDevice::newUserClient(task*, void*, uint type, IOUserClient**)` vends two distinct user clients plus a hint-only client ([Listing](#lst:c27-userclients)).
 
 ```c
 /* ANEHWDevice::newUserClient vends, by requested type: */
@@ -41,9 +39,8 @@ The two functional clients hold separate connections and separate selector space
 Each stores its connection at object offset `+0x40`, and every selector call loads that offset before issuing the kernel call.
 
 On the user-space side an `IOServiceOpen` whose return type is `0xe00002c5` opens the device, and the connection object is at offset `0x40` in the device handle.
-Two front-ends open that type: `ANEServicesDevice` for inference and `ANEHWDevice` for administration.
-The user-space selector immediates read on the M1 are selector 0 for the device open, selector 2 for the send-request, selector 3 for create, and selector 4 for prepare.
-The rest are selector 6 for destroy, selector 10 for the version query, and selector 16 for the firmware load.
+That type is opened by two front-ends: `ANEServicesDevice` for inference and `ANEHWDevice` for administration.
+The user-space selector immediates read on the M1 are selector 0 for the device open, selector 2 for the send-request, selector 3 for create, selector 4 for prepare, selector 6 for destroy, selector 10 for the version query, and selector 16 for the firmware load.
 The lifecycle indices differ from the kernel-registered table because the kernel has two user-client classes with independent selector tables.
 The two selectors agree across both sides, selector 0 opening the device at 104 bytes and selector 2 sending a request with a 2376-byte input and a 40-byte output.
 
@@ -64,13 +61,13 @@ Every selector shim reads its arguments out of the framework `IOExternalMethodAr
 
 Listing: The `IOExternalMethodArguments` field offsets every selector shim reads. {#lst:c27-extmethodargs}
 
-Three return constants recur across the shims: `0xe00002c2` is `kIOReturnBadArgument`, returned on a size or null-pointer check failure, `0xe00002c7` is `kIOReturnUnsupported`, returned on a disabled or stub path, and `0xe00002c5` is the closed-or-closing client state.
+The shims share three return constants: `0xe00002c2` is `kIOReturnBadArgument`, returned on a size or null-pointer check failure, `0xe00002c7` is `kIOReturnUnsupported`, returned on a disabled or stub path, and `0xe00002c5` is the closed-or-closing client state.
 
 ## User-client dispatch-array format
 
 Each user client routes a selector through the standard IOKit 2022 dispatch pattern.
 `H11ANEInUserClient::externalMethod` loads the dispatch-array pointer and the method count, then tail-calls the framework dispatcher, which validates the declared scalar and structure sizes against the array entry before it calls the named handler.
-Both dispatch arrays were read byte for byte out of the read-only data section of the kernel cache, and [Listing](#lst:c27-dispatch-disasm) gives the disassembled selector dispatch for each user client with its array pointer and selector count.
+Both dispatch arrays were read byte for byte out of the read-only data section of the kernel cache ([Listing](#lst:c27-dispatch-disasm)).
 
 ```c
 /* H11ANEInUserClient::externalMethod, disassembled (M1, T6000): */
@@ -95,7 +92,7 @@ struct IOExternalMethodDispatch2022 {
   uint32_t checkScalarInputCount;  /* +0x08  exact scalar-input count        */
   uint32_t checkStructureInputSize;/* +0x0c  exact struct-input bytes        */
   uint32_t checkScalarOutputCount; /* +0x10  exact scalar-output count       */
-  uint32_t checkStructureOutputSize;/* +0x14 exact struct-output bytes       */
+  uint32_t checkStructureOutputSize; /* +0x14 exact struct-output bytes      */
   uint8_t  reserved[0x10];         /* +0x18  reserved (debug-WP group flag)  */
 };
 ```
@@ -103,13 +100,11 @@ struct IOExternalMethodDispatch2022 {
 Listing: The dispatch-array element layout, packing the handler pointer and the four size checks the dispatcher enforces. {#lst:c27-dispatch-elem}
 
 No entry on either client uses the sentinel `0xffffffff` that means "do not check".
-Every selector pins an exact scalar count and an exact struct size, and the dispatcher rejects any other size with `kIOReturnBadArgument`.
-Size-based overloading does not exist here: each selector index has exactly one record with one fixed size tuple.
+Every selector pins an exact scalar count and an exact struct size in exactly one record, and the dispatcher rejects any other size tuple with `kIOReturnBadArgument`.
 
 ## Control-client selector table
 
-The control client has 17 selectors covering the open handshake, the program lifecycle, status and version reads, and the firmware-driven debug work-processor channel.
-[Table](#tbl:c27-control-selectors) lists every control-client selector with its handler and kernel-authoritative sizes read from the dispatch array.
+The control client has 17 selectors covering the open handshake, the program lifecycle, status and version reads, and the firmware-driven debug work-processor channel, with each handler and its kernel-authoritative sizes read out of the dispatch array into [Table](#tbl:c27-control-selectors).
 
 | Sel | Handler | Scalar in | Struct in | Scalar out | Struct out |
 | ---: | --- | ---: | ---: | ---: | ---: |
@@ -244,7 +239,7 @@ The whole sequence runs with interrupts disabled so a nested handler cannot corr
 
 ## Entitlement gate and broker model
 
-The client open checks the two kernel entitlements of [Listing](#lst:c27-entitlements), the hard device-open gate and the resident data-chaining gate.
+The client open checks two kernel entitlements, the hard device-open gate and the resident data-chaining gate ([Listing](#lst:c27-entitlements)).
 
 ```c
 /* checked at H11ANEInUserClient::init via copyClientEntitlement: */
@@ -258,7 +253,7 @@ A single kernel entitlement gates opening either user client.
 The check runs once at client construction and is a boolean on the client object, not re-checked per selector.
 Across the whole system, exactly two binaries hold `com.apple.ane.iokit-user-access`: the system broker daemon and its per-user sibling.
 No application process opens the device.
-Every other consumer reaches the engine through the broker over a cross-process call, proving itself with an entitlement from the broker's own private family rather than the kernel gate.
+Every other consumer reaches the engine through the broker over a cross-process call, where the credential is an entitlement from the broker's own private family and never the kernel gate.
 
 The driver stamps the capability at client creation in `ANEClientInfo::create`, which reads each entitlement through `copyClientEntitlement` and records `isPrivileged` and `allowDataChaining` as bits on the client.
 Beyond the two open gates, the driver enforces six further `com.apple.ane` and `com.apple.private.ane` entitlements covering scheduling priority, memory and data access, and client and coalition hints, as [Table](#tbl:c27-driver-entitlements) lists.
@@ -296,10 +291,9 @@ The broker is a listener that enforces per-connection and per-method entitlement
 It sorts admitted clients into a restricted tier, unrestricted tier, and per-user tier, and it threads a quality-of-service argument through every compile, load, and instantiate method.
 The restricted tier admits the adapter-weight, model-share, and aggressive-power-saving requests through a per-method admission helper, and the per-user tier serves the per-user broker.
 
-The adapter-weight path is the mechanism behind swappable model weights without recompilation.
+Swappable model weights without recompilation rest on the adapter-weight path.
 A base model is loaded once, and each adapter is a new instance bound to a named base-model identifier holding only its per-adapter weight files, through a create-instance-with-weights method that names the base-model identifier and the weight-file count.
-Residency and power are explicit per-instance arguments on the create-instance method.
-They are an enable-power-saving flag, more-aggressive variant gated by the restricted tier, opt-out-of-model-memory-unwiring flag that keeps a hot client's weights resident at the cost of footprint, and queue-depth that the broker down-adjusts under contention.
+Residency and power are explicit per-instance arguments on the create-instance method: an enable-power-saving flag, a more-aggressive variant gated by the restricted tier, an opt-out-of-model-memory-unwiring flag that keeps a hot client's weights resident at the cost of footprint, and a queue-depth that the broker down-adjusts under contention.
 A queue-index function and a program-priority function map the quality-of-service argument to hardware scheduling.
 A privileged subset of system daemons also holds a sandbox exception that opens the direct-path user client and drives per-inference submission on its own connection, skipping the per-call round trip through the broker.
 That exception is a latency optimization, not a capability grant: the privileged device open still happens in the broker, which hands the client a program handle and an intermediate-buffer handle.
@@ -327,6 +321,6 @@ The driver publishes its topology and version constants into the registry, read 
 
 Table: The device properties the driver publishes into the registry on the M1 host. {#tbl:c27-device-props}
 
-The number-of-cores value is a topology count and not the throughput-relevant multiply-array width, so a floating-point rate is taken from the measured cost-model anchor rather than inferred from the core count.
+The number-of-cores value is a topology count and not the throughput-relevant multiply-array width, so a floating-point rate is taken from the measured cost-model anchor, never inferred from the core count.
 At rest the registry shows the device, load-balancer instance, and standing hints client present, with zero control clients and zero direct-path clients open, confirming the brokered, lazily-opened model.
 The driver opens the user clients on demand per active client and tears them down when idle.

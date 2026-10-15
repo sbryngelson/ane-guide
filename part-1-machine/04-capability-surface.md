@@ -5,7 +5,7 @@
 > Some operations are family-gated: the texture-engine sampler arrives on the A14, and sin and cos arrive on the A15.
 > A capability attested at one layer is not a reachable operation: three-dimensional convolution has a capability byte yet fails backend lowering on every device, so only a compile-and-run confirms an operation.
 
-The Apple Neural Engine computes a fixed vocabulary of tensor operations.
+What the engine will run is a fixed vocabulary of tensor operations.
 The full operation-by-device table is Appendix A; this chapter gives its shape and the rules for fitting work to the engine.
 
 ## What fits
@@ -24,7 +24,8 @@ The activation set covers ReLU and its variants, sigmoid, tanh, gelu, swish, sof
 Data movement is native for reshape, flatten, expand, squeeze, transpose, concat, split, stack, constant pad, and slice, all descriptor edits or DMA operations rather than compute.
 A reduction or transpose over a large axis switches to a tiled route at a per-chip threshold, at no change to the result.
 
-The backend represents these operations in its own dialect, `anec.*`, one level below the frontend intermediate language. [Listing](#lst:c4-anec-dialect) gives the signatures for the core operations.
+The backend represents these operations in its own dialect, `anec.*`, one level below the frontend intermediate language.
+[Listing](#lst:c4-anec-dialect) gives the signatures for the core operations.
 
 ```mlir
 // 2D conv: weights and bias fold in; rank 4 or 5; M1 kernel at most 29x29 (13x13 fp16).
@@ -58,7 +59,7 @@ Gather on the M1 takes a software path valid only for a batch of one, depth of o
 The texture-engine operations (resize as a hardware sampler, crop-resize, resample, affine) are absent on the M1 and arrive on the A14 generation.
 Trigonometric sin and cos are native only from the A15 generation; the M1 and the A14 reject them and decompose on the host.
 
-[Table](#tbl:c4-op-classes) groups the operation classes by status, from native on every family through the family-gated paths to those with no hardware path.
+[Table](#tbl:c4-op-classes) groups the operation classes by status.
 
 | Class | Examples | Status |
 | --- | --- | --- |
@@ -84,11 +85,11 @@ Table: Operation classes by status, from native on every family through limited 
 ## Type limits
 
 The datapath is fp16, as chapter 3 shows.
-The frontend accepts fp32, int32, and bf16 as type annotations, but the backend does not implement them, so those annotations do not reach the silicon as wider arithmetic.
+An fp32, int32, or bf16 annotation is accepted at the frontend and implemented nowhere below it, so it never reaches the silicon as wider arithmetic.
 The compiler rejects a cast to int32 on the M1, and bf16 is not usable as a program input or output dtype.
 Requesting a wider type gains no precision: the multiply, activation tables, and output port are fp16 regardless, and only the accumulator is wide.
 
-A requested dtype routes by type, as [figure](#fig:c4-dtype-route) traces the fp16 and wider-type paths.
+The fp16 and wider-type paths part by requested dtype ([figure](#fig:c4-dtype-route)).
 
 ```mermaid
 %% caption: How a requested operation dtype routes on the engine. {#fig:c4-dtype-route}
@@ -120,13 +121,11 @@ This account extends and partly corrects the documented convertible operation se
 
 The engine has two compile routes with different capability gates, and an operation's availability can differ between them on the same chip.
 The intermediate-language route is gated by the per-operation family floor: an operation is native when the chip family is at or above the operation's floor, and below the floor the compiler decomposes or rejects it.
-The bridge route authors a fused layer directly and is gated by the hardware-abstraction-layer feature bytes rather than the family floor.
+The bridge route authors a fused layer directly and is gated by the hardware-abstraction-layer feature bytes rather than the family floor ([table](#tbl:c4-gate-bytes)).
 The clear example is the whole-tensor argument-maximum.
 On the intermediate-language route it is gated to the A15 generation and is rejected on the M1, yet on the bridge route it runs correctly on the M1, because the feature byte that gates it is already set on the A13.
 The same structure explains the other direction.
 Native sin and cos have no bridge route, so they stay on the intermediate-language route and are rejected on the M1, while the rank and sort operations have a bridge route that is rejected at code generation on the M1.
-
-[Table](#tbl:c4-gate-bytes) lists the hardware-abstraction-layer feature bytes that gate the bridge-route capabilities, with the per-generation value of each.
 
 | Capability | Gate byte | older | A13 / M1 | A14 | A15 |
 | --- | --- | --- | --- | --- | --- |
@@ -142,10 +141,10 @@ Table: The hardware-abstraction-layer feature bytes that gate the bridge-route c
 
 ## Confirming an operation on the target
 
-Because attestation is not reachability, an operation is confirmed by compiling the graph to the chip target and running it, not by reading a capability bit.
+Because attestation is not reachability, an operation is confirmed by compiling the graph to the chip target and running it.
 A graph that lowers and runs on the target is reachable there; a graph that the compiler rejects names the operation and the layer that refused it.
 
-The graph compiles against the target and runs before an operation is relied on, the procedure [listing](#lst:c4-confirm-op) carries out for one operation at a time.
+The graph compiles against the target and runs before an operation is relied on, one operation at a time ([listing](#lst:c4-confirm-op)).
 
 ```python
 # Confirm one operation on a target by compiling a graph that contains ONLY
@@ -190,7 +189,7 @@ Listing: Confirming one operation on a target by compiling a single-op graph and
 
 The operations that run have per-chip shape and kernel limits, read from the compiler's hardware-abstraction-layer tables.
 The headline limits separate the M1 from the M5 by a factor of four on the tensor extent and by a step on the kernel size; the full table is Appendix A.
-[Table](#tbl:c4-shape-limits) gives the per-generation kernel and tensor shape limits decoded from those tables.
+[Table](#tbl:c4-shape-limits) gives the per-generation kernel and tensor shape limits.
 
 | Limit | older | A13 / M1 | A14 | A15 | A16+ (M5) |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -207,7 +206,7 @@ The headline limits separate the M1 from the M5 by a factor of four on the tenso
 
 Table: The per-generation kernel and tensor shape limits, decoded from the compiler's hardware-abstraction-layer tables, M1 measured. {#tbl:c4-shape-limits}
 
-Two per-operation envelopes are hard limits a caller meets early.
+A caller meets two per-operation envelopes early, both hard limits.
 The matrix-multiply operation requires the depth axis to be 1 on both operands, and the fully-connected operation rejects an input of rank 5 or more.
 The software gather path on the M1 is valid only inside a small envelope: the data batch and depth must be 1, the index channel must be 3, the index width and depth must be 1, and the gather-axis count must be 3.
 Outside it the compiler aborts rather than falling back.

@@ -12,7 +12,7 @@ The runtime accepts the description directly, so the graph does not have to come
 
 Compile that description to the engine's program format.
 The runtime drives the compiler, which lowers the graph, lays the weights out for the streaming datapath, validates every operation against the native-layer catalog, and writes a loadable program to a content-addressed cache on disk.
-This is the costly phase, and it runs once per network.
+The cost sits here, and a network pays it once.
 
 Load the compiled program.
 The runtime opens the program from the cache and instantiates the function it exposes, preparing the program for execution on the device.
@@ -28,7 +28,7 @@ Dispatch is the low-cost phase, and it runs in the hot loop.
 
 The runtime that runs these steps is the engine's own C dispatch layer, the `e5rt_*` family exported from the Espresso framework.
 Every entry point returns an `int64_t` error code, zero on success, and an entry point that creates an object returns it through its first out-parameter, while the compile and retain calls return through their last.
-The five steps map onto the call sequence [listing](#lst:c6-direct-route) gives.
+The five steps map onto the call sequence in [listing](#lst:c6-direct-route).
 
 ```c
 /* Compile (step 2): the runtime drives the out-of-process compiler. */
@@ -71,7 +71,7 @@ A Unit is one layer.
 It has a `Type` tag, a `Bottom` wiring list naming its input symbols, the per-bottom and output dtypes, and a `Params` sub-dictionary of typed attributes.
 The directed-graph wiring is by symbol name, a Unit's `Bottom` referencing another Unit's `Name` or an external `InputName`.
 The execution order is the network body's `Units` array.
-[Table](#tbl:c6-call-families) maps the execution-runtime call families onto the compile, load, bind, and dispatch phases of the direct route.
+[Table](#tbl:c6-call-families) maps the execution-runtime call families onto the phases of the direct route.
 
 | Family | Phase | Representative entry points |
 | --- | --- | --- |
@@ -83,8 +83,7 @@ The execution order is the network body's `Units` array.
 
 Table: The execution-runtime call families, mapped onto the compile, load, bind, and dispatch phases of the direct route. {#tbl:c6-call-families}
 
-One network is compiled and loaded a single time, and the same program is dispatched against fresh operands on every call.
-[Figure](#fig:c6-once-loop) shows the split between the one-time setup and the per-call hot loop.
+One network is compiled and loaded a single time, and the same program is dispatched against fresh operands on every call ([figure](#fig:c6-once-loop)).
 
 ```mermaid
 %% caption: The compile-once, dispatch-many split between one-time setup and the hot loop. {#fig:c6-once-loop}
@@ -112,7 +111,6 @@ Each key has its value type in the name, for example `forceRecompilation<bool>`,
 Most of the runtime is reachable but unused by an ordinary dispatch.
 The runtime exposes 292 exported entry points, of which about 275 are callable and about 52 are exercised by a normal dispatch.
 The largest reachable but unused capabilities are zero-copy input and output through an image surface or a graphics buffer, firmware-side data chaining, a warm-start cache, a quality-of-service control, mutable weights, and an asynchronous submission with a timeout.
-These are present on the direct path and are not exercised by the standard flow.
 
 ## No planner and no entitlement
 
@@ -132,10 +130,9 @@ Host dispatch is not the limiting cost on the direct path.
 A single submission can drive several on-engine steps without a host round-trip per step.
 The mechanism is the resident state from chapter 2: a buffer stays in the engine's working set across steps, so the output of one step is the input of the next in place.
 The submission advances through the steps without returning to the host between them.
-The host supplies the small per-step inputs and reads the held buffers back at a checkpoint, rather than copying the full state across the boundary twice per step.
+The host supplies only the small per-step inputs and reads the held buffers back at a checkpoint.
 
-The arithmetic confirms it.
-A submission that drives the steps on the engine runs at the same rate as the same steps issued one host call at a time, so removing the per-step host calls does not speed the work up.
+The same steps issued one host call at a time run at the same rate, so removing the per-step host calls does not speed the work up.
 The unentitled direct path is performance-complete for dispatch: it reaches the same throughput as any path with more privilege.
 
 The stream offers one synchronous and two asynchronous submission forms.

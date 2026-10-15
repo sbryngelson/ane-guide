@@ -11,7 +11,7 @@ The engine reads its inputs and writes its outputs directly from DRAM through an
 
 ## DART and its address space
 
-[Table](#tbl:c28-address-space) gives the page granule, aperture base and size, and active stream set read from the live device tree.
+The page granule, aperture base and size, and active stream set come straight off the live device tree ([Table](#tbl:c28-address-space)).
 
 | Property | Value | Meaning |
 | --- | --- | --- |
@@ -22,7 +22,6 @@ The engine reads its inputs and writes its outputs directly from DRAM through an
 
 Table: The page granule, aperture base and size, and active stream set, read from the live device tree. {#tbl:c28-address-space}
 
-The DART is the engine's IOMMU.
 A host tensor buffer never reaches the engine as a host virtual address.
 The DART maps it into the engine's own address space, the device virtual address or IOVA, and the DMA engines issue reads and writes against IOVAs.
 The DART holds the page tables that translate each IOVA back to a physical DRAM page, so a buffer physically scattered across DRAM appears IOVA-contiguous to the engine.
@@ -58,7 +57,7 @@ Client isolation is separate from this engine-stream table.
 The DART gives each client its own isolation context, the eight address-translation mappers `mapper-ane0-iso1` through `iso7` plus a base in the live IORegistry, so each client's buffers map into its own translation domain.
 The secure exclave receives these contexts as the capabilities `ANEIsoID1` through `ID7`, confining each client's DMA to its own domain, the address-translation half of the exclave capability model in chapter 32.
 
-The controller register layout is recovered from its capture routine, as the byte offsets into a stream's 16 KB register window in [Table](#tbl:c28-reg-offsets).
+The controller register layout is recovered from its capture routine as byte offsets into a stream's 16 KB register window ([Table](#tbl:c28-reg-offsets)).
 
 | Offset | Register |
 | --- | --- |
@@ -79,7 +78,7 @@ For a normal engine data page it is the physical frame with the valid bit set, g
 
 $$\mathrm{leaf} = \mathrm{phys} \mathbin{|} \mathtt{0x8000000000000000}.$$
 
-[Table](#tbl:c28-leaf-entry) gives the bit-field layout of that 64-bit leaf word.
+Its bit fields are in [Table](#tbl:c28-leaf-entry).
 
 | bits | field | value | note |
 | --- | --- | --- | --- |
@@ -92,7 +91,6 @@ $$\mathrm{leaf} = \mathrm{phys} \mathbin{|} \mathtt{0x8000000000000000}.$$
 
 Table: The bit-field layout of the 64-bit leaf page-table entry the DART stores per page. {#tbl:c28-leaf-entry}
 
-Bit 63 is the valid bit, set on map and cleared to the all-zero template on unmap.
 The physical frame is the full 16 KB-aligned physical address located unshifted, so its low 14 bits are zero and the frame and the valid bit do not overlap.
 
 The word holds the same shape for every live engine usage type.
@@ -103,7 +101,7 @@ Across 26178 measured leaf-map events none of those three bits was ever set.
 
 The mapping path that produces this word stacks two translations.
 The host pins the physical pages, then fills the leaf table by accumulating per-page segments and flushing them through the page-protection-layer write.
-That write holds the 40-byte per-page segment structure of [Listing](#lst:c28-ppl-seg), from which the leaf word is assembled per page.
+That write holds a 40-byte per-page segment structure, from which the leaf word is assembled per page ([Listing](#lst:c28-ppl-seg)).
 
 ```c
 struct ppl_iommu_seg {   /* 0x28 bytes, measured layout */
@@ -138,7 +136,7 @@ The host maps each buffer under a usage code that names its role, held in the se
 Table: The buffer-role usage codes and the protection class each maps under. {#tbl:c28-usage-codes}
 
 A direction-to-protection mapper produces only the values 1, 2, and 3: a device-write output is class 1, a read-only input would be class 2, and read-write or no-direction is class 3.
-On the M1 a configuration bit in the controller collapses the would-be read-only class 2 into read-write 3, so the controller maps read-only inputs read-write and enforces input protection upstream rather than in the leaf word.
+On the M1 a configuration bit in the controller collapses the would-be read-only class 2 into read-write 3, so the controller maps read-only inputs read-write and enforces input protection upstream of the leaf word.
 The high `0x1000` bit on the firmware codes flags the firmware-owned shared class, distinct from the per-program client and kernel buffers.
 
 ## Host-to-firmware rebase boundary
@@ -178,7 +176,7 @@ The host IOVA and the firmware-aperture address are unequal and have no constant
 The bridge that establishes it runs once at program-create and is cached.
 On the cached dispatch path the host never re-emits the host-to-firmware pair, so the firmware rebase is the only translation below the host boundary there.
 
-Three address spaces coexist for one load, recovered from the loaded program text and the page-table fill and named in [Table](#tbl:c28-address-spaces).
+One load spans three address spaces, recovered from the loaded program text and the page-table fill and named in [Table](#tbl:c28-address-spaces).
 
 | Space | Address space | What it holds |
 | --- | --- | --- |
@@ -202,7 +200,7 @@ $$\mathrm{runtime} = \mathrm{mappedBase} + (\mathrm{IOVA} - \mathrm{dvaBase}).$$
 There is one subtract of the IOVA-region base and one add of the firmware aperture base.
 There is no shift, no mask, and no page rounding, which is why the host IOVA and the firmware-aperture address have no constant offset: the offset is the difference of two independent region bases that each move per load.
 
-The three runtime quantities the formula needs are in the firmware aperture-config object at `engine+0xa000`, whose fields [Table](#tbl:c28-aperture-config) gives.
+The three runtime quantities the formula needs are fields of the firmware aperture-config object at `engine+0xa000` ([Table](#tbl:c28-aperture-config)).
 
 | Offset | Field | Meaning |
 | --- | --- | --- |
@@ -221,7 +219,7 @@ The firmware also clamps every address it programs into the DMA engines to a 32-
 Each device address the engine touches, text, weights, descriptors, intermediate, output, and chained buffers, must satisfy `addr >> 32 == 0`, asserted per buffer in the firmware.
 The host allocator thus hands out only sub-4-GiB IOVAs, and the engine operates in the bottom 3.5 GiB of its address space.
 
-Three distinct alignment scales govern an engine buffer, each coarser than the last, collected in [Table](#tbl:c28-alignment).
+An engine buffer is governed by three distinct alignment scales, each coarser than the last, collected in [Table](#tbl:c28-alignment).
 
 | Scale | Value | What it governs |
 | --- | --- | --- |
@@ -236,11 +234,11 @@ The firmware keeps explicit buffer pools, tagging each mapped buffer with a pool
 A per-process pool tracks outstanding requests with an in-flight count capped at 127 per request.
 
 Under device-address pressure the kernel applies a least-recently-used eviction policy over its mappings, scoring each with `getDartBufferFreeUpScore` and freeing through the `FreeUpDart*` family.
-A long-running process that maps more than the address window holds thus has mappings reclaimed rather than failed.
+A long-running process that maps more than the address window holds thus loses its coldest mappings; its maps do not fail.
 
 ## Fault-capture registers
 
-The DART captures a translation or protection fault into the single-shot register block of [Table](#tbl:c28-fault-registers), an error-status word, the faulting device address split low and high, and a translation-buffer status word.
+The DART captures a translation or protection fault into a single-shot register block: an error-status word, the faulting device address split low and high, and a translation-buffer status word ([Table](#tbl:c28-fault-registers)).
 
 | register | device offset | field |
 | --- | --- | --- |
@@ -281,9 +279,7 @@ Most fields are object pointers whose stringifier the callback invokes; [Table](
 Table: The `IODARTErrorInfo` software fault descriptor, the shared kernel ABI the `t6000dart` core hands to its registered fault consumers. {#tbl:c28-errorinfo}
 
 The four slots at `+0x90` are the `AXI_ID[0..3]` array, the four fault descriptors a prior decode reported.
-The per-fault metadata is the scalar set above: `Address` at `+0x30` localizes the faulting page, `SID` at `+0x28` names the stream.
-`Type`, `HwClass`, and `HwError` at `+0x00`, `+0x08`, and `+0x10` give the fault taxonomy, and `IsWrite` at `+0x20` holds the read-write bit.
-The walk indices `TTBRIndex`, `L2Index`, and `L3Index` at `+0x40`, `+0x50`, and `+0x58` localize the failing page-table entry.
+What localizes a fault is the walk-index triple, `TTBRIndex`, `L2Index`, and `L3Index`, which names the failing page-table entry; the remaining scalars carry the taxonomy, the faulting page and stream, and the read-write bit.
 
 One register the callback reads is not part of the descriptor: it reads an engine status word directly off its own device object at `[engine+0xe028]`.
 The callback treats the fault as benign and returns early when `(status | 0x80) == 0xa0`, that is when the low seven bits equal `0x20` and bit 7 is a don't-care.

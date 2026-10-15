@@ -6,7 +6,7 @@ Every row is a native descriptor the conversion path never emits: the descriptor
 
 ## Catalog
 
-[Table](#tbl:apb-catalog) lists each native layer kind with what it computes, its netplist `Type` and compiler symbol, and its family gate.
+Each native layer kind appears in [table](#tbl:apb-catalog) with what it computes, its netplist `Type` and compiler symbol, and its family gate.
 
 | Layer kind | What it computes | Netplist `Type` and compiler symbol | Family gate |
 | --- | --- | --- | --- |

@@ -16,7 +16,7 @@ The compile phase is costly.
 It runs the full lowering and layout pipeline, writes a program to a content-addressed cache on disk, and the first dispatch of a freshly compiled program pays a further one-time cost to produce the loadable hardware form.
 The dispatch phase binds operand buffers, hands the program to the engine, and waits for completion.
 
-[Table](#tbl:exec-phases) sets the two phases against the runtime call surface, with when each runs, its cost, and the calls in each.
+[Table](#tbl:exec-phases) sets the two phases against the runtime call surface.
 
 | Phase | When it runs | Cost | Example calls |
 | --- | --- | --- | --- |
@@ -25,7 +25,7 @@ The dispatch phase binds operand buffers, hands the program to the engine, and w
 
 Table: The compile and dispatch phases, when each runs, its cost, and the runtime calls in each. {#tbl:exec-phases}
 
-The runtime exposes the two phases as distinct call families: [Listing](#lst:exec-compile) gives the compile-side calls, which run once, and [Listing](#lst:exec-dispatch) the dispatch-side calls, which run on every request.
+The runtime exposes the two phases as distinct call families, the compile-side calls running once ([Listing](#lst:exec-compile)) and the dispatch-side calls on every request ([Listing](#lst:exec-dispatch)).
 
 ```c
 /* once, out of the hot loop */
@@ -46,7 +46,7 @@ Listing: The per-call dispatch-side calls that encode and run the loaded program
 
 Chapter 6 gives the full create-bind-encode-execute sequence, including the compute operation and the input and output port binding.
 
-The compile phase does not produce one program form but three, lowered at successive layers, which [table](#tbl:exec-forms) names with what each is and where it lives.
+The compile phase produces three program forms, not one, lowered at successive layers ([table](#tbl:exec-forms)).
 
 | Representation | What it is | Where it is |
 | --- | --- | --- |
@@ -89,9 +89,7 @@ A caller that needs aggregate throughput runs independent streams rather than ov
 A single dispatch is governed by the cost of getting to the engine and back, not by the engine compute itself.
 Measured live on the M1 with a read-only trace, a tiny graph of a 3-by-3 convolution from 8 channels to 8 with padding 1, then a relu, then a mean, runs in a hot loop of about 2000 iterations.
 Each call costs about 190 microseconds of wall-clock time.
-About 98 percent of that is software and firmware dispatch overhead rather than engine compute.
-
-[Table](#tbl:exec-budget) breaks the per-call budget into its stages, with the cost of each from the user-space binding through the firmware round trip to kernel-side completion.
+About 98 percent of that is software and firmware dispatch overhead rather than engine compute ([table](#tbl:exec-budget)).
 
 | Stage | Cost |
 | --- | --- |
@@ -111,11 +109,11 @@ It is not sub-splittable from user space with read-only tools, because the firmw
 ## Submissions serialize at one in flight
 
 The driver keeps at most one firmware command in flight at a time, a single-pending-queue scheduler.
-Two concurrent submission threads thus serialize, measured at 1.04 times, so the round trip is not hidden by overlapping requests.
+Two concurrent submission threads serialize, measured at 1.04 times, so the round trip is not hidden by overlapping requests.
 
 ## A walked graph, not a decoded stream
 
-The compiled program is a static graph of work segments that the hardware walks, not a stream of instructions that a processor decodes.
+The compiled program is a static graph of work segments that the hardware walks, with no instruction stream for a processor to decode.
 There is no program counter to read and no microcode to dump.
 The compiler fixes the order and shape of every segment ahead of time, and the engine's controller advances through that fixed structure, programming the data movement engines and the multiply array for each segment in turn.
 
@@ -137,7 +135,8 @@ The engine can keep a buffer resident in its working set across calls, so a valu
 The mechanism aliases an output buffer of one call to an input buffer of the following call, so the data persists in place between dispatches.
 
 The aliasing reuses the same port-binding calls that chapter 6 uses for ordinary I/O.
-One buffer object is bound to the output port of the operation and to the input port of the next dispatch, so the dispatch that writes the held tensor and the dispatch that reads it name the same memory, as [listing](#lst:exec-resident) shows call by call.
+One buffer object is bound to the output port of the operation and to the input port of the next dispatch, so the dispatch that writes the held tensor and the dispatch that reads it name the same memory.
+The binding appears call by call in [listing](#lst:exec-resident).
 
 ```c
 /* One buffer object holds the resident state (a KV-cache or optimizer state). */
@@ -172,15 +171,15 @@ The large held tensor stays on the engine instead of crossing the host boundary 
 The output-to-input aliasing is the reachable face of the firmware's data-chaining subsystem, which keeps an output set resident and chains it as the next call's input.
 This is the route on the M1, rather than the engine's native persistent-state operations.
 The M1 task descriptor has no in-place resident-state data-movement engine: the encoders for that path are stubbed with the message that the data-movement form is not supported on this architecture, and the engine's native state operations are rejected when the program compiles.
-The held tensor is thus written as one call's output and read as the next call's input through one bound buffer, with the positional write done as a standard masked update against a small position vector sent each step.
+The held tensor is written as one call's output and read as the next call's input through one bound buffer, with the positional write done as a standard masked update against a small position vector sent each step.
 A resident accumulator built this way returns 1, 2, 3, 4 over four dispatches with no host re-send, and a resident cache fills each slot in place across steps, both confirmed on the M1.
 
 ## Compile out of the loop, dispatch inside it
 
-The cost split dictates the loop structure: compile once before the loop, then dispatch the loaded program against fresh operands on every iteration.
+The cost split dictates the loop structure.
 A content hash keys the compiled program, so recompiling an unchanged network is a cache hit rather than a second lowering pass.
 
-[Listing](#lst:exec-loop) compiles and loads once, then dispatches the loaded program per frame, per token, or per request.
+The loaded program is dispatched against fresh operands per frame, per token, or per request ([listing](#lst:exec-loop)).
 
 ```c
 /* Once, out of the hot loop: compile and load. A cache hit skips the lowering. */

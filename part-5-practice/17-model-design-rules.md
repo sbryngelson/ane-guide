@@ -6,7 +6,7 @@
 > Make channel counts a multiple of the interleave factor and group counts divide the core count, or the engine pads lanes and runs slower.
 
 The validator limits are design rules: the shape, rank, dtype, and mode constraints the per-operation validators enforce, the working-set threshold that decides whether a tensor stays on chip or tiles, and the channel and kernel bounds that distinguish a fast layer from a padded one.
-Chapter 4 says which operations exist; this chapter says the shapes those operations accept.
+Chapter 4 gives the operation set that these shapes apply to.
 
 ## Dtype rule
 
@@ -54,7 +54,7 @@ Channel counts should be a multiple of the interleave factor.
 The engine stores tensors channel-interleaved, and a channel dimension that is not a multiple of the interleave factor is padded out to one, leaving lanes unused.
 The width axis aligns to a 16-byte direct-memory-access granule, the same factor of 16 that governs the slice-tiling path.
 Interleave-aligned, power-of-two channel counts avoid silent padding.
-[Listing](#lst:c17-interleave-conv) contrasts an interleave-aligned tensor with a padded one and rewrites a fully-connected layer as the equivalent one-by-one convolution.
+A fully-connected layer reaches the convolution datapath once it is rewritten as the equivalent one-by-one convolution ([listing](#lst:c17-interleave-conv)).
 
 ```python
 # Tensor order is [N, D, C, H, W]; the engine stores it channel-interleaved
@@ -62,7 +62,7 @@ Interleave-aligned, power-of-two channel counts avoid silent padding.
 
 aligned = (1, 1, 64, 56, 56)   # channels first, W = 56 fills 16-byte lanes
 padded  = (1, 1, 64, 56,  1)   # singleton last axis pads out to the granule,
-                            # wasting every lane but the first
+                               # wasting every lane but the first
 
 # Replace a fully-connected layer with an equivalent 1x1 convolution so it
 # runs on the convolution datapath. A linear y = x @ W.T over C_in -> C_out
@@ -95,7 +95,7 @@ This is the working-set input to the cost model in chapter 18, where the rooflin
 ## Validating shapes against the design rules
 
 The cost estimate reports the binding limit for each operation, so a shape violation or a working set above 2 MB shows before the program reaches the compiler.
-[Listing](#lst:c17-validate) walks every layer of a graph against the rank, extent, kernel, group, interleave, and working-set rules and flags each violation before the build.
+[Listing](#lst:c17-validate) walks every layer against the rank, extent, kernel, group, interleave, and working-set rules.
 
 ```python
 # Tensor order is [N, D, C, H, W]; the engine stores it channel-interleaved.
@@ -144,7 +144,7 @@ A graph that prints `validates` false, a working set above 2 MB, or nonzero chan
 
 ## Reference: the per-operation design rules
 
-[Table](#tbl:c17-design-rules) collects every validator limit a model must satisfy, with each limit and the result of exceeding it.
+Every validator limit a model must satisfy is collected in [table](#tbl:c17-design-rules).
 
 | Constraint | Limit | Consequence if exceeded |
 | --- | --- | --- |
@@ -168,7 +168,7 @@ Table: The per-operation validator limits a model must satisfy, with each limit 
 
 The shape rules are enforced one operation at a time by a family of per-layer validators, the `_ANECValidate<Op>Layer` checkers the compiler runs as the back-end legalizer.
 There are 50 per-layer validators, and the same code runs both when a high-level model is segmented and when a hand-authored layer is compiled, so a validator that accepts a shape never drifts from the real compile outcome.
-[Table](#tbl:c17-validators) gives the binding constraint and reject string for the operations a model presents most often, read from the `_ANECValidate<Op>Layer` family.
+For the operations a model presents most often, the binding constraint and the reject string read straight out of the `_ANECValidate<Op>Layer` family ([table](#tbl:c17-validators)).
 
 | Operation | Validator | Binding constraint | Reject string |
 | --- | --- | --- | --- |
@@ -196,7 +196,7 @@ The validator predicts schema reachability; only a compile-and-run on the target
 
 ## Reference: the channel and divisibility rules
 
-[Table](#tbl:c17-divisibility) lists the layout and divisibility rules that separate a fast layer from a padded one, with the constraint and the consequence of missing each.
+[Table](#tbl:c17-divisibility) lists the layout and divisibility rules and what missing each costs.
 
 | Rule | Constraint | Consequence |
 | --- | --- | --- |

@@ -17,9 +17,9 @@ The direct route it describes is undocumented, unsupported, and version-fragile,
 
 ## Funding
 
-This was independent work and received no external funding.
+The work was conducted independently and received no external funding.
 
 ## Competing interests
 
 The author declares no competing interests.
-This is an independent work and is not affiliated with, authorized by, or endorsed by Apple Inc.
+This is independent work and is not affiliated with, authorized by, or endorsed by Apple Inc.

@@ -3,7 +3,7 @@
 > The Apple Neural Engine is a fixed-function fp16 matrix accelerator with a wide accumulator, reachable directly below Core ML.
 > The fp16 product path and wide accumulator explain much of the engine's numerical behavior and contribute to its efficiency.
 > It is faster than the GPU on compute-bound vision and convolution, 3.8 times faster and 9 times more efficient on a 256-channel 3x3 convolution; the GPU leads only on bandwidth-bound decode.
-> The overhead-isolated compute slope reaches near 12 fp16 TFLOP/s against 85 GB/s of DRAM bandwidth, with a 2 MB on-chip working-set threshold as the primary design limit.
+> The overhead-isolated compute slope reaches nearly 12 fp16 TFLOP/s against 85 GB/s of DRAM bandwidth, with a 2 MB on-chip working-set threshold as the primary design limit.
 
 The Apple Neural Engine is a fixed-function matrix accelerator built into every recent Apple system on chip, from the A11 and the M1 onward.
 It runs the feed-forward neural networks of on-device perception, vision and speech, at low power, and leaves the CPU and the GPU free for the rest of the system.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## Reachable surface
 
-The public way to use the engine is Core ML [AppleCoreML], whose load-and-predict call shape [Listing](#lst:c1-coreml-predict) shows.
+The public way to use the engine is Core ML [AppleCoreML], sketched in [listing](#lst:c1-coreml-predict).
 
 ```swift
 // The public path: ask for the engine, but Core ML still places the work.
@@ -54,7 +54,7 @@ This route makes the engine a target a developer can address on purpose rather t
 It is not a supported or App-Store-safe path; see the status note in the front matter.
 Part II covers it in full.
 
-The stack from a graph to the silicon is a fixed set of layers, and the direct route enters one level below Core ML at the runtime, as [table](#tbl:c1-stack) gives layer by layer.
+The stack from a graph to the silicon is a fixed set of layers, and the direct route enters one level below Core ML at the runtime ([table](#tbl:c1-stack)).
 
 | Layer | Role |
 | --- | --- |
@@ -74,20 +74,20 @@ The pre-A13 parts have no path through this toolchain, which is why the M1 is th
 
 The products are fp16 while the accumulator is wide, of fp32 class, and that property accounts for most of what the engine does.
 The datapath multiplies in fp16 end to end: fp16 inputs, fp16 weights, fp16 outputs.
-The frontend accepts fp32, int32, and bf16 type annotations, but the backend does not implement them.
+The frontend accepts fp32, int32, and bf16 as type annotations, but the backend does not implement them.
 The datapath reconstructs compressed weights to fp16 before they reach the multiplier.
 
 The running sum is not fp16.
 Input tiles round to fp16 on the way in, the output port rounds to fp16 on the way out, and the accumulation between those two points is held in a wide accumulator.
-Representable sums thus come back near exact.
-A reduction of sixteen thousand ones is bit exact, where a naive fp16 running sum would stall near two thousand once the partial total exceeds the spacing of its own increments.
-A cancellation probe settles the question: a sum of a large value, its negation, and one, taken near sixteen thousand, returns the one intact, which a fp16 running sum would have swallowed.
+Any sum the fp16 grid can represent comes back near exact.
+Sixteen thousand ones reduce bit exact; a naive fp16 running sum stalls near two thousand instead, once the partial total exceeds the spacing of its own increments.
+A cancellation probe settles the question: a sum of a large value, its negation, and one, taken near sixteen thousand, returns the one intact, which an fp16 running sum would have swallowed.
 The sum is physically wider than fp16.
 
 The wide accumulator is what suits the engine to vision, audio, and encoders.
 Those workloads are convolutions, matrix multiplies, and normalizations whose partial sums stay in range and whose results are representable, so the accumulator holds their precision.
 The same arithmetic explains where a transformer decoder loses precision in fp16.
-The loss comes from the per-product fp16 rounding of the inputs and weights under heavy cancellation, in the down-projection in particular, not from the accumulator.
+The loss comes from the per-product fp16 rounding of the inputs and weights under heavy cancellation, in the down-projection in particular.
 The accumulator is wide enough; the inputs to it are already quantized.
 A cancellation-heavy step has no fp16-safe form on the engine and needs a wider anchor on the CPU or the GPU.
 
@@ -101,12 +101,12 @@ The advertised 16-core figure is the count Apple markets, 16 on the M1, exposed 
 The architectural figure is the core count the compiler tiles work across and the cost model scales by, read from the hardware-abstraction-layer offset `0x238`, which is 4 on the M1.
 The core count is 4 on the M1 base part, 8 on the M1 Pro and Max, and 16 on the M5.
 Each core emits up to 4 output channels per cycle in the default fp16 path.
-The M1 thus reaches about 16 output-channel multiply-accumulates per cycle in fp16, and int8 doubles the lanes to reach about 32, consistent with the overhead-isolated compute slope near 12 fp16 TFLOP/s.
+On the M1 that works out to about 16 output-channel multiply-accumulates per cycle in fp16, and int8 doubles the lanes to reach about 32, consistent with the overhead-isolated compute slope near 12 fp16 TFLOP/s.
 
 ## Where it leads
 
 On compute-bound work the engine is faster than the GPU outright.
-A 3x3 convolution at 256 channels runs about 3.8 times faster than the same work on the GPU and about 9 times more energy efficient, and batched matrix multiply is more efficient at every batch size, as [table](#tbl:c1-gpu) records for both workloads.
+A 3x3 convolution at 256 channels runs about 3.8 times faster than the same work on the GPU and about 9 times more energy efficient, and batched matrix multiply is more efficient at every batch size ([table](#tbl:c1-gpu)).
 
 | workload | engine vs GPU speed | engine vs GPU efficiency |
 | --- | --- | --- |
@@ -117,14 +117,14 @@ Table: Engine versus GPU speed and efficiency on the convolution and batched mat
 
 The case where the GPU leads is real but limited: it holds for bandwidth-bound autoregressive decode, where the work is moving weights rather than computing on them.
 The measured envelope on the M1 fixes the scale.
-The overhead-isolated compute slope reaches near $P \approx 12$ fp16 TFLOP/s against a DRAM bandwidth of $B \approx 85$ GB/s, at about $0.5$ pJ per FLOP sustained, near $0.37$ at the compute optimum.
+The overhead-isolated compute slope reaches nearly $P \approx 12$ fp16 TFLOP/s against a DRAM bandwidth of $B \approx 85$ GB/s, at about $0.5$ pJ per FLOP sustained, near $0.37$ at the compute optimum.
 The roofline ridge point, the arithmetic intensity above which a kernel is compute-bound rather than bandwidth-bound, is at $I^{*} = P / B \approx 141$ FLOP per byte.
 A hard 2 MB on-chip working-set threshold is the primary design limit: a kernel whose live tiles exceed it stalls on off-chip streaming rather than running on the multiplier.
 Newer chips scale the core count and the clock, but the form of the roofline and the fp16 datapath apply across the family.
 
 ## Reference: the M1 envelope
 
-[Table](#tbl:c1-envelope) collects the M1 envelope figures, the two distinct core counts, and the family core-count span.
+[Table](#tbl:c1-envelope) collects the M1 envelope figures.
 
 | Quantity | Symbol | M1/H13 value |
 | --- | --- | ---: |

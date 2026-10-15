@@ -2,12 +2,12 @@
 
 > The compiler validates and lowers a native catalog of 45 hardware layer descriptors, and the model converter surfaces only the subset its public operation set covers.
 > Authoring the network description directly reaches the rest, including fused attention, ranking, spatial rearrangement, and geometry layers, each cutting its own dispatch segment.
-> Authoring does not bypass a family gate: the texture-engine samplers and whole-tensor arg-min and arg-max are accepted from the A14 and A15 and rejected on the M1, and a layer is confirmed only by a compile-and-run on the target.
+> Authoring does not bypass a family gate: the texture-engine samplers are accepted from the A14 and the whole-tensor arg-min and arg-max from the A15, both rejected on the M1, and a layer is confirmed only by a compile-and-run on the target.
 
 The engine implements more layer kinds than the high-level conversion path emits.
-Authoring the network description directly reaches the rest; this chapter gives the method, names the classes it reaches, and marks the ones a later chip accepts and the M1 rejects.
+Authoring the network description directly reaches the rest, including several layers a later chip accepts and the M1 rejects.
 
-The machinery this rests on is decoded in full in the back half: the `.espresso.net` program format in chapter 23, compiler's layer parsers and validators in chapter 22, and per-family capability gates in chapter 24.
+The machinery this rests on is decoded in full in the back half: the `.espresso.net` program format in chapter 23, the compiler's layer parsers and validators in chapter 22, and the per-family capability gates in chapter 24.
 Here it is enough that the format is hand-authorable and that each layer has a validator and a family gate; Appendix B is the full per-layer schema.
 
 ## Framework and native catalogs
@@ -18,7 +18,7 @@ Below it is the native hardware set: 45 descriptor structs, each with a construc
 
 The conversion path from a trained model walks the documented intermediate-language operation set [AppleCoreMLTools] and emits only the native layers that set maps onto.
 Several native descriptors have no operation in that set, so the converter never produces them, and a model passed through it decomposes the work into the operations it does know.
-Fused attention is the worked case: the converter always splits scaled dot-product attention into a matrix multiply, scale, softmax, and second matrix multiply, because its operation set has no atom that lowers to the single fused descriptor.
+The converter always splits scaled dot-product attention into a matrix multiply, scale, softmax, and second matrix multiply, because its operation set has no atom that lowers to the single fused descriptor.
 The descriptor and its validator are present in the compiler the whole time.
 Reaching them means handing the compiler a network description that names the layer directly, rather than one produced by decomposing a model.
 
@@ -41,18 +41,17 @@ A required key the parser does not find raises a parse error such as `InvalidPar
 ## Classes reached this way
 
 The reachable native layer kinds fall into several groups.
-Fused attention is the scaled dot-product attention descriptor, four or five operands of query, key, value, and constant scale, with an optional additive mask as the fifth that holds the causal and decode cases as data.
-Ranking and selection cover the top-k, sort, and argument-minimum-and-maximum descriptors, including the whole-tensor argument form, with their integer index outputs returned float16-encoded and exact for the index ranges these layers produce.
-Spatial rearrangement holds the pixel-shuffle and pixel-unshuffle pair, channel-and-space pair, and space-and-batch pair, each parameterized by per-axis integer factors and distinguished by channel-ordering convention rather than being aliases.
+Fused attention is a single descriptor, scaled dot-product attention over four or five operands of query, key, value, and constant scale, where the optional fifth operand is an additive mask that holds the causal and decode cases as data.
+Ranking and selection cover the top-k, sort, and argument-minimum-and-maximum descriptors, including the whole-tensor argument form; their integer index outputs come back float16-encoded and exact for the index ranges these layers produce.
+The spatial rearrangers come as pairs, pixel-shuffle with pixel-unshuffle, the channel-and-space pair, and the space-and-batch pair, each parameterized by per-axis integer factors, and the two members of a pair differ by channel-ordering convention, so neither is an alias of the other.
 Three further normalizations appear: the range normalization that maps a tensor to its minimum-to-maximum span, local response normalization, and per-channel affine gain-offset control in static and runtime-tensor forms.
 Geometry and point-cloud work draws on the template cross-correlation, the three-vector cross product, furthest-point sampling, radius neighborhood search, and the stereo cost volume.
-Data movement completes the set with the re-strided input view, runtime-offset dynamic slice, and tile and concatenate descriptors.
+What is left is data movement: the re-strided input view, runtime-offset dynamic slice, and tile and concatenate descriptors.
 The full catalog of these layers, with each layer's `Type` tag, its descriptor, and its `Params` schema, is Appendix B.
 
 ## A native layer descriptor
 
-The fused-attention descriptor is the clearest illustration, because the high-level path never emits it and the validator pins its shape exactly.
-[Listing](#lst:c26-sdpa-unit) names the four-or-five operand contract and the one attribute its parser reads.
+Take the fused-attention descriptor: the high-level path never emits it, and its validator pins the shape exactly, down to the four-or-five operand contract and the one attribute its parser reads ([Listing](#lst:c26-sdpa-unit)).
 
 ```python
 Unit "attn" {
@@ -69,7 +68,7 @@ The validator enforces the operand count with `4 or 5 bottoms must be present fo
 The `SubtractMax` attribute is the single key the attention parser reads, and it defaults to false in the descriptor constructor, which is numerically wrong for softmax, so an authored attention Unit must set it true.
 The optional fifth operand is an additive float16 mask broadcast over heads, zero on and under the diagonal and a large negative bias above it for the causal case.
 
-At the backend-dialect level the same fused operation is one atom with a parametric contraction, the same form the matrix multiply uses, as [listing](#lst:c26-sdpa-atom) gives.
+At the backend-dialect level the same fused operation is one atom with a parametric contraction, the same form the matrix multiply uses ([listing](#lst:c26-sdpa-atom)).
 
 ```mlir
 anec.sdpa(%q, %k, %v, %scale)   // 4 or 5 bottoms; covers matmul + softmax + transpose
@@ -83,7 +82,7 @@ The attention atom covers the matrix-multiply, softmax, and transpose path and i
 ## Authoring a hidden layer
 
 A native layer reaches the silicon by naming its descriptor in the graph directly, then compiling and dispatching it as any other program, with the target chosen as the first family that runs the layer.
-The graph names the native layer kind directly, and the compile step runs the layer's validator and assigns it to an engine, failing at compile time where the family gate rejects it, as [listing](#lst:c26-author) walks step by step.
+The compile step runs the layer's validator and assigns the layer to an engine, failing at compile time where the family gate rejects it, as [listing](#lst:c26-author) walks step by step.
 
 ```python
 # Author a hidden layer via the bridge route: name the native layer kind and its parameters,
@@ -132,13 +131,13 @@ On the M1 the top-k, sort, and dynamic-slice validators are all callable, yet th
 The same operation can have different availability on the same chip depending on which route reaches it.
 The conversion route from a high-level model is gated by a minimum-family trait on each operation, the floor the public conversion path checks.
 The direct-authoring route is gated instead by the per-chip hardware-abstraction feature bytes the layer validators read.
-The whole-tensor argument-minimum-and-maximum layer is the clearest example: the conversion route floors it above the M1, yet the direct-authoring route gates it on a feature byte that is set from the A13 onward, so it is rejected through conversion on the M1 and runs through direct authoring on the same chip.
+The whole-tensor argument-minimum-and-maximum layer splits along exactly that line: the conversion route floors it above the M1, yet the direct-authoring route gates it on a feature byte that is set from the A13 onward, so it is rejected through conversion on the M1 and runs through direct authoring on the same chip.
 Trigonometric sine and cosine have no direct-authoring bridge, so they stay conversion-only and reject on the M1; sort and top-k have a bridge but the code generator rejects it on the M1.
 
 ## Reference: the native layer classes reached by direct authoring
 
 The native catalog is the set of layer kinds the engine silicon runs, each with a constructor and a validator in the compiler.
-The classes [Table](#tbl:c26-classes) gives are the ones the conversion path does not emit and direct authoring reaches, each with the binding validator gate and the first family that runs it.
+Each class in [Table](#tbl:c26-classes) carries the binding validator gate and the first family that runs it.
 
 | Class | Native layers | Binding gate | First family |
 | --- | --- | --- | --- |
@@ -155,7 +154,7 @@ Table: The native layer classes direct authoring reaches; the full per-layer des
 
 ## Reference: the descriptor lowering of a fused operation
 
-[Table](#tbl:c26-lowering) lists the descriptor lowering of four representative atoms, each with its operand contract and the binding constraint its validator enforces.
+Each atom's operand contract and the binding constraint its validator enforces are in [Table](#tbl:c26-lowering).
 
 | Atom | Operands | Binding constraint |
 | --- | --- | --- |

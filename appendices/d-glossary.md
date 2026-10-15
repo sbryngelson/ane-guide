@@ -1,13 +1,12 @@
 # Appendix D. Glossary
 
 > This appendix defines the acronyms, proper nouns, and symbols the guide uses across all nine parts.
-> Read the four core facts first, then the term table, then the family and silicon map.
 
-The term [table](#tbl:apd-terms) is the reference; the notes after it record the core facts that the rest of the guide depends on.
+The term [table](#tbl:apd-terms) is the reference the rest of the guide leans on.
 
 ## Core facts
 
-Read these four corrections before the table; several entries below depend on them.
+Read these four corrections first; several entries in the table below depend on them.
 The M5 base part is H17, specifically the `h17s` compiler target, not H16s; H16s and H17s are separate targets distinguished only by the generation-tag byte.
 The multiply-accumulate datapath uses a single wide accumulator of the fp32 class, supplied by radix-4 fp16-rounded input tiles; the accumulator width is fixed hardware on every device and is never a per-chip parameter, so it is not a recursive fp16 reduction tree.
 On M1/H13 two weight-compression forms stream natively, the int4 palette (int4-LUT) and the sparse form whose mask and values have at least 50 percent zeros; int8 and blockwise-affine weights fold into the descriptor on that generation and only stream natively from later families.

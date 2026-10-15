@@ -7,7 +7,7 @@
 
 ## Two layers
 
-A model passes through six on-disk and in-memory forms, which [Table](#tbl:c23-forms) gives with the format, identifying tag, and role of each.
+A model passes through six on-disk and in-memory forms ([Table](#tbl:c23-forms)).
 
 | Stage | Format | Tag | Role |
 | --- | --- | --- | --- |
@@ -41,7 +41,7 @@ flowchart TB
 ## Dispatch descriptor
 
 The dispatch descriptor is a FlatBuffer whose root table has four fields.
-The serializer method set yields the root layout, validated byte for byte against a real descriptor and given in [Table](#tbl:c23-root) with each field's vtable offset, contents, and type.
+The serializer method set yields the root layout, validated byte for byte against a real descriptor ([Table](#tbl:c23-root)).
 
 | Field | Voffset | Contents | Type |
 | --- | --- | --- | --- |
@@ -203,7 +203,7 @@ A 64-to-64 half-precision linear layer with an identity weight matrix is the sma
 Its container is a Mach-O-shaped file with the magic `0xbeefface`, a pseudo-architecture marker, and the executable file type.
 The resolved frame runs `[1, 1, 1, 64]` half-precision input to `[1, 1, 1, 64]` half-precision output, all strides 128 bytes.
 
-The container maps each external tensor and the weight bank to its own page-aligned aperture in the engine virtual address space, base `0x30000000`, which [Table](#tbl:c23-segmap) gives segment by segment with each one's virtual address, size, protection, and role.
+The container maps each external tensor and the weight bank to its own page-aligned aperture in the engine virtual address space, base `0x30000000`, decoded segment by segment in [Table](#tbl:c23-segmap).
 
 | Segment | Section | Virtual address | Size | Protection | Role |
 | --- | --- | --- | --- | --- | --- |
@@ -254,7 +254,7 @@ The high half-word, `0x5042` or `0x5000`, is shared across operations, and the l
 The full operation identity is also in the lookup-table and configuration words, not in the opcode word alone.
 The container closes with an `LC_THREAD` trailer holding the procedure and tensor names `main_ane`, `t0_ane`, and `t5_ane@output`.
 
-The container header is a 32-byte Mach-O-shaped block whose fields [Table](#tbl:c23-header) gives with each one's value and meaning, and its load-command census names the binding and configuration records the loader walks.
+The container header is a 32-byte Mach-O-shaped block ([Table](#tbl:c23-header)), and its load-command census names the binding and configuration records the loader walks.
 
 | Offset | Field | Value | Meaning |
 | --- | --- | --- | --- |
@@ -332,7 +332,7 @@ A pair of window-binding load commands, each a `{u32 size, u32 pad, u64 vmaddr, 
 ### Task-descriptor linked list
 
 This sample holds three `ZinAneTd` records linked through the `+0x1c` next-offset field at `0x000` to `0x300` to `0x500` to terminator.
-Each descriptor header decodes into the small set of fields [Table](#tbl:c23-td-header) gives, including the next-offset field that chains the list.
+Each descriptor header decodes into a small set of fields, among them the next-offset field that chains the list ([Table](#tbl:c23-td-header)).
 
 | Offset | Field | Meaning |
 | --- | --- | --- |
@@ -415,7 +415,7 @@ The full 79-member set and the 126-member micro-operation opcode space are decod
 
 ## Submission ABI
 
-The runtime hands the dispatch descriptor and the bound buffers to the driver through one external-method interface keyed by a selector and a structure size, and the kernel disambiguates an overloaded selector by the structure size rather than the selector alone, as [Table](#tbl:c23-abi) gives method by method.
+The runtime hands the dispatch descriptor and the bound buffers to the driver through one external-method interface keyed by a selector and a structure size, and the kernel disambiguates an overloaded selector by the structure size rather than the selector alone, method by method in [Table](#tbl:c23-abi).
 
 | Selector | Method | In bytes | Out bytes |
 | --- | --- | --- | --- |

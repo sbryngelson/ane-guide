@@ -29,7 +29,7 @@ About twenty-four are compiler-internal: mapped but with no observed standalone 
 ## Per-chip numeric limits
 
 The status of an operation is one axis; the numeric envelope it runs in is the other.
-[Table](#tbl:apa-numeric-limits) gives that envelope across the five capability tiers, measured from the live compiler by calling every per-architecture parameter constructor on a single M1, and a dash marks an unsupported value.
+That envelope was measured from the live compiler across the five capability tiers, by calling every per-architecture parameter constructor on a single M1; a dash in [table](#tbl:apa-numeric-limits) marks an unsupported value.
 The `older` column is the pre-A13 legacy targets the compiler still has parameter tables for, below the floor of the operation-status table above.
 
 | Limit | older | M1, A13 | A14 | A15 | A16, M5 |
@@ -61,11 +61,10 @@ The `older` column is the pre-A13 legacy targets the compiler still has paramete
 
 Table: The per-chip numeric limits of the engine, measured from the live compiler across the five capability tiers. {#tbl:apa-numeric-limits}
 
-The four generational dividing lines are visible in this table.
-The M1 adds the depth and three-dimensional axis and every reduction-class operation.
-The A14 adds the texture engine.
-The A15 raises the reduction-to-transpose threshold from 192 to 384 and adds native trigonometry.
-The A16 quadruples the maximum tensor and transpose dimensions from 16384 to 65536.
+Four generational dividing lines run through it.
+The M1 adds the depth and three-dimensional axis and every reduction-class operation, and the texture engine arrives with the A14.
+At the A15 the reduction-to-transpose threshold rises from 192 to 384 and trigonometry goes native.
+The A16 then quadruples the maximum tensor and transpose dimensions from 16384 to 65536.
 
 ## Convolution, matrix multiply, and pooling
 
@@ -97,7 +96,7 @@ The `ne_` and `pe_` rows are private engine-lane and planar-engine unit selectio
 
 ## Normalization
 
-[Table](#tbl:apa-norm) gives the normalization operations, native on every family from the M1.
+Every normalization operation is native from the M1 onward ([table](#tbl:apa-norm)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -111,7 +110,7 @@ Table: Normalization operations by device family. {#tbl:apa-norm}
 
 ## Elementwise arithmetic
 
-[Table](#tbl:apa-elementwise) gives the elementwise arithmetic operations, where only `mod` takes no engine path.
+Across the elementwise arithmetic set, only `mod` takes no engine path ([table](#tbl:apa-elementwise)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -135,7 +134,7 @@ Table: Elementwise arithmetic operations by device family. {#tbl:apa-elementwise
 
 ## Comparison and logical
 
-[Table](#tbl:apa-compare-logical) gives the comparison and logical operations, the bitwise-logical ones decomposing on the host.
+The bitwise-logical operations decompose on the host, as the status columns of [table](#tbl:apa-compare-logical) show.
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -155,7 +154,7 @@ Table: Comparison and logical operations by device family. {#tbl:apa-compare-log
 
 ## Activations
 
-[Table](#tbl:apa-activations) gives the activation operations, native on every family and most lookup-table backed.
+The activations are native on every family, most of them lookup-table backed ([table](#tbl:apa-activations)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -191,7 +190,7 @@ Table: Activation operations by device family. {#tbl:apa-activations}
 
 ## Reduction
 
-[Table](#tbl:apa-reduction) gives the reduction operations, where `reduce_argmin` is gated and `reduce_prod` takes no path.
+Among the reductions, `reduce_argmin` is gated and `reduce_prod` takes no path ([table](#tbl:apa-reduction)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -214,7 +213,7 @@ The whole-tensor argument reductions `global_argmax` and `global_argmin` follow 
 
 ## Data movement and structural
 
-[Table](#tbl:apa-data-movement) gives the data-movement and structural operations, the largest class, spanning reshape, slice, gather, scatter, and the space-channel set.
+The data-movement and structural operations are the largest class, spanning reshape, slice, gather, scatter, and the space-channel set ([table](#tbl:apa-data-movement)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -282,7 +281,7 @@ Table: Image, resize, and texture operations by device family. {#tbl:apa-image-t
 
 ## Quantization and dtype
 
-[Table](#tbl:apa-quant-dtype) gives the quantization and dtype operations, with the per-family streaming gates carried in the note column.
+For the quantization and dtype operations the per-family streaming gates are carried in the note column of [table](#tbl:apa-quant-dtype).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -302,7 +301,7 @@ Table: Quantization and dtype operations by device family. {#tbl:apa-quant-dtype
 
 ## Attention, control flow, and state
 
-[Table](#tbl:apa-attn-control-state) gives the attention, control-flow, and state operations, where the state pair is native and the control-flow operations are compiler-internal.
+The state pair is native and the control-flow operations are compiler-internal ([table](#tbl:apa-attn-control-state)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -320,7 +319,7 @@ Table: Attention, control-flow, and state operations by device family. {#tbl:apa
 
 ## Recurrent cells
 
-[Table](#tbl:apa-recurrent) gives the recurrent-cell operations, none of which take an engine path; each unrolls on the host.
+No recurrent cell takes an engine path; each unrolls on the host ([table](#tbl:apa-recurrent)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
@@ -332,7 +331,7 @@ Table: Recurrent-cell operations by device family. {#tbl:apa-recurrent}
 
 ## Trigonometric, special, and math
 
-[Table](#tbl:apa-trig-math) gives the trigonometric, special, and math operations, where `sin` and `cos` go native from the M3 and `atan` is the one M1-native primitive.
+`sin` and `cos` go native from the M3, and `atan` is the one M1-native primitive ([table](#tbl:apa-trig-math)).
 
 | Operation | M1 (A13) | M2 (A14) | M3 (A15) | M4, M5 (A16, A17) | Note |
 | ------------------------ | :--------: | :--------: | :--------: | :--------: | ------------------------------ |
