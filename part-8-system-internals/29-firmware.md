@@ -141,7 +141,7 @@ The loop rejects an unknown opcode with `Cmd 0x%x is not supported through ExeLo
 The main command classes on this channel are a plain procedure call, procedure call holding buffer-base overrides, procedure call holding wait-and-signal events, and data-chaining cache-request trigger.
 The dispatcher checks each command identifier on every event against a fixed accepted set and drops anything else as unsupported: the procedure-call family (`0x204`, `0x20c`, `0x211`, and `0x212`), the cache-request trigger (`0x209` with its path variant `0x20a`), the channel data-file load `0x2d`, and the back-channel and process-id controls (`0x404`, `0xff00`).
 The complete decoded command set is in chapter 30.
-The firmware drops and counts a procedure call addressed to a process that is not running rather than faulting it.
+The firmware drops and counts a procedure call addressed to a process that is not running.
 
 The procedure-call command structures hold the buffer-access registers and optional event and execute-order arrays under fixed field limits, recovered from the firmware assertion strings ([Table](#tbl:c29-field-limits)).
 
@@ -257,7 +257,7 @@ Table: The per-queue register map, at the queue base plus the queue identifier t
 
 The eight application priorities map to a fixed in-firmware table of queue weights, `{1, 2, 3, 4, 5, 6, 30, 31}`, and scheduling is strict fixed-priority with per-priority credit and no preemption.
 The scheduler bounds how many requests are in flight on the firmware at once and applies backpressure when it saturates, through `ANEScheduler::wakePendingRequestsQueueWithFWOverload` and `ANEScheduler::pendingRequestsWithFirmwareCount`, with a dedicated unwire thread that releases resources behind completed work.
-The firmware-overload throttle is the mechanism behind the large-batch trainable-convolution stall described in chapter 19: a submission that overruns the firmware queue is throttled rather than dispatched.
+The firmware-overload throttle is the mechanism behind the large-batch trainable-convolution stall described in chapter 19: a submission that overruns the firmware queue is throttled.
 
 ## Control state machine
 
@@ -275,7 +275,7 @@ Table: The execution-loop control state machine, with what each state does. {#tb
 
 The framework stores no name for each state, so the meaning of each is reconstructed from the handlers that read the current state and from the events that drive it.
 Four states have framework identifiers zero through three, and a fifth is a named transient crossed during a secure-mode switch.
-Posted events drive the machine rather than direct state pokes.
+Posted events drive the machine.
 The event alphabet is four entries: a command-dispatch event when a procedure call or trigger is accepted, drain event toward idle, enter-secure event, and exit-secure event.
 A command accepted on the channel posts the dispatch event, which moves the machine from `RUN` to `EXEC` and pushes the task-descriptor list.
 A request finishing returns the machine from `EXEC` to `RUN`.

@@ -250,7 +250,7 @@ The client open checks two kernel entitlements, the hard device-open gate and th
 Listing: The two kernel entitlements checked when a user client is opened. {#lst:c27-entitlements}
 
 A single kernel entitlement gates opening either user client.
-The check runs once at client construction and is a boolean on the client object, not re-checked per selector.
+The check runs once at client construction and is a boolean on the client object.
 Across the whole system, exactly two binaries hold `com.apple.ane.iokit-user-access`: the system broker daemon and its per-user sibling.
 No application process opens the device.
 Every other consumer reaches the engine through the broker over a cross-process call, where the credential is an entitlement from the broker's own private family and never the kernel gate.

@@ -20,13 +20,13 @@ $$V_{\max} = \frac{65504}{16} = 4094$$
 
 A slice element at 4094 survives, an element at 4100 becomes infinity, and a control value of 60000 that never enters the offset copy stays finite.
 The hazard is limited and easy to miss: it occurs only on the M1 family, only on a last-axis slice, only with a nonzero start offset, and only when a value on that axis can exceed 4094.
-On this one axis a cross-chip route change turns a finite number into an infinity rather than moving a result by a unit in the last place.
+On this one axis a cross-chip route change turns a finite number into an infinity.
 The A14 generation saturates on the same slice; the A15 generation and every part above it take a plain fp16 route and do not saturate.
 
 The consequence shows up in training.
 A convolution weight gradient scaled up by a large loss-scale factor can push values past 4094 on the M1 and silently produce infinities.
 Keep the values on a width-offset slice under the bound, which for the training case means capping the loss-scale on M1 targets, and prefer a zero start offset where the layout allows, since a zero last-axis begin avoids the offset-DMA path entirely.
-That 4094 bound on the M1 is worth asserting before the compile rather than after it ([listing](#lst:c19-slice-guard)).
+That 4094 bound on the M1 is worth asserting before the compile ([listing](#lst:c19-slice-guard)).
 
 ```python
 V_MAX = 65504 / 16   # = 4094.0; the fp16 maximum divided by the Q.4 gain of 16
@@ -70,7 +70,7 @@ Listing: A build-time guard that rejects a dynamic-weight convolution at batch t
 ## Saturating slice kernel is target-keyed
 
 The saturating slice kernel is keyed to the target, not to the compiler build.
-The same compiler binary emits a saturating slice kernel on the M1 target and a non-saturating one on the M5 target, because the slice lowering is specialized per hardware family rather than parameterized at runtime.
+The same compiler binary emits a saturating slice kernel on the M1 target and a non-saturating one on the M5 target, because the slice lowering is specialized per hardware family.
 
 Inside the single binary the slice conversion is a C++ template instantiated once per family, so the same intermediate-language slice lowers through a different compiled converter for the M1 than for the M5.
 Per-target hardware-abstraction fields then drive the DMA source path: a width granule used as both a divisor and a stride multiplier, and a set of patch-width clamps that resolve to a power-of-two granule.
@@ -87,16 +87,16 @@ No hard failure-count cap is needed.
 
 ## A single slow compile is a separate failure mode
 
-A slow compile is not the same failure as a run of failed compiles, and the back-off rule that handles repeated failures does not prevent it.
+A slow compile is its own failure mode, and the back-off rule that handles repeated failures does nothing for it.
 A trainable convolution compiled over a large batch has a compile cost that scales with the batch, because the image-to-column tensors grow with the batch and the tiling and partition cost grows with them.
 On the M1 the same backward convolution graph compiles in about 1.9 seconds at a batch of 4, about 35 seconds at a batch of 64, about 79 seconds at a batch of 128, and never finishes at a batch of 1000.
-Shrinking the spatial size does not help, since the cost tracks the batch and not the feature-map size.
-The large-batch trainable-convolution stall is the firmware-overload throttle of chapter 29 in action: a submission that overruns the firmware command queue is throttled rather than dispatched, so the fix is to cap the batch or split the program, not to wait it out.
-Real training is mini-batched at a modest batch per step instead of compiled as one full-batch graph, and the same graph compiles without issue on the M5.
+Shrinking the spatial size does not help, since the cost tracks the batch.
+The large-batch trainable-convolution stall is the firmware-overload throttle of chapter 29 in action: a submission that overruns the firmware command queue is throttled, so the fix is to cap the batch or split the program, not to wait it out.
+Real training is mini-batched at a modest batch per step, and the same graph compiles without issue on the M5.
 
 A second slow-compile path is a combinatorial subgraph search.
 The compiler clusters a graph by a memoized search over cut points that collapses linear chains safely but is exponential in the width of parallel branches that reconverge into one consumer.
-The search has no iteration cap, but an internal time budget abandons it and falls back to a cheaper partition, which on the M1 plateaus the worst measured fan-in at about 9.2 seconds rather than letting it run unbounded.
+The search has no iteration cap, but an internal time budget abandons it and falls back to a cheaper partition, which on the M1 plateaus the worst measured fan-in at about 9.2 seconds.
 A single cluster with roughly twelve or more independent branches reconverging into one consumer is worth flagging at build time, since the 9-second per-cluster cost is itself worth avoiding and the budget bail is not guaranteed across compiler versions.
 
 ## Direct four-character-code image input
@@ -112,7 +112,7 @@ It produces output byte-identical to a host conversion, saves roughly two millis
 ## A build-time pitfall check
 
 The pitfalls share one defense: gate the graph before it reaches the compiler, keyed on the target family and the offending shape.
-The estimate holds the per-target hazard flags, so a saturating slice, batched dynamic-weight convolution, or four-character-code input is rejected at build time rather than at the silicon ([listing](#lst:c19-pitfall-scan)).
+The estimate holds the per-target hazard flags, so a saturating slice, batched dynamic-weight convolution, or four-character-code input is rejected at build time ([listing](#lst:c19-pitfall-scan)).
 
 ```python
 # Scan the graph for the known pitfalls and reject or rewrite before compiling, target = H13.

@@ -34,7 +34,7 @@ Past the bound, the streamed tile traffic adds DMA bytes that did not exist belo
 The design rule that follows is to keep the largest per-layer operand at or under 2 MB by tiling the batch or the spatial extent or by shrinking the channel count, so the layer stays on-chip.
 
 The M5 softens this threshold.
-Its compiler tiles over the batch and the output dimensions together, so neither operand need be fully resident and the crossing is smooth in throughput rather than the sharp step the M1 shows.
+Its compiler tiles over the batch and the output dimensions together, so neither operand need be fully resident and the crossing is a smooth throughput ramp where the M1 shows a sharp step.
 The working-set cost then appears in DRAM energy per operation, which bottoms near a 2 MB operand and rises beyond about 4 to 5 MB, around the M5 bound of 4.72 MB.
 
 The measured throughput threshold is slightly above the table value, near 2.28 to 2.34 MB, because the tiler holds roughly 0.3 MB of double-buffer and alignment margin before it splits the weight.
@@ -101,7 +101,7 @@ $$\mathrm{requests} = \left\lceil \frac{\mathrm{rows}}{64 / g} \right\rceil, \qq
 
 The conflict is worst when the granule stride is a high power of two, which drives $g$ up, and is conflict-free when $g = 1$, which gives one request per bank.
 Every accepted stride is a multiple of the 16-byte granule, and the search never proposes a stride above the 2 MB ceiling in field `0x1f8`.
-The on-device throughput period that this structure produces is 64 bytes, which is 32 half-precision elements and four 16-byte granules; that period is the granule-quantized echo of the 64-bank interleave after the optimizer has set the stride, not the raw modulus itself.
+The on-device throughput period that this structure produces is 64 bytes, which is 32 half-precision elements and four 16-byte granules; that period is the granule-quantized echo of the 64-bank interleave after the optimizer has set the stride.
 
 There is no runtime replacement policy on the operand path.
 The compiler decides residency and stride at compile time and writes them into the program, which is why the order in which weights are re-referenced does not change which ones are resident.
@@ -132,8 +132,8 @@ The dedicated residency buffer is thus never allocated on this chip.
 On the A16-class and M5 parts the same field is 262144, which is 256 KB, so only a convolution whose output DMA footprint exceeds 256 KB receives the dedicated buffer; on the A15 part it is 32768, which is 32 KB.
 The field rises with the larger on-chip pools of the newer parts.
 
-The dedicated convolution buffer is not a separate memory.
-It is carved from the same on-chip pool as the 2 MB operand working set and the other DMA buffers, aligned to the same 16-byte granule, and its stride runs through the same 64-bank optimizer.
+The dedicated convolution buffer lives in the one on-chip pool.
+It is carved from the same memory as the 2 MB operand working set and the other DMA buffers, aligned to the same 16-byte granule, and its stride runs through the same 64-bank optimizer.
 Field `0x1f0` decides only whether a convolution's output residency gets its own named sub-allocation in that one pool.
 The kernel-coefficient store is a distinct on-chip budget: 64 KB on the M1, separate from the 2 MB operand working set.
 
@@ -157,7 +157,7 @@ Table: The device-translation parameters for the engine, read from the live devi
 The aperture is 3.5 GiB, but the firmware clamps every address it programs into a DMA engine to the bottom 4 GiB by asserting that the high 32 bits of every buffer address are zero, so the engine is confined to the bottom of its device-virtual space.
 Each page maps to physical memory through a single 64-bit leaf descriptor: for every live engine data page the descriptor is the physical frame address with bit 63 set, the valid bit, and no other field.
 The descriptor reads $\mathrm{phys} \mathbin{|} \mathtt{0x8000000000000000}$ for an input, weight, intermediate, or output page alike, since the physical frames are 16 KB-aligned and leave the high bits free; unmap clears the descriptor to zero, dropping the valid bit.
-Read-only protection of the inputs is not encoded in the leaf descriptor on the M1: a configuration bit collapses the would-be read-only class into read-write at the translation unit, so input protection is enforced upstream.
+Read-only protection of the inputs sits outside the leaf descriptor on the M1: a configuration bit collapses the would-be read-only class into read-write at the translation unit, so input protection is enforced upstream.
 
 Each mapped buffer holds a usage code that records its role ([table](#tbl:c21-usage-codes)).
 

@@ -39,7 +39,7 @@ The texture-engine samplers (resize, crop-and-resize, grid resample, and the aff
 They are part of the same gated family but are not authored as netplist Units here.
 
 A second class of rejection is not a family gate but the attested-is-not-reachable rule of chapter 4: the `Sort` and `DynamicSlice` validators are callable on the M1, yet the code generator rejects both, and `TopK` is accepted only outside the $\{3, 4\}$ band.
-An authored layer is confirmed by a compile-and-run on the target, not by the presence of its descriptor.
+An authored layer is confirmed only by a compile-and-run on the target.
 
 ## Validator gate set
 

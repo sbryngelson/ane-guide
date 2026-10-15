@@ -40,7 +40,7 @@ w_fp16 = scale * q                       # M1: zero_point folds to 0, symmetric 
 
 Listing: The affine int8 dequantization evaluated at the multiplier input, with the symmetric form the M1 reduces to. {#lst:c7-int8-dequant}
 
-Each compressed form is declared to the compiler as a single `constexpr_*` reconstruction op that folds into the weight descriptor rather than becoming a standalone backend operation, one per form ([listing](#lst:c7-constexpr-ops)).
+Each compressed form is declared to the compiler as a single `constexpr_*` reconstruction op that folds into the weight descriptor, one per form ([listing](#lst:c7-constexpr-ops)).
 The op count per form is fixed, and a violation is a hard validation error.
 
 ```python
@@ -93,7 +93,7 @@ The measured latency runs from 0.85 times fp16 at a two-thousand-wide weight dow
 Blockwise affine does not stream on the A14: it still folds there, measured at 0.985 times fp16, a near-zero bandwidth gain, and it first streams from the A15 generation.
 On the M5, of the H17s generation, all four forms stream, at a measured 1.6 to 1.8 times fp16 on bandwidth-bound layers.
 
-The streaming-versus-folding split is a hardware-abstraction-layer decision, not a property of any single reconstruction operation.
+The streaming-versus-folding split is a hardware-abstraction-layer decision.
 Every weight-bearing operation is legal on every chip, so the boundary is in a set of feature bytes the compiler reads from the per-chip table.
 In that table one master byte enables weight streaming at all and a cluster of per-format bytes admits each compressed form by generation.
 [Table](#tbl:c7-hal-bytes) gives those feature bytes and the generation each switches on.
@@ -142,7 +142,7 @@ A cancellation-heavy step has no fp16-safe form, compressed or not, for the reas
 A host can patch a compiled program's weights in place without recompiling.
 Each weight tensor occupies a decoded region of the program image with a known tiling.
 A convolution weight is in a `0xC0`-stride layout and a matrix-multiply weight in a `0x40`-stride layout, and editing the weight values leaves the program descriptor unchanged.
-A host can thus swap new weights into an already-compiled program rather than rebuilding it, which makes a weight-only update inexpensive.
+A host can thus swap new weights into an already-compiled program, which makes a weight-only update inexpensive.
 
 The driver has a per-patch-mutable-buffer accounting path that confirms the route, `ANEScheduler::pendingRequestsPerPatchMutableBuffer`.
 The descriptor names the operations and binds the buffers, and a weight-value edit touches neither, so the same compiled program runs with the new coefficients.

@@ -70,9 +70,9 @@ Native operation support is declared by the `MinimumFamily<N>` trait held on eac
 An operation is natively legal only inside a region whose family index is at least `N`; below that floor the compiler decomposes it into a sequence of supported operations.
 The trait is the mechanism, not the dynamic-legality registration: `addDynamicallyLegalOp` wraps only the eight region operations and four texture-gated operations, while every backend operation has the `MinimumFamily<N>` impl.
 The trait is held by 88 compute operations, 52 at F0, 31 at F2, two at F3, and three at F4.
-These operation floors are measured on physical silicon for the M1 and M5; the M3, M4, and upper-tier figures are decompile-derived, predicted from the per-chip tables rather than measured.
+These operation floors are measured on physical silicon for the M1 and M5; the M3, M4, and upper-tier figures are decompile-derived, predicted from the per-chip tables.
 
-No operation in the decoded compute-op floor table floors above F4, so almost nothing is exclusive to `A16`, `A17`, or `A18`: the upper-tier generations add Neural Engine cores rather than a usable operation set.
+No operation in the decoded compute-op floor table floors above F4, so almost nothing is exclusive to `A16`, `A17`, or `A18`: what the upper-tier generations add is Neural Engine cores.
 The one exception is a small set of `MinimumFamily<N>` template instantiations at N=5, N=6, and N=7, including the fp8-bearing operations, which stay inert below H18 (chapter 36).
 Softmax, layer-norm, all reductions, resize, and scaled dot-product attention floor at `A13`, so they run natively on the M1.
 
@@ -121,7 +121,7 @@ A sixteen-wide granule gives a log-base-two of four, the shift-left-by-four that
 On the M5 the route avoids the fixed-point format and the slice stays in plain fp16, so the same slice that saturates on the M1 is unaffected on the M5.
 The lowering pattern is the same template on both chips; the route and format selection at the descriptor and hardware-abstraction layer differs, driven by the patch-width clamps and the width granule in the per-chip blob.
 The saturating path is present on every patch-capable descriptor generation including the A17 generation.
-The M1-versus-M5 difference is the route and format selection upstream, not a per-family rewrite.
+The M1-versus-M5 difference is thus the route and format selection upstream.
 Any height-width-axis slice with a nonzero offset whose fp16-convertible source can exceed 4094 is thus hazardous on the whole patch-capable generation set, unless the route is known to avoid crop mode.
 
 The remaining four cases are decompositions gated by the per-chip blob rather than the family enum.
@@ -245,12 +245,12 @@ The dispatch range-tests the family value and special-cases `A14` and `A15` sepa
 A15 thus has distinct cost-model constants, which is the data-side proof that the family is a distinct capability tier.
 
 The operation legality matches.
-Forty-five `MinimumFamily<N>` template instantiations have the F4 floor, the A15-and-above floor, against twenty-nine at the A14 floor, so A15 adds a concrete operation set over A14 rather than reusing the A14 set.
+Forty-five `MinimumFamily<N>` template instantiations have the F4 floor, the A15-and-above floor, against twenty-nine at the A14 floor, so A15 adds a concrete operation set over A14.
 The distinct compute operations at that floor are `sin`, `cos`, and the global arg-reductions.
 
 Beyond the H15 constructors in the chapter 34 census, the compiler carries recognized target strings for a wider H15 die family, `h15g`, `h15m`, `h15p`, `h15s`, `h15c`, and `h15d`.
 The `h15m` suffix is an extra M-class target that the h13 and h14 families do not list.
-A15 is also the only tier whose per-chip interchange-format table accepts YUV420 image input, a 4CC route that the surrounding families drop, which is consistent with A15 being a distinct capability tier rather than a renamed A14.
+A15 is also the only tier whose per-chip interchange-format table accepts YUV420 image input, a 4CC route that the surrounding families drop.
 The A15 cost-table constants and the YUV420 acceptance are decoded from the compiler; the numeric behavior of the A15 operation set, such as any accumulator or rounding change against A13 and A14, is an A15-silicon measurement that this guide does not have.
 
 ## Named validity gate
@@ -263,7 +263,7 @@ No equivalent named gate exists for any other family; the rest gate numerically 
 ## Cross-compiled across the family
 
 The per-generation versioning that chapter 23 reads out of the descriptor accessors can be observed directly in the emitted program.
-Because the compiler is one binary that lowers for any target from any machine, the target is a command-line flag rather than a property of the host: a single `ANECompile` build, here `9.509.0`, lowers the same network for `h13` through `h17` while only the `-t` target varies.
+Because the compiler is one binary that lowers for any target from any machine, the target is a command-line flag: a single `ANECompile` build, here `9.509.0`, lowers the same network for `h13` through `h17` while only the `-t` target varies.
 A diff across those programs isolates the per-generation divergence from the compiler version and the operating-system version, which a diff across physical machines confounds.
 Lowering one convolution and one matmul for the five base M-series targets, `h13` through `h17`, gives the comparison in [table](#tbl:c35-crossgen).
 

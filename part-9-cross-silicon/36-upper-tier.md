@@ -7,7 +7,7 @@
 ## 64-core ceiling
 
 The largest die this guide measured is the 16-core H17s, and the line ends at the 64-core H17d that no part here could run.
-The decode shows that nothing extra is family-gated for the 64-core case beyond the count itself, and the following is read from the compiler rather than measured on a 64-core part.
+The decode shows that nothing extra is family-gated for the 64-core case beyond the count itself, and the following is a compiler decode, with no 64-core part on hand to measure.
 Core count arrives as a runtime parameter, the `ne_core_count` value sourced from the hardware-abstraction blob, rather than as a hard-coded per-family constant.
 `getDeviceInfo` takes that count as its second argument and buckets it against the thresholds 7, 10, 20, and 40, which straddle the four die sizes 8, 16, 32, and 64 held by the `g`, `s`, `c`, and `d` target suffixes.
 Several device-information fields then scale linearly with the count, and the top bucket reached on the A14-and-above branch stores the 800-unit peak.
@@ -32,7 +32,7 @@ Table: The decoded fields of the two fp8 formats and the collective layer, with 
 ## fp8 datapath
 
 The compiler has two eight-bit floating-point formats, and they are not symmetric in role.
-They are in the internal `ZinTensorFormat` code-generation and direct-memory-access enumeration, not in the serialization data-type enumeration that the operation attributes use.
+They live in the internal `ZinTensorFormat` code-generation and direct-memory-access enumeration, which is separate from the serialization data-type enumeration that the operation attributes use.
 The serialization enumeration runs codes 0 through 10 with fp16 at 3, fp32 at 4, and int8 at 2, and has no fp8 codepoint at all; the fp8 formats are recovered from the byte-size map `_ZinTensorFormatGetSizeInBytes` ([table](#tbl:c36-tensorfmt)).
 
 | `ZinTensorFormat` code | Format | Bytes |
@@ -61,7 +61,7 @@ The shipping variant is E4M3FN, the finite-and-NaN form: it has no infinity, the
 A one-bit mode held per direct-memory-access source controls the overflow behavior, $0$ for NaN and $1$ for saturate, so a narrowing cast picks the bit pattern $\mathtt{0x7e}$ for the saturated maximum or $\mathtt{0x7f}$ for NaN.
 The narrower exponent and the $\pm 448$ ceiling cap the representable range below half precision.
 
-The other format, E5M2, is for conversion rather than for gated weight storage.
+The other format, E5M2, serves conversion.
 It decodes as
 
 $$x = (-1)^s \, 2^{e - 15} \left(1 + \frac{m}{2^2}\right)$$
@@ -140,7 +140,7 @@ Table: The collective operations of the multi-die dialect, their backend operati
 The collective layer is a cross-die data path, not the independent per-job steering a multi-die part otherwise does.
 The kernel load-balancer steers whole independent submissions to the least-busy engine die and never exchanges tensor data between them, and the driver supports up to four dies.
 The M1 and the M1 Max each register a single engine die, so this steering engages only on a multi-die part such as the Ultra.
-The compiler's collective instead splits one tensor across dies and exchanges partials, threaded through an `optional<ZinIrDeviceMesh>` that `GetAndValidateSpmdDeviceMesh` and `ZinParseDeviceMeshAttributes` build, so a program compiled with a device-mesh attribute gets a real all-reduce, all-gather, or all-slice across the mesh rather than per-die placement.
+The compiler's collective instead splits one tensor across dies and exchanges partials, threaded through an `optional<ZinIrDeviceMesh>` that `GetAndValidateSpmdDeviceMesh` and `ZinParseDeviceMeshAttributes` build, so a program compiled with a device-mesh attribute gets a real all-reduce, all-gather, or all-slice across the mesh.
 The cross-die move itself is the `HandleCcdmaLayer` direct-memory-access primitive below, and `ValidateMeshAxesInTensorFamily` is the family gate on whether a given die admits the mesh.
 This contrast is decode-derived; whether a two-die Ultra in any reached family accepts the mesh path is a multi-die measurement this guide does not have.
 

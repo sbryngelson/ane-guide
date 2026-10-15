@@ -76,7 +76,7 @@ The working-set limit scales with on-chip memory: it is near 2 MB on the M1 and 
 Every dispatch pays a fixed minimum cost regardless of the work it holds.
 On the M1 that floor is about 0.23 ms per evaluation.
 A relu, sigmoid, average pool, and small convolution are all at 0.23 to 0.26 ms, and a 64-element linear is 0.23 ms: below the floor, neither the operation nor its size matters.
-Host dispatch and operand transfer set the floor, not engine compute, so a small op spends almost all of its wall time outside the multiply array.
+Host dispatch and operand transfer set the floor, so a small op spends almost all of its wall time outside the multiply array.
 A live decomposition of a tiny model puts the full-call floor near 0.19 ms, of which about 98 percent is dispatch overhead and about 0.13 ms is the firmware round trip; chapter 2 breaks the budget down stage by stage.
 
 The wall time of a dispatch adds the fixed floor $t_0$ to the time the work takes at the attainable rate $R$.

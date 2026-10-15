@@ -12,7 +12,7 @@ Of the programmable engines on an Apple chip (CPU, GPU, and ANE), the ANE is the
 An application reaches the ANE indirectly, through the lightly documented Apple Core ML framework, which treats the engine as one option behind a placement hint.
 The undocumented surface is nearly wholesale: the datapath and numerics, the performance and energy envelope, and the compiler, program format, kernel driver, firmware, and command protocol.
 
-This guide reports information on the ANE not previously available, recovered through a suite of reverse-engineering efforts, from the silicon datapath to the system interface.
+This guide reports what was not previously available about the ANE, recovered by reverse engineering from the silicon datapath to the system interface.
 We use two types of evidence, which are confirmed against each other: direct measurement on Apple silicon, and static decompilation and dynamic attachment of the private runtime, compiler, kernel driver, and firmware.
 The engine is reachable directly, below Core ML and from an ordinary user process.
 The ANE compiler lowers a graph to the engine's own program format, the runtime loads and dispatches it without the model framework, and the operations the compiler accepts need no special entitlement.

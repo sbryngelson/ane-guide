@@ -20,10 +20,10 @@ The wide accumulator (chapter 3) holds the reduction in a register of fp32 class
 Iterative kernels inherit the same precision behavior because each step is a matmul or a reduction.
 Power iteration for a dominant eigenpair, conjugate-gradient sweep for a symmetric positive-definite solve, and fixed-cycle generalized-minimal-residual solve for a general system all fold the matrix as a constant weight and run as one program.
 Because the matrix is a fixed weight, the program size does not grow with $n$: a symmetric positive-definite solve runs unchanged from a small system up to $n = 512$ at the same relative error.
-Across these solvers the wide accumulator holds the precision to a condition number of roughly $10^4$ before fp16 input rounding, not the accumulator, sets the error floor.
+Across these solvers the wide accumulator holds the precision to a condition number of roughly $10^4$, above which the fp16 rounding of the inputs sets the error floor.
 
 The measured envelope for the on-engine iterative solvers is a relative error near $10^{-3}$ at a condition number at or below $10^2$.
-A dominant eigenpair from power iteration returns to about $10^{-15}$, limited by the spectral gap and not by the datapath, because the iteration is a repeated matmul whose fixed point is exact in the representable range.
+A dominant eigenpair from power iteration returns to about $10^{-15}$, limited only by the spectral gap, because the iteration is a repeated matmul whose fixed point is exact in the representable range.
 
 The accumulator that holds the precision is measured, not assumed: a reduction accumulates in a register of fp32 class and rounds to fp16 only at the output port, with the silicon-probe worked examples and the radix-4 fan-in derived in chapter 3.
 A representable sum thus comes back near exact, while a cancellation-heavy reduction has its input lanes round in radix-4 groups first, which makes the matrix-multiply contraction path the more accurate route, exact to fp32 and rounded once at the output.
@@ -47,7 +47,7 @@ Pivoting is reached by cutting the graph at the pivot.
 A pivoted LU runs with an on-engine `argmax` selecting the pivot row, expressed as a segmented graph: the `argmax` cuts the program into segments, and the data-dependent pivot index flows between them as a value rather than as a branch.
 The measured relative error on the segmented pivoted LU is about $5 \times 10^{-4}$ at small $n$.
 
-What the architecture actually bars is a runtime-sized output, and neither pivoting nor the recurrence is the obstacle.
+What the architecture actually bars is a runtime-sized output.
 A rank-revealing or adaptive-tolerance factorization emits only the values above a tolerance, and how many that is depends on the data, so a static program cannot emit a runtime-sized result and can only emit all $n$ values plus a mask.
 That limit is independent of whether the arithmetic is fp16 or fp64.
 What fp16 limits separately is the conditioning range, the roughly $10^4$ ceiling above; the Jacobi spectral decompositions hold to a condition number of about $10^1$ to $10^2$ because the squared system $A^\mathrm{T} A$ doubles the conditioning.
@@ -94,7 +94,7 @@ The arithmetic is complex, and the engine computes in real fp16, so each complex
 The wide accumulator holds the length-$N$ reduction, so the transform is fp16-clean to about $N = 2048$, above which the fp16 rounding of the matrix entries and the input begins to dominate the result.
 
 The fast-transform factorization does not gain over the matmul form on this engine.
-A fast Fourier transform replaces the $O(N^2)$ matmul with an $O(N \log N)$ chain of butterfly stages, but each stage is a small data shuffle and a complex multiply, and the shuffle is a static structure rather than a runtime loop.
+A fast Fourier transform replaces the $O(N^2)$ matmul with an $O(N \log N)$ chain of butterfly stages, but each stage is a small data shuffle and a complex multiply, and the shuffle is a static structure.
 The butterfly fits only when fully unrolled into a static graph, and at that point it is a deep chain of tiny operations that pays more dispatch and accumulates more fp16 rounding than the single dense matmul.
 For the transform sizes the engine handles in range, use the matmul form.
 

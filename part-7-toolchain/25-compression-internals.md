@@ -144,7 +144,7 @@ The native lookup-table form streams only when the weight is vector-palettized a
 When both hold, the compiler sets the palette-enable and stream flags and zeroes the fold sub-fields.
 On the M1 the offset `0x529` bit is set, so the palette stream is live while the other formats fold.
 
-Structured sparsity reaches the engine through the master gate as a separate operand rather than through the palette path.
+Structured sparsity reaches the engine through the master gate as a separate operand.
 The sparse weight lowers to a mask producer and a nonzero-values producer held as their own blobs.
 Those stream under the master at offset `0x48f`, which is set on the M1, not under the per-format palette and affine cluster at offsets `0x520` through `0x539`, which is clear on the M1.
 A live byte comparison confirms the form: the sparse weight blob stores the one-bit mask and the half-precision nonzeros at about 0.43 times the dense size, with no dense half-precision constant present, whereas a fold would show a single full-width half-precision blob.
@@ -224,7 +224,7 @@ The full fp8 datapath, format-register delta, E5M2-to-half fold asymmetry, and c
 
 ## Codegen version matrix
 
-The same kernel format produces different weight bytes per table-descriptor version, which is why the M1 and the M5 differ at the bit level rather than only in scalar limits, as [Table](#tbl:c25-version-matrix) records capability by capability.
+The same kernel format produces different weight bytes per table-descriptor version, which is why the M1 and the M5 differ at the bit level, as [Table](#tbl:c25-version-matrix) records capability by capability.
 
 | Capability | M1 version-five descriptor | Later descriptor |
 | --- | --- | --- |

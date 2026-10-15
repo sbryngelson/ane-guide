@@ -22,7 +22,7 @@ Winograd lowering is one.
 Any dense 3x3 stride-1 convolution with enough channels lowers to the F(2x2, 3x3) transform, which replaces 36 direct multiplies per 2x2 output tile with 16, a factor of about 2.25 reduction in multiplies.
 The compiler selects this path automatically for dense non-unicast 3x3 stride-1 layers and falls back to direct convolution otherwise, so a model written with 3x3 stride-1 layers gets the reduction without any annotation.
 A layer takes Winograd only with enough channels to amortize the transform, and a float kernel requires more than a non-float one; the full eligibility test, two tile sizes, and work-threshold derivation are in chapter 20.
-There is no accumulator widening tied to the transform; its precision safety is that higher float work threshold, not a wider accumulator.
+There is no accumulator widening tied to the transform; its precision safety rests entirely on that higher float work threshold.
 The engine's lower power draw is the other.
 On a large compute-bound matrix multiply the engine draws 4.4 W against the GPU's 32.5 W, a 4.0 times efficiency advantage that holds even on the matrix-multiply class where the GPU runs faster.
 Across the M1 workload set the engine runs at 2 to 14.5 times the GPU's energy efficiency, drawing less absolute power on every class measured.
@@ -104,7 +104,7 @@ Above the encoder and self-attention crossovers the GPU is the throughput device
 ## On-engine image preprocessing
 
 Resize, crop-and-resize, grid sample, affine warp, and reflective or symmetric padding run on a single hardware sampling datapath, the texture engine, on the A14 generation and later [AppleVision].
-The datapath is a DMA-side sampler fused onto a layer rather than a separate pass: it reads a coordinate or box tensor through a fixed interleave and applies bilinear or nearest-neighbor interpolation in line with the convolution that consumes its output.
+The datapath is a DMA-side sampler fused onto a layer: it reads a coordinate or box tensor through a fixed interleave and applies bilinear or nearest-neighbor interpolation in line with the convolution that consumes its output.
 The payoff is the elimination of a host preprocessing stage.
 Image dequantization and resize execute on the engine in the same program as the model, so the resampled tensor never makes a round trip to the host between the camera frame and the first convolution.
 

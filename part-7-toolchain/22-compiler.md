@@ -29,7 +29,7 @@ flowchart TB
 ```
 
 Phase 1 collapses the whole graph to a single compute operation.
-Transposes are free: they fold into the adjacent operation or route to the dedicated transpose engine rather than becoming a separate dispatch.
+Transposes are free: they fold into the adjacent operation or route to the dedicated transpose engine.
 A bias add and an activation that follow a convolution or a matrix multiply hoist into that operation, so `conv + bias + relu` and `matmul + bias + gelu` each become one fused operation rather than three.
 
 Phase 2 enforces the hardware envelope.
@@ -39,7 +39,7 @@ The compiler cuts a graph that cannot run as one segment into several at bridge 
 Phase 3 turns a fused operation into real on-engine work.
 A greedy priority-queue list scheduler linearizes the operation-layer graph into one execution order, then chunks that order into task-descriptor partitions under the on-chip working-set budget.
 The scheduler pops the highest-priority ready node each step, ordered by a fixed tie-break sequence: ring-buffer membership first, then branch-sibling score, then merge-sibling score, then the working-set-aware branch test, then topological order, then raw node id.
-The partition boundary is a memory test, not an operation count: the scheduler tentatively schedules a layer, queries the peak L2 pressure over its live range, and closes the current partition when
+The partition boundary is a memory test: the scheduler tentatively schedules a layer, queries the peak L2 pressure over its live range, and closes the current partition when
 
 $$\mathrm{peak\ L2\ pressure} > \mathrm{HAL}[\mathtt{0x1b8}] \times f,$$
 
@@ -84,7 +84,7 @@ Chaining and co-issue are mutually exclusive: an operation is either pipelined i
 ## Lowering one operation
 
 A frontend operation lowers to one or more backend `anec.*` operations through the operation-converter pass, most of them one to one.
-A matrix multiply lowers to `anec.matmul`, which holds the contraction as two attributes rather than as a fixed operand order ([listing](#lst:c22-matmul-lower)).
+A matrix multiply lowers to `anec.matmul`, which holds the contraction as two attributes ([listing](#lst:c22-matmul-lower)).
 
 ```text
 mps.MatMulOp  ->  anec.matmul

@@ -21,7 +21,7 @@ Attention runs as a fused operation: scaled dot-product attention runs on the ma
 The common normalizations all run: layer, instance, group, and L2 normalization, plus batch normalization folded to an affine at inference.
 Pooling (average, max, and L2) is native, as are the elementwise arithmetic and comparison operations.
 The activation set covers ReLU and its variants, sigmoid, tanh, gelu, swish, softmax, erf, exp, and log, which evaluate through the lookup tables described in chapter 3; that table is a programmable piecewise-linear curve, and chapter 26 covers reaching an arbitrary pointwise function through it.
-Data movement is native for reshape, flatten, expand, squeeze, transpose, concat, split, stack, constant pad, and slice, all descriptor edits or DMA operations rather than compute.
+Data movement is native for reshape, flatten, expand, squeeze, transpose, concat, split, stack, constant pad, and slice, all descriptor edits or DMA operations.
 A reduction or transpose over a large axis switches to a tiled route at a per-chip threshold, at no change to the result.
 
 The backend represents these operations in its own dialect, `anec.*`, one level below the frontend intermediate language.
@@ -54,7 +54,7 @@ They do not run on the engine and must be computed off-engine or reformulated.
 The confirmed cases, unsupported on every family from the M1 through the M5, are: reduce_prod, the scatter family (scatter, scatter along axis, scatter ND), mod, one_hot, non_zero, band_part, reverse_sequence, shape, sliding_windows, the logical and, or, and xor operations, the recurrent gru, lstm, and rnn cells, the inverse and hyperbolic trigonometric functions, and the random-sampling operations other than the uniform generator.
 A network that needs one of these rewrites it: a product reduction through log-sum-exp, logical-and through a minimum, recurrent cell through an unrolled fixed-trip-count graph.
 
-A second class is family-gated rather than universal, and Appendix A gives the chip that enables each.
+A second class is family-gated, and Appendix A gives the chip that enables each.
 Gather on the M1 takes a software path valid only for a batch of one, depth of one, and three-element index channel, and is rejected outside it.
 The texture-engine operations (resize as a hardware sampler, crop-resize, resample, affine) are absent on the M1 and arrive on the A14 generation.
 Trigonometric sin and cos are native only from the A15 generation; the M1 and the A14 reject them and decompose on the host.
@@ -113,7 +113,7 @@ On the M1 the top-k, sort, and dynamic-slice validators are all callable, yet th
 A capability advertised in a table, recognized by a frontend, or validated by a checker is a claim about one layer; only a compile-and-run on the target confirms the operation at the layer that executes it.
 
 The guide reports a reachable surface rather than the advertised one.
-Every operation marked native in Appendix A was compiled and run on the M1, not inferred from a capability bit.
+Every operation marked native in Appendix A was compiled and run on the M1.
 The advertised surface is the larger, and the difference is the operations that pass an earlier check and fail at code generation or backend lowering.
 This account extends and partly corrects the documented convertible operation set, which lists operations the public converter accepts rather than the operations that lower to the engine [AppleCoreMLTools].
 

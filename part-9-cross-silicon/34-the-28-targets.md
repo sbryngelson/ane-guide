@@ -70,7 +70,7 @@ Four gated capabilities separate the generations, and with the dimension limit t
 Table: The capability tier of each target, with the dimension limit and the four gated capabilities that separate the generations. {#tbl:c34-tiers}
 
 A17 and A18 add no operation over A16: identical dimension limits, identical kernel-width and kernel-depth ceilings, the same texture engine, same dropout and global-argmax flags, and same legal operation set.
-They differ from A16 only in NE-core count, which scales throughput rather than legality.
+They differ from A16 only in NE-core count, which scales throughput.
 The operation behavior measured on the M5, an H17 part, is thus the operation behavior of every target at or above A16, since the decoded capability tables are identical; the cross-silicon performance measurements of chapter 12 are predicted to carry to the unshipped generations on the same basis, with the per-chip rates confirmed only on the two measured silicon points.
 
 ## Silicon to target

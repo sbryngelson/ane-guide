@@ -17,7 +17,7 @@ The family columns are M1 (H13, A13), M2 (H14, A14), M3 (H15, A15), and M4 and M
 The A11 and A12 engines are below the floor that runs any of this vocabulary and are out of scope for the table.
 
 The M1, M2, and M5 columns are measured on physical silicon.
-The M3 column and the M4 part of the merged M4 and M5 column are decompile-derived predictions from the per-chip tables, so a per-cell status there is a predicted capability rather than a measured one.
+The M3 column and the M4 part of the merged M4 and M5 column are decompile-derived predictions from the per-chip tables, so a per-cell status there is itself a prediction.
 
 The table covers the 187 intermediate-language operations the compiler exposes.
 Of these, about 108 are native on the M1: the full elementwise, compare, activation, convolution, pooling, structural, and quantization vocabulary, plus the reduction, normalization, softmax, square-root family, fused attention, tile, and space-channel set.

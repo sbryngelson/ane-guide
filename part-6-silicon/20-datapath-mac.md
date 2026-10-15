@@ -55,7 +55,7 @@ The second accessor selects among four per-accumulator channel counts by source-
 
 Table: Output channels per physical accumulator slot, the hardware-abstraction-table offset holding each value, and the source-patch size that selects it. {#tbl:c20-oc-per-acc}
 
-The four values are not packed into one accessor argument: each is its own field in the hardware-abstraction table at offsets `0x3a8`, `0x3b0`, `0x3b8`, and `0x3c0`, and `GetNumOutputChannelsPerAccumulator` returns the one the operation's source-patch mode selects.
+Each of the four values is its own field in the hardware-abstraction table, at offsets `0x3a8`, `0x3b0`, `0x3b8`, and `0x3c0`, and `GetNumOutputChannelsPerAccumulator` returns the one the operation's source-patch mode selects.
 The values are uniform across every chip in the set, so the multiplexing law is architectural, not per-die.
 The source-patch mode is set by `ComputeSmallSourceMode`, which classifies an operation as default, small, or tiny from the output tensor dimensions against the kernel: tiny mode requires a source of at least 2 that fits the field at `0x338`, which is 4 on the M1.
 
@@ -75,7 +75,7 @@ The fan-in of four comes from measurement rather than from the table.
 A reduction of `[+B, -B, +1]` triples, repeated sixteen times so that the true sum is sixteen, returns sixteen survivors below a partial magnitude of 4096 and saturates to exactly four survivors for every `B` at or above 4096.
 The saturation count of four is the radix-4 tile signature: once a tile holds a partial at or above 4096, the unit increments sharing that tile fall below half of the fp16 spacing and vanish, and the three-element triple period beats against the four-lane tile to leave four unaffected lanes.
 The threshold is at 4096 because that is where the fp16 spacing first reaches four.
-The result is layout-independent: the `[+B, -B, +1]` and `[+B, +1, -B]` orderings return byte-identical values, so the hardware reduction order is a fixed lattice over lane index and not the source order.
+The result is layout-independent: the `[+B, -B, +1]` and `[+B, +1, -B]` orderings return byte-identical values, so the hardware reduction order is a fixed lattice over lane index.
 
 The cross-tile accumulator is wider than fp16.
 A reduction of one value of 4096 followed by 1024 ones returns 5116, between the naive-fp16 result 4096 and the exact 5120, and sixteen unit increments all survive next to a partial of 8192 where an fp16 accumulator would drop most of them.
@@ -139,7 +139,7 @@ No accumulator widening is tied to Winograd; the precision safety comes from the
 Eligibility is not selection.
 Even when the gate passes, Winograd is taken only when it beats both direct convolution and the accumulator-double-buffering path, decided by a cost-model comparison that reads the same accumulator and lane-width accessors.
 Winograd is rejected when the convolution uses unicast, when the weight is sparse (sparse weights keep their own datapath and skip zeros), or when double-buffering the accumulator file already saturates the array.
-The transform matrices themselves are not in the compiler: the compiler sets a single `winograd_mode` config field, and the input, filter, and output transforms run inside the engine datapath.
+The transform matrices themselves live in the engine: the compiler sets a single `winograd_mode` config field, and the input, filter, and output transforms run inside the engine datapath.
 The textbook $F(2 \times 2, 3 \times 3)$ and $F(4 \times 4, 3 \times 3)$ forms describe the behavior, but the coefficients are resident in hardware and not recoverable from the program.
 
 ## Four-core granule
@@ -232,7 +232,7 @@ The measured all-four-cores-saturated rate for a large 1-by-1 convolution is abo
 The full-saturation power at that rate is about 4.7 watts, which is on the convolution power anchor and within 0.3 watts of the 4.4-watt large-matrix-multiply anchor, so the rail readings are calibrated.
 
 The frontend does not reach that doubled lane.
-The int8 compile flag quantizes the weights and leaves the multiply-accumulate in fp16, so it halves the streamed weight bytes and never emits the eight-channel int8 compute path.
+The int8 compile flag quantizes the weights and leaves the multiply-accumulate in fp16, so it halves the streamed weight bytes and leaves the eight-channel int8 compute path unused.
 A 3-by-3 convolution at 256 input and output channels and a square matmul both run within a few percent of fp16.
 The int8 path reaches about 1.5 times faster only where the weight is large enough to stream from main memory, near a 4096-by-4096 weight at a batch of 256 or more.
 
@@ -242,7 +242,7 @@ Past that, the operand is tiled and streamed from main memory, which adds traffi
 
 ## Task descriptor that holds the geometry
 
-Rather than addressing the array directly, the compiler fills a per-partition task descriptor, a flat register image organized into seven register groups, then serializes each group into the address-value pairs the firmware writes.
+The compiler reaches the array through a per-partition task descriptor, a flat register image organized into seven register groups, and serializes each group into the address-value pairs the firmware writes.
 On the M1 the descriptor is the version-10 layout, one of fourteen versioned descriptor structs the compiler builds, selected by chip family.
 [Table](#tbl:c20-descriptor-groups) lists the seven register groups of that layout.
 
@@ -274,7 +274,7 @@ Each of the four streams has its own relocation register ([table](#tbl:c20-coeff
 
 Table: The four kernel-coefficient streams a fused convolution emits, each with the relocation register the loader patches and the role it holds. {#tbl:c20-coeff-streams}
 
-A convolution with batch normalization and a following activation thus does not become four operations: the scale and bias fold into the post-scale and bias streams, the activation runs as the activation-lookup stream, and one fused operation streams all four coefficient banks alongside its weights.
+A convolution with batch normalization and a following activation thus stays one operation: the scale and bias fold into the post-scale and bias streams, the activation runs as the activation-lookup stream, and one fused operation streams all four coefficient banks alongside its weights.
 
 ## Cross-source corroboration
 
@@ -283,4 +283,4 @@ The patents describe a 256-by-8-by-32-byte accumulator with eight storage channe
 The patents' rasterizer loop manager is the kernel-rasterizer unit, and their account of descriptors held in a configuration queue and switched in order is the register-write task descriptor of chapter 23.
 The two derivations are independent: one read from the shipped compiler and the live engine, the other from the patent record.
 
-The patents describe a configurable design rather than one chip, so the absolute counts there (a 256-wide multiply-accumulator array, an eight-core organization) are family ceilings rather than M1 figures; the per-chip core count read from the hardware-abstraction table, four on the M1, is the value that holds for a given part.
+The patents describe a configurable design spanning many parts, so the absolute counts there (a 256-wide multiply-accumulator array, an eight-core organization) are family ceilings rather than M1 figures; the per-chip core count read from the hardware-abstraction table, four on the M1, is the value that holds for a given part.

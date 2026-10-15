@@ -82,14 +82,14 @@ A secure mode can claim the engine exclusively by quiescing and power-cycling ar
 A single dispatch stream keeps one operation in flight reliably, but overlapping two or more streams in one process is the unfinished path on the M1.
 The completion event for the first stream signals and its waiter returns, while the completion notification for a second concurrently overlapped stream does not fire, so its waiter blocks.
 The runtime has the controls that would change this, a low-latency event path and a submit call with a timeout, but the default serialized path is the sound one.
-A caller that needs aggregate throughput runs independent streams rather than overlapping them in one, since sequential decode cannot overlap with itself in any case.
+A caller that needs aggregate throughput runs independent streams, since sequential decode cannot overlap with itself in any case.
 
 ## What one dispatch costs
 
 A single dispatch is governed by the cost of getting to the engine and back, not by the engine compute itself.
 Measured live on the M1 with a read-only trace, a tiny graph of a 3-by-3 convolution from 8 channels to 8 with padding 1, then a relu, then a mean, runs in a hot loop of about 2000 iterations.
 Each call costs about 190 microseconds of wall-clock time.
-About 98 percent of that is software and firmware dispatch overhead rather than engine compute ([table](#tbl:exec-budget)).
+About 98 percent of that is software and firmware dispatch overhead ([table](#tbl:exec-budget)).
 
 | Stage | Cost |
 | --- | --- |
@@ -163,13 +163,13 @@ for (int step = 0; step < n; step++) {
 Listing: Keeping a state buffer resident across dispatches by binding it to both an output port and the next step's input port. {#lst:exec-resident}
 
 Any multi-step computation that holds state uses this mechanism.
-An autoregressive decoder keeps its key and value cache resident, so each step appends the new entry in place rather than restreaming the whole cache through the host every token.
+An autoregressive decoder keeps its key and value cache resident, so each step appends the new entry in place, and no step restreams the whole cache through the host.
 A training loop keeps its optimizer state resident across steps for the same reason.
 The host sends only the small per-step inputs, a new token or a minibatch, and reads the resident buffers back at a checkpoint.
 The large held tensor stays on the engine instead of crossing the host boundary twice per step.
 
 The output-to-input aliasing is the reachable face of the firmware's data-chaining subsystem, which keeps an output set resident and chains it as the next call's input.
-This is the route on the M1, rather than the engine's native persistent-state operations.
+This is the route on the M1.
 The M1 task descriptor has no in-place resident-state data-movement engine: the encoders for that path are stubbed with the message that the data-movement form is not supported on this architecture, and the engine's native state operations are rejected when the program compiles.
 The held tensor is written as one call's output and read as the next call's input through one bound buffer, with the positional write done as a standard masked update against a small position vector sent each step.
 A resident accumulator built this way returns 1, 2, 3, 4 over four dispatches with no host re-send, and a resident cache fills each slot in place across steps, both confirmed on the M1.
@@ -177,7 +177,7 @@ A resident accumulator built this way returns 1, 2, 3, 4 over four dispatches wi
 ## Compile out of the loop, dispatch inside it
 
 The cost split dictates the loop structure.
-A content hash keys the compiled program, so recompiling an unchanged network is a cache hit rather than a second lowering pass.
+A content hash keys the compiled program, so recompiling an unchanged network is a cache hit.
 
 The loaded program is dispatched against fresh operands per frame, per token, or per request ([listing](#lst:exec-loop)).
 

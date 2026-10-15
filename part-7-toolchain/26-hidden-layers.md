@@ -20,7 +20,7 @@ The conversion path from a trained model walks the documented intermediate-langu
 Several native descriptors have no operation in that set, so the converter never produces them, and a model passed through it decomposes the work into the operations it does know.
 The converter always splits scaled dot-product attention into a matrix multiply, scale, softmax, and second matrix multiply, because its operation set has no atom that lowers to the single fused descriptor.
 The descriptor and its validator are present in the compiler the whole time.
-Reaching them means handing the compiler a network description that names the layer directly, rather than one produced by decomposing a model.
+Reaching them means handing the compiler a network description that names the layer directly.
 
 ## Method
 

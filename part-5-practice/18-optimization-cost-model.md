@@ -85,12 +85,12 @@ A large operation tracks the binding roofline term, and the question is whether 
 
 Fusion removes floors and intermediate round-trips.
 A network run as separate dispatches pays the floor on every one and copies each intermediate back to the host and forward again; the same network fused into one program pays the floor once and keeps the intermediates resident.
-The model accounts for this: fusing operations removes their separate $t_0$ terms and the operand bytes of the eliminated round-trips, which is why a network is compiled as one program rather than a sequence of small ones.
+The model accounts for this: fusing operations removes their separate $t_0$ terms and the operand bytes of the eliminated round-trips, which is why a network is compiled as one program.
 
 ## What the optimizer does
 
 The optimizer ranks equivalent rewrites of a graph using an op-agnostic cost estimate and a deterministic autotuner.
-The cost estimate is the analytic roofline-plus-floor number, applied uniformly to every operation rather than holding a hand-tuned constant per operation type.
+The cost estimate is the analytic roofline-plus-floor number, applied uniformly to every operation.
 The autotuner enumerates rewrites that compute the same result, estimates each, caches the measured outcomes, and selects the lowest deterministically, so the same graph yields the same choice on every run.
 
 The rewrites preserve accuracy by default.
@@ -98,7 +98,7 @@ A route rewrite that decomposes attention into a fused form is selected only whe
 The default never changes the numerical result of the graph.
 
 The reported gains follow the roofline.
-A fused attention route rewrite is 3.7 to 5.3 times faster on attention blocks and on a full vision transformer at cosine similarity 1.0, because it removes per-dispatch floors and intermediate round-trips rather than changing the arithmetic.
+A fused attention route rewrite is 3.7 to 5.3 times faster on attention blocks and on a full vision transformer at cosine similarity 1.0, because it removes per-dispatch floors and intermediate round-trips.
 The optimizer's gate is the test corpus, which holds the cross-chip latency table as a regression so a change to the model cannot silently move an estimate.
 
 ## Estimating latency and tuning a graph
@@ -175,7 +175,7 @@ Table: The abstract per-backend roofline anchors the placement model uses to ord
 These anchors are deliberately coarse.
 The 800 GFLOP/s engine peak is about four times under the M1 silicon fit of 3.25 fp16 TFLOP/s, and the 50 GB/s engine bandwidth is above the 9 GB/s effective fit, so the two errors run in opposite directions and the net placement order survives.
 The job of these numbers is to separate the engine from the graphics processor by 6.7 times and from the central processor by 40 times, a separation that holds under any single miscalibration.
-Absolute latency accuracy is not their responsibility; a learned per-operation layer carries that.
+Absolute latency accuracy is the job of the learned per-operation layer above them.
 
 The placement model also charges a launch cost on every segment and a transfer cost on every backend crossing, which is why the segmenter prefers long single-backend runs ([table](#tbl:c18-penalties), in the model's relative units).
 
@@ -235,9 +235,9 @@ This is because the former is bandwidth-bound at arithmetic intensity 60 and the
 The plus-or-minus 17 percent fit is a property of the five reference convolutions the M1 anchors were tuned against, not of the estimate at large.
 A broad sweep of 68 graphs across eight operation families, each estimated by the cost model for the `h13` target and timed against the on-device per-call latency, locates the median absolute error at about 31 percent.
 Only 11 of the 68 shapes are inside plus or minus 17 percent.
-The estimate is sound as an ordinal placement tool rather than as an absolute-latency oracle: it identifies the binding roofline term and orders shapes correctly, so the backend choice and the relative ranking the optimizer needs survive the error.
+The estimate is sound as an ordinal placement tool: it identifies the binding roofline term and orders shapes correctly, so the backend choice and the relative ranking the optimizer needs survive the error.
 The error is directional and concentrated in the bandwidth-bound regime, where the 9.0 GB/s anchor undershoots the roughly 40 GB/s effective rate the engine sustains and the estimate over-predicts the large-weight shapes by several times.
 
 Attention has no estimate at all.
 The cost model returns no estimate for any scaled-dot-product-attention graph, because attention compiles to a segmented plan whose native sub-programs the analytic model has no cost form for.
-This is a coverage gap rather than an accuracy figure: the estimate is absent for attention, so such a graph must be timed on device.
+This is a coverage gap: the estimate is absent for attention, so such a graph must be timed on device.

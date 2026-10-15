@@ -40,7 +40,7 @@ A family of constructors, one per architecture, builds the structure per target 
 The scalar region runs from offset `0x18` to roughly `0x348` as plain data, with non-scalar members such as the format map and the cost-model curve extending past it.
 The capability-byte region occupies offsets `0x48f` through `0x8cc` and holds on the order of 165 single-byte flags, of which 24 have recovered field names and the rest are enumerated by offset and classified by the family that enables them.
 The compiler reads a scalar as a value at its offset and a capability byte as `hal[offset] & 1`, so every limit and every gate is one indexed read into this one table ([Listing](#lst:c24-hal-struct)).
-The same structure holds the cost model: a policy-name string at `0x580`, frequency-to-efficiency curve at `0x7a8`, and per-cycle divisor at `0x228`, which the roofline of chapter 18 reads from this table rather than from a separate file.
+The same structure holds the cost model: a policy-name string at `0x580`, frequency-to-efficiency curve at `0x7a8`, and per-cycle divisor at `0x228`, which the roofline of chapter 18 reads from this table.
 
 ```c
 /* ZinIrHalParameters, selected fields at their byte offsets (M1/H13 values) */
@@ -92,7 +92,7 @@ The floors fall into a small number of tiers.
 The base tier, family 0, holds the operations every engine runs: convolution, matrix multiply, pooling, the elementwise and activation set, reshape, transpose, and concat.
 At A13 come softmax, the normalizations, the reductions, fused attention, and the square-root and error functions.
 A14 brings the texture-engine samplers, crop-resize, and resample; A15 brings native sin and cos.
-No compute operation floors above A15, so the newest generations add core count and clock rather than new operations.
+No compute operation floors above A15, so the newest generations add core count and clock.
 
 The two gate mechanisms work together.
 A capability byte read as `hal[offset] & 1` decides a route inside a single operation, for example whether the texture engine at byte `0x81d` is present, which on the M1 reads 0 and forces resize to a decomposition.
@@ -220,7 +220,7 @@ Table: Precise capability-flag names recovered this round, each attributed to it
 
 The remaining 95-minus-30 additions are class-named: the reader identifies the subsystem the field gates without the exact semantics.
 Examples are the per-axis DMA range bounds read by `ZinValidateTd<N>::CheckInRangeDmaAccess` and the texture-engine plane-equation coefficients in the `0x820` to `0x8f8` block gated by the named `0x81d` texture-engine byte on A14 and later.
-Two candidates were rejected as table fields despite matching a displacement inside a table-typed function: `0xcf8` loads off an `adrp`-formed read-only constant rather than the table, and `0x678` loads off a nested object two pointers deep.
+Two candidates were rejected as table fields despite matching a displacement inside a table-typed function: `0xcf8` loads off an `adrp`-formed read-only constant, and `0x678` loads off a nested object two pointers deep.
 The same base-register test that found the five dead fields above also rules these out.
 
 With this round the silicon-capability subset of the packed bitfield, the part the compiler reads to gate a feature per family, is fully named.

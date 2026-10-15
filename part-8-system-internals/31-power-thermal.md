@@ -75,7 +75,7 @@ The first is how many of the four compute clusters are powered.
 The second is a peak-power regulator that limits activity under a fixed budget.
 That regulator is the engine's substitute for a frequency and voltage sequence, and it has three parts the firmware arms once at power-up.
 Dynamic power estimation counts switching activity to estimate instantaneous dynamic power.
-Peak-power tracking watches that estimate against the budget and applies back-pressure on issue when the work would exceed it, throttling activity within the fixed clock rather than dropping frequency.
+Peak-power tracking watches that estimate against the budget and applies back-pressure on issue when the work would exceed it, throttling activity within the fixed clock.
 Leakage and energy estimation wires the result into the system power manager.
 The running energy total that the energy-model telemetry channel reports is held in three accumulator partitions.
 
@@ -166,7 +166,7 @@ Table: The 7-step monotonic DPE/PPT credit sequence in the `aneDpePpt_soc_dpe_le
 
 These nine-bit fields are the per-operating-point power-credit and peak-power-throttle thresholds the on-die estimator caps activity against, indexed by the perf state the CLPC selects.
 Their strictly increasing sequence is the signature of a seven-state perf sequence.
-The engine has seven operating points whose registers hold throttle credits, not a clock frequency and not a voltage.
+The engine has seven operating points whose registers hold throttle credits.
 A parallel eight-step sequence for the ASC block holds the values `4, 7, 13, 20, 27, 36, 46, 59`.
 
 Live read-only dtrace confirms the engine holds one power state through sustained work.

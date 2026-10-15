@@ -74,7 +74,7 @@ Apple documents these capabilities (flexible shapes, the `MLState` type) at the 
 ## Part III. Performance and Fit {.unnumbered}
 
 Part III rests on two passes, the first on M1/H13 (Apple M1; M1 Max) and the second on M5/H17s (Apple M5), with an A14-class middle point on M2/H14 where a cross-device or cross-generation claim required one.
-Apple publishes no roofline, no per-workload power or efficiency figures, and no cross-processor comparison for the engine, so the figures across this Part are reported as measured rather than against a documented account.
+Apple publishes no roofline, no per-workload power or efficiency figures, and no cross-processor comparison for the engine, so the figures across this Part stand on their own measurements.
 
 ### Chapter 9. Roofline {.unnumbered}
 
@@ -131,8 +131,8 @@ The absence of an engine-native backward operation is decompile-derived from the
 
 The iterative-solver envelope, the size bounds on the unrolled factorizations, the full-spectral-decomposition relative errors, and wide-accumulator behavior are M1/H13 measured, with the fused five-point stencil margin measured on M5/H17s and the DFT-as-matmul throughput on the M2 generation at $N = 1024$.
 The static-dataflow constraint and the absence of data-dependent control flow are decompile-derived from the operation set and the compiler.
-The fp16-clean DFT bound near $N = 2048$ is predicted from the wide-accumulator reduction and the fp16 rounding of the matrix entries, an edge of the representable range consistent with the accumulator measurements rather than a single measured cutoff.
-Apple documents dense linear algebra and signal processing through the accelerate framework at developer.apple.com/documentation/accelerate, all targeting the CPU rather than the engine; this chapter maps which of those kernels fit the engine and which are architecture-limited, a mapping the public documentation does not provide.
+The fp16-clean DFT bound near $N = 2048$ is predicted from the wide-accumulator reduction and the fp16 rounding of the matrix entries, an edge of the representable range consistent with the accumulator measurements.
+Apple documents dense linear algebra and signal processing through the accelerate framework at developer.apple.com/documentation/accelerate, all of it CPU-targeted; this chapter maps which of those kernels fit the engine and which are architecture-limited, a mapping the public documentation does not provide.
 
 ## Part V. Practice {.unnumbered}
 
@@ -201,7 +201,7 @@ The scalar offsets, the capability-byte offsets, and family floors are decompile
 The per-family unlock generations for the texture engine, sin and cos, and the dimension and format-count steps are decompile-derived from the per-target tables and confirmed on the M1 only at its boundary; the generation that first enables each is predicted from the floor table.
 The attested-is-not-reachable rule is M1/H13 measured: three-dimensional convolution has its HAL kernel-depth attestation at offset `0x70` and fails backend lowering on every device mask, and the top-k, sort, and dynamic-slice validators are callable but code-generation-rejected.
 The packed-bitfield struct measures `0x938` bytes; its non-flag residual is the cost-model coefficient block at `0x580` through `0x7f0` plus about two soft fp64 coefficients, and the offsets past `0x938`, read in an earlier round as an A12 operation-emulation catalog at `0xa30` through `0xe84`, are a read into zeroed memory beyond the struct and have no table; the capability-flag offsets are decompile-derived from the `ZinIrHalParameters` reader symbols.
-The HAL table, the capability-byte region, and minimum-family trait have no public counterpart; Apple documents only the model framework and the convertible operation set, not the per-chip capability table or the per-operation family floor.
+The HAL table, the capability-byte region, and minimum-family trait have no public counterpart; Apple documents only the model framework and the convertible operation set.
 
 ### Chapter 25. Compression internals {.unnumbered}
 
@@ -241,7 +241,7 @@ The per-client isolation contexts, the eight `mapper-ane0` translation mappers i
 
 The preload executable is the M1-generation real-time-kernel image, build identity `RTKit-3255.120.11.release`, chip tag `ASC_CHINOOK`.
 The task roster, priority bands, heap and pool model, execution-loop command set, scheduler deadline, and fault post-mortem layout; the command-record classes and their `sCSneCmdProcedureCall*` invariants; the doorbell-emit sequence around bit 39 of `S3_3_C15_C8_0`, host-notify site `@0x4c890`, and engine-to-graphics-processor doorbell at `0x2_0646_8000`; the bring-up order, seven MMIO banks, RTBuddy endpoint, and three scratch handshakes; and the per-run statistics buffer with its header, per-engine descriptors, and host-side null gate are decompile-derived from the embedded strings, assertion expressions, and disassembled handlers.
-The firmware has no public counterpart and is reported as reverse-engineered from the unencrypted image; Apple documents only the model framework and conversion tools above this layer, not the on-engine operating system.
+The firmware has no public counterpart and is reported as reverse-engineered from the unencrypted image; Apple documents only the model framework and conversion tools that sit above this layer.
 The CHINOOK control-CPU register map, its eleven thread contexts, level-two cache, and pipeline error-capture and power-down-save registers, is decompile-derived from the kernel driver.
 
 ### Chapter 30. Host-to-firmware command protocol {.unnumbered}
@@ -249,7 +249,7 @@ The CHINOOK control-CPU register map, its eleven thread contexts, level-two cach
 This chapter is static analysis of the unencrypted M1 firmware image, an ARM64e real-time-kernel Mach-O, with no firmware executed.
 The command vocabulary, numeric identifiers, header layout, and body bounds are read from the ordered command-name string table, struct-size asserts, and log format strings; header byte offsets are inferred from field order and alignment, while field presence, widths, and bounds are read directly from in-binary asserts.
 The 94-entry `CSNE_CMD` enumeration (93 dispatched command identifiers plus the invalid sentinel), the roughly ten fast-path ids, and the seventy-six-slot dispatch vtable (arm64e auth-rebase chained pointers in `__DATA.__const`, low thirty-two bits giving the target, the procedure-call slot at `+0x200` reaching `0x7374c` and the inference slot at `+0x190` reaching `0x74510`) are decompile-derived.
-The protocol, the command header, and `CSNE_CMD_*` vocabulary have no public counterpart and are reported as reverse-engineered; the public model framework describes application-level model loading, not the controller command channel. The full numeric command table and the decoded request structs are Appendix C.
+The protocol, the command header, and `CSNE_CMD_*` vocabulary have no public counterpart and are reported as reverse-engineered; the public model framework reaches only application-level model loading. The full numeric command table and the decoded request structs are Appendix C.
 
 ### Chapter 31. Power and thermal {.unnumbered}
 
@@ -286,7 +286,7 @@ The 28-target compiler set, the H-architecture naming, the suffix-to-core decode
 
 The slice-saturation threshold, the top-k, sort, and dynamic-slice code-generation rejections, and the operation decompositions are M1/H13 measured; the clean slice route and the native crop-resize, resample, and trig operations are M5/H17s measured.
 The family enum, `MinimumFamily<N>` trait and its four operation tiers, per-chip hardware-abstraction offsets, task-descriptor patch-width path, and `ConvertSlice<Family>` lowering are decompile-derived from the engine compiler framework (the 9.509 build, 87,874 functions); the A14 and A15 unlock points, M-series families above the M1, and dedicated A15 code-generation branch with its cost table, 45-operation floor, full H15 targets, and YUV420 input are decompile-derived and not measured on A15 silicon.
-The family enum, minimum-family trait, per-chip parameters, and per-family route selection have no public counterpart; the public conversion tools document the frontend operation set, optimization passes, and compute-unit selector, not the backend per-family lowering reported here.
+The family enum, minimum-family trait, per-chip parameters, and per-family route selection have no public counterpart; the public conversion tools document the frontend operation set, optimization passes, and compute-unit selector, and stop above the backend per-family lowering reported here.
 
 ### Chapter 36. Predicted upper tier {.unnumbered}
 

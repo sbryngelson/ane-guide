@@ -95,7 +95,7 @@ The physical frame is the full 16 KB-aligned physical address located unshifted,
 
 The word holds the same shape for every live engine usage type.
 The mapping software holds two software protection classes, read-write for inputs, weights, and intermediates, and a device-write class for outputs, yet both collapse to the identical leaf template of bit 63 alone.
-The DART encodes access permission in the per-stream translation-control configuration, not in these high page-table bits.
+The DART encodes access permission in the per-stream translation-control configuration.
 Bits 62, 60, and 59 are aux-protection classes that the engine driver never sets, because its direction-to-protection mapper produces only the values $\{1, 2, 3\}$, whose bits 3, 4, and 5 are always zero.
 Across 26178 measured leaf-map events none of those three bits was ever set.
 
@@ -164,7 +164,7 @@ The physical pages are scattered across the DRAM band and are not physically con
 
 One further translation is past the host boundary.
 The values the engine reads from its instruction stream are not host IOVAs.
-At program-create the firmware re-bases each host-mapped buffer into its own resident aperture and patches that rebased address into the engine registers, so the engine-register operand values are in a firmware window with high half `0x1bc4`, not in the host IOVA band, shown in [Listing](#lst:c28-rebase).
+At program-create the firmware re-bases each host-mapped buffer into its own resident aperture and patches that rebased address into the engine registers, so the engine-register operand values are in a firmware window with high half `0x1bc4`, shown in [Listing](#lst:c28-rebase).
 
 ```text
 host IOVA band     -->    firmware DRAM-tile aperture     (no constant host-side offset)
@@ -172,7 +172,7 @@ host IOVA band     -->    firmware DRAM-tile aperture     (no constant host-side
 
 Listing: The firmware rebase from the host device-address band into the resident firmware aperture. {#lst:c28-rebase}
 
-The host IOVA and the firmware-aperture address are unequal and have no constant offset between them, so the rebase is a second translation rather than a fixed displacement.
+The host IOVA and the firmware-aperture address are unequal and have no constant offset between them, so the rebase is a second translation.
 The bridge that establishes it runs once at program-create and is cached.
 On the cached dispatch path the host never re-emits the host-to-firmware pair, so the firmware rebase is the only translation below the host boundary there.
 
@@ -210,7 +210,7 @@ The three runtime quantities the formula needs are fields of the firmware apertu
 
 Table: The firmware aperture-config fields at `engine+0xa000` that drive the rebase, populated at buffer-map time and absent from the firmware image. {#tbl:c28-aperture-config}
 
-These three are firmware-runtime state set at buffer-map time, not constants in the binary; the image holds only the arithmetic and the field offsets.
+These three are firmware-runtime state set at buffer-map time; the image holds only the arithmetic and the field offsets.
 The firmware then writes the rebased value into the engine DMA bar registers at `0x285c25020 + engine*0x148 + barId*4`, where `engine*0x148` is the per-engine MMIO stride and `barId*4` selects the word-indexed bar register.
 Only the low 32 bits of the rebased address reach this MMIO path; a per-bar config flag gates wider bars onto a separate software descriptor table.
 Both the rebase tail and the register-target prologue were emulated under unicorn and reproduced the formula and the `0x285c25020 + engine*0x148` register address exactly.

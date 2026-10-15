@@ -96,7 +96,7 @@ Table: The entry-point symbol family that marks each layer of the engine softwar
 The same execution runtime that the system's own dispatchers use is callable from ordinary user space, below the model framework.
 A caller can compile a network to the engine's program format, open the resulting program library, load a function for execution, bind operand buffers to its ports, encode the operation onto a stream, and submit it.
 No placement planner is in this path, and the operations the compiler accepts require no special entitlement.
-The caller names the engine as the target rather than receiving it as a scheduling outcome.
+The caller names the engine as the target.
 
 ### Runtime surface and its tunable dictionary
 
@@ -170,7 +170,7 @@ Only that daemon and its per-user sibling hold the kernel gate that opens the de
 A client proves itself to the daemon over the interprocess channel, and the daemon performs the privileged device open on the client's behalf, returning a program handle the client then drives.
 
 The daemon arbitrates across clients.
-There is one physical engine, so concurrent demand resolves by time-division on a single request queue rather than by partitioning the hardware.
+There is one physical engine, so concurrent demand resolves by time-division on a single request queue.
 The daemon owns the shared program cache, keyed by a content hash of each compiled network, so a network already compiled by one client is a cache hit for the next.
 It holds a quality-of-service value on every request and adjusts a client's requested queue depth under contention, which keeps one client from depriving another of service.
 A request from a developer-signed program and a request from a system dispatcher arrive at the same broker, and the same queue arbitrates both.
@@ -224,7 +224,7 @@ A privileged subset of 27 binaries also holds a sandbox exception for the class 
 The exception grants no device access by itself: the daemon still performs the privileged open and returns the program handle.
 A developer-signed binary cannot assert the kernel gate, since it names a restricted user-client class that ad-hoc and development signing cannot claim.
 The direct route reaches the engine the same way a sanctioned application does, through the daemon.
-It authors its work at the model and program layer rather than at the kernel interface.
+It authors its work at the model and program layer.
 
 ## Compiler is its own gated service
 
@@ -233,7 +233,7 @@ The service that turns a network into the engine's program format is a separate 
 That service vends a single entry point, the method `compileModelAt:csIdentity:sandboxExtension:options:tempDirectory:...:withReply:`, and admits a connection only through an entitlement gate.
 The service's `listener:shouldAcceptNewConnection:` delegate calls `valueForEntitlement:` on the connection against the string returned by `+compilerServiceAccessEntitlement`, then logs whether the client holds the entitlement or is missing it.
 
-This is the concrete reason the service compiles a hand-authored or self-compiled program rather than the calling process compiling it.
+This is the concrete reason compilation leaves the calling process even for a hand-authored or self-compiled program.
 The service holds two entitlements an ordinary process does not: it writes the system-protected compile cache under `rootless.storage.ane_model_cache`, and it decrypts under `coreml.decypt_allowed`.
 A caller hands its network to the service and receives the compiled bundle back, the same separation the daemon imposes on device access.
 

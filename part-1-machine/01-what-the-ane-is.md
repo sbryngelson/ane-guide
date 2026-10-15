@@ -50,7 +50,7 @@ A caller does not choose the device and is not told which device ran the work.
 A direct route reaches the engine without Core ML.
 The same private Espresso runtime that Apple's own dispatchers use is callable from ordinary user space.
 It compiles a network to the engine's program format, loads it, and drives an execution stream, with no placement planner in the path and no special entitlement for the operations the compiler accepts.
-This route makes the engine a target a developer can address on purpose rather than a scheduling hint.
+This route makes the engine a target a developer can address on purpose.
 It is not a supported or App-Store-safe path; see the status note in the front matter.
 Part II covers it in full.
 
@@ -115,11 +115,11 @@ A 3x3 convolution at 256 channels runs about 3.8 times faster than the same work
 
 Table: Engine versus GPU speed and efficiency on the convolution and batched matrix multiply workloads. {#tbl:c1-gpu}
 
-The case where the GPU leads is real but limited: it holds for bandwidth-bound autoregressive decode, where the work is moving weights rather than computing on them.
+The case where the GPU leads is real but limited: it holds for bandwidth-bound autoregressive decode, where the work is moving weights.
 The measured envelope on the M1 fixes the scale.
 The overhead-isolated compute slope reaches nearly $P \approx 12$ fp16 TFLOP/s against a DRAM bandwidth of $B \approx 85$ GB/s, at about $0.5$ pJ per FLOP sustained, near $0.37$ at the compute optimum.
-The roofline ridge point, the arithmetic intensity above which a kernel is compute-bound rather than bandwidth-bound, is at $I^{*} = P / B \approx 141$ FLOP per byte.
-A hard 2 MB on-chip working-set threshold is the primary design limit: a kernel whose live tiles exceed it stalls on off-chip streaming rather than running on the multiplier.
+The roofline ridge point, the arithmetic intensity above which a kernel is compute-bound, is at $I^{*} = P / B \approx 141$ FLOP per byte.
+A hard 2 MB on-chip working-set threshold is the primary design limit: a kernel whose live tiles exceed it stalls on off-chip streaming.
 Newer chips scale the core count and the clock, but the form of the roofline and the fp16 datapath apply across the family.
 
 ## Reference: the M1 envelope

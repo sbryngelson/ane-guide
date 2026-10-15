@@ -31,7 +31,7 @@ Two rounding points bracket the accumulation: the inputs round to fp16 going in,
 
 The running sum between those two rounding points is not fp16.
 The input port rounds tiles to fp16 on the way in and the output port rounds to fp16 on the way out, but the reduction in between is held in a wide register of fp32 class on every ANE device.
-The accumulator width is a fixed hardware property, not a per-program or per-chip setting.
+The accumulator width is a fixed hardware property.
 
 Representable sums thus come back near exact.
 A reduction of sixteen thousand ones is bit exact, where a naive fp16 running sum would stall near two thousand once the partial total passes the spacing of its own increments.
@@ -172,13 +172,13 @@ The engine preserves denormals elementwise but flushes them inside the multiply-
 An fp16 denormal down to $2^{-24}$ (about $5.96 \times 10^{-8}$) echoes bit-exactly through $x + 0$ and $x \times 1$ on the elementwise path, and scales correctly, so the common assumption that the engine flushes denormals globally is false for that path.
 A pair of denormals summed inside a matmul, with a representable denormal total, returns positive zero, so the flush-to-zero is a property of the accumulator stage and not of the datapath as a whole.
 The M5 accumulator instead preserves denormals, so a denormal input and a product of two denormals both survive a matmul reduction unflushed.
-The flush is an M1-generation property rather than a fixed engine behavior, and the M2 through M4 parts between them were not measured, so the generation at which it changed is unknown.
+The flush is an M1-generation property, and the M2 through M4 parts between them were not measured, so the generation at which it changed is unknown.
 
 Signed zero loses its sign before a reciprocal or a reciprocal square root.
 The reciprocal of negative zero returns positive infinity where IEEE returns negative infinity, and the reciprocal square root of negative zero returns positive infinity where IEEE returns negative infinity, while $\mathrm{sqrt}$ of negative zero stays positive zero per IEEE.
 A negative zero echoes as positive zero through $x + 0$, so the engine drops the sign bit of a zero before the reciprocal path.
 
-A few activation tables collapse a large input rather than tracking it: softplus and softsign of positive infinity return positive zero, where the values should be positive infinity and a unit magnitude.
+A few activation tables collapse a large input: softplus and softsign of positive infinity return positive zero, where the values should be positive infinity and a unit magnitude.
 The logarithm of positive zero returns a finite sentinel of $-45440$ rather than negative infinity.
 These are properties of the table approximations, distinct from the NaN coercion above.
 
@@ -188,7 +188,7 @@ A bare $\exp$ with no max-subtraction overflows to infinity at an input near $11
 
 Rounding on the fp16 output grid is round half to even.
 A tie at the midpoint between two representable fp16 values rounds to the value with an even last bit, not away from zero.
-A partial of $2049$ at a grid spacing of $2$ rounds to $2048$, the even neighbor, and a trailing half above the $2048$ threshold rounds the $L + 0.5$ accumulation to even rather than up.
+A partial of $2049$ at a grid spacing of $2$ rounds to $2048$, the even neighbor, and a trailing half above the $2048$ threshold rounds the $L + 0.5$ accumulation to even.
 The M5 returns $2050$ for this case, rounding up where the M1 rounds to even.
 Whether the wide accumulator presents a value just above $2049$ rather than an exact tie, or the rounding differs by generation, is unresolved.
 

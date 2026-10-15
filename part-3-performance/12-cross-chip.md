@@ -57,7 +57,7 @@ Each generation adds one capability over the one before it, then stops ([table](
 
 Table: The single capability each engine generation adds, read off the per-target capability bytes. {#tbl:c12-caps}
 
-The A17 and A18 add no operation over the A16: identical dimension limits, the same texture engine, the same legal operation set, differing only in NE-core count, which scales throughput rather than legality.
+The A17 and A18 add no operation over the A16: identical dimension limits, the same texture engine, the same legal operation set, differing only in NE-core count, which scales throughput.
 The dimension limit is not a single number per chip: on the M2 the spatial and contraction extents cap at 16384 while the channel axis caps at 65536, exactly four times the spatial cap.
 The limit thus belongs to the axis an operation uses rather than to the tensor.
 
@@ -66,7 +66,7 @@ The core count runs 4 on the M1, 8 on its Pro and Max variant, and 16 on the M5,
 The fp16 datapath, the wide accumulator, and the form of the roofline hold across the family unchanged.
 The measured M5 confirms the scaling: about 19.6 fp16 TFLOP/s on the matmul slope and about 14.3 fp16 TFLOP/s on the convolution peak, both from the fused-chain probe on the same network with no source change, against the roofline saturation peak of 18.8 TFLOP/s in Chapter 9.
 A single large matmul above the dispatch floor runs at about 9.5 fp16 TFLOP/s, the M5 analogue of the M1's 4.8, and the engine streams weights at about 145 GB/s over two DRAM read channels, near three times the M1's 51 GB/s.
-Those peaks are set by the larger core count and the higher clock, not by any change to the datapath, which is the metric on which the generations compare.
+Those peaks are set by the larger core count and the higher clock; the datapath, the metric on which the generations compare, is unchanged.
 The working-set threshold moves with the silicon, from near 2 MB on the M1 to a measured 4.72 MB on the M5, scaling with the larger 16-core on-chip memory.
 
 ## One thing that varies

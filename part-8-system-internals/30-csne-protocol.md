@@ -28,7 +28,7 @@ The `priority` field holds two scheduling classes: values `0` and `1` are the pr
 These are encoded by the firmware checks `(priority >= 0 && priority <= 1) || (priority >= 2 && priority <= 7)` and the normal-only `(priority >= 2 && priority <= 7)`, under the full-range bound `fwPriority < 8`.
 The signed `programId` and `processId` hold `-1`, which reads as `0xFFFFFFFF`, as the unbound-slot marker.
 The firmware resolves the pair against `progProcInfo[builtinProgramId]` with the fields `.valid`, `.progId`, and `.procId`, under `builtinProgramId < maxProgramServerSupported` and `id < CAneBuiltInNetworkId::ANE_NET_TOT`.
-The resident cache-request commands prepend one further field, an opaque 64-bit `cacheHandler` logged as `cacheHandler: 0x%llx`, naming a long-lived request object rather than a single submission.
+The resident cache-request commands prepend one further field, an opaque 64-bit `cacheHandler` logged as `cacheHandler: 0x%llx`, naming a long-lived request object.
 
 The scheduler maps the eight priority levels onto two admitted classes ([Table](#tbl:c30-priority)).
 
@@ -156,7 +156,7 @@ Table: The six command-id families of the `ECSneCmdId` enum at `0xf5ba8`. {#tbl:
 
 ## Firmware fast path
 
-The live on-chip dispatcher is `CAneEngineExeLoop::dispatch` at vaddr `0x4a42c`, which reads the 16-bit id with `ldrh w8,[x21,#4]` and decodes it through a compare tree rather than a jump table.
+The live on-chip dispatcher is `CAneEngineExeLoop::dispatch` at vaddr `0x4a42c`, which reads the 16-bit id with `ldrh w8,[x21,#4]` and decodes it through a compare tree.
 The tree implements only about ten ids, all on the procedure-call and inference fast path, and every other id falls through to a default arm at `0x4aa4c` that logs `Cmd 0x%x is not supported through ExeLoop cmd channel` and then asserts, panicking the firmware.
 Sending a non-fast-path id on this channel is thus a hard fault on the live device, consistent with the unrecoverable behavior of a DART or fence fault.
 

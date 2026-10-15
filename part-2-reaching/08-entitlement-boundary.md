@@ -64,14 +64,14 @@ The compiler reserves the operation classes for resident state and ring buffers,
 Every register setter for it, the source and destination base addresses, shape and stride setters, atomic-operation and counter-mode setters, and wait-event address and value setters, has a body that asserts the engine is unsupported on this architecture.
 A program that declares native resident state fails the compile, and this gate is stronger than an entitlement: the silicon path does not contain the engine, so no entitlement, property, or compiler option synthesizes it.
 A resident cache on the M1 is built instead from a shared buffer kept live across dispatches, the documented zero-copy path for this generation.
-The counter-and-event engine arrives on a later generation, so native resident state is a per-family feature there, not an M1 one.
+The counter-and-event engine arrives on a later generation, so native resident state is a per-family feature of the generations after the M1.
 
 The serialization layer and the datapath both block the bf16 program input and output type.
 The dtype enumeration that declares a program's input and output types has eleven codes, covering fp16, fp32, and the integer widths, and bf16 is not among them, so a program that declares a bf16 input or output fails the compile with an unsupported-dtype rejection.
 The framework accepts a bf16 array at its boundary, but it casts to fp16 before the engine segment, so the engine runs no bf16 datapath under the sanctioned route either.
 The fp16 datapath of chapter 3 already holds the accumulation precision a bf16 declaration would otherwise imply.
 
-Flexible and symbolic shapes stop at the runtime path, not at the compiler.
+Flexible and symbolic shapes stop at the runtime path.
 The compiler has a full symbolic-shape system, with its master gate on for the M1, yet the direct runtime path will not drive it: a program with a symbolic dimension parses and then fails to lower.
 The sanctioned route reaches flexible shapes by compiling a small set of fixed shapes ahead of time and dispatching the nearest, with a dynamic remainder on the central processor.
 That is bucketed fixed-shape specialization, not one symbolic program on the engine, and the direct route matches it by padding to a fixed maximum or compiling a small set of length buckets, with the compile cache making a repeated shape free.
@@ -105,7 +105,7 @@ The reachable surface is thus everything the daemon's compiler will accept, not 
 ## Unentitled dispatch path
 
 The kernel driver rejects a binary the client signs itself at load with `0xe00002e2`, so the daemon's compile-and-sign step is not optional.
-The client authors the network as intermediate language rather than a loadable binary, since a self-authored binary never passes the load check.
+The client authors the network as intermediate language, since a self-authored binary never passes the load check.
 It hands that intermediate language to the system daemon, the one process able to sign, and the daemon compiles and signs it in place, so the returned program carries the signature and trustcache trust the kernel load check requires.
 The client then drives that signed program over the kernel interface directly, where the corecrypto signature and trustcache checks pass because it is daemon-signed, and the program loads onto the engine.
 

@@ -13,14 +13,14 @@ The result is a capability, not a speed claim.
 ## A backward pass built from forward operations
 
 A search of the compiler binary for an engine-native gradient layer returns nothing.
-Every gradient operation held in the shared compiler belongs to the graphics-processor dialect, is costed by the graphics-processor cost model, and executes there rather than on the engine.
+Every gradient operation held in the shared compiler belongs to the graphics-processor dialect, is costed by the graphics-processor cost model, and executes there.
 The convolution data-gradient and weight-gradient, the max-pool and average-pool gradients, normalization, recurrent, top-k, pad, strided-slice, and resize gradients are all graphics-processor operations.
 At the operation level the engine is inference-only.
 
 The engine-native convolution family is the forward convolution and a single-channel cross-correlation.
 The forward convolution has a transpose mode, so the data-gradient, which is a transposed convolution, has a native operation.
 The weight-gradient has no native operation, because the only cross-correlation is single-channel and cannot serve the multi-channel correlation a weight-gradient requires.
-The weight-gradient thus lowers through a patch-extraction expansion into a matrix multiply, which is why a trainable convolution holds its weight as a graph input rather than a folded constant and why its backward cost grows with the minibatch.
+The weight-gradient thus lowers through a patch-extraction expansion into a matrix multiply, which is why a trainable convolution holds its weight as a graph input and why its backward cost grows with the minibatch.
 
 The public on-device update path meets the same boundary [AppleCoreML].
 When the system framework fine-tunes a model on device, the forward pass may run on the engine, but the backward pass runs on the graphics processor or the host through those gradient operations.
@@ -32,7 +32,7 @@ The optimizer update is a third graph that combines the gradients with the param
 All three are inference-style graphs of operations the compiler already accepts, so all three compile and dispatch on the direct route from chapter 6.
 
 A trainable weight is a graph input, not an embedded constant.
-The forward graph reads the weight from a bound buffer rather than from a folded constant tensor, so the update graph can write a new value into that buffer between steps without recompiling.
+The forward graph reads the weight from a bound buffer, so the update graph can write a new value into that buffer between steps without recompiling.
 This is what lets the optimizer step run on the engine: the weight is an operand, and an operand can be both read by the forward pass and written by the update.
 
 ## Gradient vocabulary and its correctness

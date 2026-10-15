@@ -115,11 +115,11 @@ The cast operations convert the host half-precision layout to the engine-interna
 
 Each operation has two sections: an argument frame that names the operand binding and the per-axis tensor layout, and an attribute blob that holds the kernel parameters.
 The attribute blob is a nested FlatBuffer sub-descriptor, not expanded microcode: its byte diversity is 0.19, the low value of a structured and sparse record, and the descriptor size does not change with the compute shape.
-A contraction over an inner dimension of 64 and one over an inner dimension of 256 both produce the same descriptor size, so the compute shape is a parameter the descriptor holds, not a program it expands.
+A contraction over an inner dimension of 64 and one over an inner dimension of 256 both produce the same descriptor size, so the compute shape is a parameter the descriptor holds.
 
 Two properties follow from this structure.
 The descriptor is depth-invariant: a one-operation graph and a six-operation fused graph both reduce to a single inference operation of the same size.
-It tracks the dispatch count, not the operation count: a bridge operation that cuts the graph into three segments produces three inference operations and a larger descriptor.
+It tracks the dispatch count: a bridge operation that cuts the graph into three segments produces three inference operations and a larger descriptor.
 
 ## Hardware task descriptor
 
@@ -191,7 +191,7 @@ Runtime-variable shapes and strides bind separately as live-in parameters, each 
 The descriptor layout is versioned per silicon generation: the M1 builds the v10 image, and other generations build a different version under the same family of accessors, with the dimension block, relocation-register addresses, and field widths all moving between versions.
 The M1 v10 image omits the compute-cache direct-memory-access engine entirely: every setter for the on-chip atomic, counter, and wait-event primitives asserts that it is unsupported on this architecture.
 This is the silicon-level reason a resident in-place state buffer cannot be expressed on the M1 and falls back to a shared buffer.
-Any tool that reads task-descriptor bytes must dispatch on the version number rather than assume a fixed layout.
+Any tool that reads task-descriptor bytes must dispatch on the version number.
 
 The serializer emits the image sparsely: a register reaches the stream only when its value differs from the architectural default, which is why a small contraction yields only six to eight records.
 Each surviving record is a fixed 44 bytes: a count marker, the register address in one IOMMU aperture, and one or two device addresses in a second aperture that are written to the DMA base-address registers.
@@ -251,7 +251,7 @@ Table: The version-7 codegen opcode words of three operations decoded from a liv
 
 These are the version-7 H13 codegen opcodes.
 The high half-word, `0x5042` or `0x5000`, is shared across operations, and the low 16 bits distinguish the operation.
-The full operation identity is also in the lookup-table and configuration words, not in the opcode word alone.
+The full operation identity is spread across the lookup-table and configuration words as well as the opcode word.
 The container closes with an `LC_THREAD` trailer holding the procedure and tensor names `main_ane`, `t0_ane`, and `t5_ane@output`.
 
 The container header is a 32-byte Mach-O-shaped block ([Table](#tbl:c23-header)), and its load-command census names the binding and configuration records the loader walks.
@@ -391,7 +391,7 @@ The serialization element-type enumeration the descriptor uses for an operand is
 
 Table: The eleven serialization element-type codes the dispatch descriptor uses for an operand. {#tbl:c23-eltcodes}
 
-The 8-bit floating forms and the palettized index types are a separate hardware element-type space, not part of this serialization enumeration: they are gated by the hardware-abstraction table and held as typed fields rather than parsed from an attribute string.
+The 8-bit floating forms and the palettized index types are a separate hardware element-type space, not part of this serialization enumeration: they are gated by the hardware-abstraction table and held as typed fields.
 The container's symbol-table catalog runs to 24 entries because it holds that wider hardware set.
 
 The single inference operation the descriptor holds is a fused graph of backend operations, each one of a fixed micro-operation opcode space and one operation-class selector.
@@ -410,12 +410,12 @@ The operation-class enumeration, the unit the descriptor calls the operation mod
 
 Table: Selected entries of the 79-member operation-class enumeration, the selector the descriptor calls the operation mode. {#tbl:c23-opclass}
 
-There is no transposed-convolution class: a transposed convolution lowers to a convolution, cross-correlation, or kernel rasterizer, not a separate operation mode.
+There is no transposed-convolution class: a transposed convolution lowers to a convolution, cross-correlation, or kernel rasterizer.
 The full 79-member set and the 126-member micro-operation opcode space are decoded in full in Appendix C.
 
 ## Submission ABI
 
-The runtime hands the dispatch descriptor and the bound buffers to the driver through one external-method interface keyed by a selector and a structure size, and the kernel disambiguates an overloaded selector by the structure size rather than the selector alone, method by method in [Table](#tbl:c23-abi).
+The runtime hands the dispatch descriptor and the bound buffers to the driver through one external-method interface keyed by a selector and a structure size, and the kernel disambiguates an overloaded selector by the structure size, method by method in [Table](#tbl:c23-abi).
 
 | Selector | Method | In bytes | Out bytes |
 | --- | --- | --- | --- |
@@ -434,5 +434,5 @@ The runtime hands the dispatch descriptor and the bound buffers to the driver th
 Table: The external-method selectors of the submission interface, with the structure size that disambiguates each overloaded selector. {#tbl:c23-abi}
 
 The submit call is the asynchronous selector 2, whose 2376-byte argument structure holds the program token, a sequence number, the quality-of-service pair, and the array of input, output, and intermediate surface identifiers.
-The 40-byte asynchronous reply holds the sequence result and the echoed token, and completion arrives on a wake port rather than a shared-memory poll.
+The 40-byte asynchronous reply holds the sequence result and the echoed token, and completion arrives on a wake port.
 The chaining-prepare and chaining-set-active selectors build the firmware chaining cache, the structure a multi-segment descriptor and the resident-state path use to wire one inference segment to the next.

@@ -155,7 +155,7 @@ The system-on-chip state channels report clock residency, frequency-point reside
 The interrupt statistics report the host kernel's cost of servicing engine completions, in counts and Mach Absolute Time Units, split into first-level and second-level handlers and isolated separately for the engine and its address-translation unit.
 A storage coprocessor that an earlier reading mistook for the engine, exposing vector-lane read and write counters, is unrelated to engine telemetry; the bandwidth counter is the memory-controller `ANE0` channel and the power channel is the energy model.
 
-The aggregate bandwidth channel resolves into per-channel histograms, the fabric channel `PMP0 / DCS BW / ANE L0` and `L1` carrying read and write distributions for the two DRAM read channels, read as State-residency histograms rather than plain integers.
+The aggregate bandwidth channel resolves into per-channel histograms, the fabric channel `PMP0 / DCS BW / ANE L0` and `L1` carrying read and write distributions for the two DRAM read channels, read as State-residency histograms.
 The `SoC Stats / Events` channel also exposes the throttle-trigger family `ANE_THROTTLE_{SW,HW,PPT,DITHER,EXT}_TRIG` and `VDD_DRAM_VOLTAGE_CHANGE`, per-trigger software, hardware, peak-power, and dither throttle counts, all readable without entitlement.
 
 The per-dispatch op lifecycle is also readable as the timestamped signpost stream of [Listing](#lst:c33-signposts), captured on the engine subsystem with no entitlement beyond root, which confirms the three-request structure of a dispatch without exposing any counter value.
@@ -183,7 +183,7 @@ Bandwidth comes from a delta on the memory-controller byte counters across a rea
 A 96-layer matmul chain at batch 8192 moved 17.2 GB of reads and 16.9 GB of writes over 432 ms, which is between 79 and 90 GB/s, the engine's share of the unified memory.
 A delta on the energy-model millijoule channel over the same run gives about 0.48 pJ/FLOP and about 2.3 W under sustained compute.
 
-The compute roof and the dispatch floor are wall-clock measurements, timed against the firmware timestamp and the host clock rather than read from a counter.
+The compute roof and the dispatch floor are wall-clock measurements, timed against the firmware timestamp and the host clock.
 The 2 MB working-set threshold is confirmed directly from the byte counters.
 At batch 8192 the activation is exactly 2 MB, the counters show 426 MB of DRAM moved per dispatch, arithmetic intensity falls to 60 FLOP/byte, and throughput drops from 12 TFLOP/s to about 4.8 TFLOP/s.
 The per-descriptor counters would attribute that drop to specific stall classes, the input-stall and L2-read-stall cycles, but the whole-engine byte and energy channels already locate the workload on the bandwidth slope, which is what the roofline needs.

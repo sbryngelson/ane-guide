@@ -13,7 +13,7 @@ Chapter 4 gives the operation set that these shapes apply to.
 The datapath is fp16, so every operand a model presents to the engine is fp16.
 The backend accepts the fp32, int32, and bf16 type annotations, but does not implement them as wider arithmetic, and they do not reach the silicon.
 The M1 rejects a cast to int32, and bf16 is not usable as a program input or output dtype.
-The one widened quantity is the matrix-multiply accumulator, which is internal and not a tensor a model declares.
+The one widened quantity is the matrix-multiply accumulator, which lives inside the datapath and never appears among the tensors a model declares.
 
 Weights are the exception that still resolves to fp16 at the compute step.
 The engine accepts an int8 weight and runs it through the quantized-convolution path, and the compressed weight forms in chapter 7 stream in their stored width.
@@ -31,12 +31,12 @@ Width 16384 compiles and 16385 rejects, and the same one-element step holds for 
 
 Convolution has its own kernel bounds, narrower than the tensor bounds and set by the kernel-format field.
 On the M1 the fp16 convolution kernel width is bounded at 13: a kernel of width 14 rejects.
-Kernel height reaches 29 when the input is tall enough to hold it, and a kernel taller than its input rejects as a too-large kernel rather than as a height cap.
+Kernel height reaches 29 when the input is tall enough to hold it, and a kernel taller than its input rejects as a too-large kernel.
 Stride, dilation, and padding do not reject on the M1.
 A stride outside the native set decomposes to a large-stride path and still compiles, dilation up to 8 compiles, and padding up to 16 compiles.
 The pooling window is far looser than the convolution kernel and accepts sizes of 128 and beyond, with a tile-alignment quirk that rejects specific odd windows near a power-of-two boundary.
 
-Several operations cap a reduction axis for fp16 accuracy rather than for memory.
+Several operations cap a reduction axis to hold fp16 accuracy.
 The arg-min and arg-max operations reduce a channel of at most 2048, and the spatial form caps height or width at 2048 the same way; 2049 rejects.
 This 2048 limit is independent of the 16384 and 65536 tensor bounds and applies to the reduction axis alone.
 

@@ -5,7 +5,7 @@
 > The engine is a shared timing and occupancy oracle: a confirmed cross-process side channel leaks a co-tenant's presence and a coarse duty cycle at roughly 20 to 50 bit/s, but never a value, weight, or input.
 
 The kernel driver enforces the engine's security model almost entirely above the firmware.
-It vets every program before the work reaches the engine, secure mode isolates one tenant in time rather than in hardware, and the one confidentiality gap is a timing side channel that leaks no data.
+It vets every program before the work reaches the engine, secure mode isolates one tenant in time, and the one confidentiality gap is a timing side channel that leaks no data.
 
 ## Secure and exclave mode
 
@@ -100,7 +100,7 @@ The signal tracks engine-queue serialization: a concurrent 1 GB-per-loop CPU mem
 
 As a covert or signature channel the resolution is about 20 to 50 ms.
 Single contender pulses down to 20 ms were each detected.
-A random 16-bit pattern sent at 0.4 s per symbol was recovered at 14 of 16 bits with a median-threshold detector, with the two tail errors attributable to end-of-run clock drift rather than channel capacity.
+A random 16-bit pattern sent at 0.4 s per symbol was recovered at 14 of 16 bits with a median-threshold detector, with the two tail errors attributable to end-of-run clock drift.
 This puts the practical channel at roughly 20 to 50 bit/s, enough to read a co-tenant's presence, the timing of an inference, and a coarse duty cycle.
 
 Data isolation holds under the same contention.

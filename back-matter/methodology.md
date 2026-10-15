@@ -41,7 +41,7 @@ The structure of the stack was read out of its decompiled binaries ([table](#tbl
 Table: The four decompiled artifacts of the stack and what static analysis read out of each. {#tbl:meth-artifacts}
 
 Apple distributes the firmware on the M1 unencrypted, an ARM64 real-time-kernel image behind an image wrapper.
-Its execution loop, its driver, and its ninety-three-command host protocol were decoded statically rather than inferred.
+Its execution loop, its driver, and its ninety-three-command host protocol were read straight out of that image.
 The compiler lowers a graph to a ninety-seven-operation internal vocabulary that is a superset of the public set.
 Static reading of those passes separated the hidden internal operations from the user-reachable ones.
 

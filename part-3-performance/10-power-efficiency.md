@@ -81,7 +81,7 @@ There is no clock-gated but powered idle floor; the idle state is rail-off.
 The M1 engine has five independently gated power domains: a base domain for the control and front-end fabric, brought up first, and four compute sets, one per ANE cluster.
 Dynamic power-gating, on by default, collapses the compute sets back toward `ALL_OFF` between jobs, so idle work pays no rail power.
 Disabling it keeps the sets powered between jobs, trading idle power for lower per-job latency.
-Thermal management and voltage are off-engine: the firmware image has no thermal, temperature, or throttle path, so those decisions are in the system-on-chip power manager, not in the engine.
+Thermal management and voltage are off-engine: the firmware image has no thermal, temperature, or throttle path, so those decisions are in the system-on-chip power manager.
 The rail-off idle is why the efficiency map subtracts a flat zero for the engine baseline while the GPU and CPU baselines subtract a nonzero idle draw.
 
 ## Power scales with utilization
@@ -104,7 +104,7 @@ The engine rail, sampled read-only at five-second cadence, pins at about 5.5 wat
 Thermal pressure reads Nominal on every sample, and the engine never leaves its single clock state, with the steady draw set by the workload's utilization as the previous section describes.
 The M1 engine does not throttle on this workload over 3.5 minutes: it runs at one clock state and stays there.
 
-What moves first-call latency sits at the boundaries of a burst, not in steady state ([table](#tbl:c10-phases)).
+What moves first-call latency sits at the boundaries of a burst ([table](#tbl:c10-phases)).
 
 | Phase | Behavior on the M1 |
 | --- | --- |
@@ -117,7 +117,7 @@ Table: Sustained-load phases on the M1, with the warmup and idle re-wake costs t
 
 The idle re-wake penalty is the consequence of the rail-off idle described above.
 Once idle crosses a few seconds the compute sets gate fully off, and the first call after the gap pays a one-time cold re-wake of tens to hundreds of milliseconds before the engine returns to its steady state on the following call.
-The cost falls on the first call of each active burst, not as a sustained slowdown.
+The cost falls on the first call of each active burst.
 Latency-sensitive code that must answer immediately after an idle gap should thus keep the engine warm with a sub-second dispatch cadence or a low-cost keep-alive call.
 
 The engine rail sampled directly on the M1 confirms that average power tracks utilization.

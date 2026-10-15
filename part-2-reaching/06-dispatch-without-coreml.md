@@ -120,7 +120,7 @@ On the direct route the caller has already decided: the network is compiled for 
 
 The operations the compiler accepts require no special entitlement.
 The runtime, the compiler, and the dispatch path are all reachable from ordinary user space.
-The set of operations is the catalog the compiler validates: an operation the compiler accepts compiles and dispatches without a privileged handle, and the compiler rejects an operation outside that set at compile time rather than the dispatch path gating it.
+The set of operations is the catalog the compiler validates: an operation the compiler accepts compiles and dispatches without a privileged handle, and the compiler rejects an operation outside that set at compile time.
 Reachable here means no entitlement is required, not that the path is supported: these interfaces are private, unsupported, version-fragile across operating-system updates, and not App-Store-safe.
 The boundary that does require an entitlement is a separate matter, taken up in chapter 8.
 

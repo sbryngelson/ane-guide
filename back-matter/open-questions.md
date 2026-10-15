@@ -6,7 +6,7 @@
 The engine is decoded from the host call down to the register writes, and everything that exists as bytes or strings has been resolved into human-readable form.
 Two silicon points are measured directly: M1/H13 and M5/H17s.
 M5/H17s confirmed all ten cross-silicon predictions on device.
-The M3/H15 generation and the upper tier above H17s are decompile-derived, not measured.
+The M3/H15 generation and the upper tier above H17s rest on decompilation alone.
 M5/H17s closes none of the upper-tier items, because it is a 16-core H17s part rather than the H17d 64-core ceiling, H18-gated fp8 runtime, or Ultra multi-die collective.
 
 ## Why an item is open

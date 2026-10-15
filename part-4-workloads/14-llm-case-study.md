@@ -13,10 +13,10 @@ The single-token decode step runs against the roofline of chapter 9, batching is
 A decoder step generates one token.
 It reads every weight in the model once, multiplies each against a single activation row, and produces one new row.
 The arithmetic per byte of weight read is thus near one multiply-add per weight, which puts the step far below the 141 FLOP-per-byte ridge point of chapter 9.
-Decode is bandwidth-bound: the step spends its time streaming weights from DRAM, not multiplying on the array.
+Decode is bandwidth-bound: the step spends its time streaming weights from DRAM.
 
 A second cost adds on top of the bandwidth cost.
-A single decoder layer is not one operation but a chain of projections, a normalization, an attention block, and a feed-forward pair, and on the direct path each is a separate dispatch.
+A single decoder layer is a chain of projections, a normalization, an attention block, and a feed-forward pair, and on the direct path each of them is a separate dispatch.
 A token through a transformer layer stack issues on the order of forty to fifty small dispatches, every one paying the per-eval floor of about 0.23 ms measured on the M1 in chapter 11.
 Decode is thus dispatch-bound as well as bandwidth-bound, and both regimes are exactly the ones the engine loses, per the verdict table of chapter 11.
 
@@ -80,7 +80,7 @@ Native int8 weights stream at half the bytes of fp16 and cut the weight-read tra
 That is a reduction in the primary cost of decode, and it is reachable on the direct path.
 
 It does not make the engine faster on decode.
-The int8 projections come back numerically correct, but the hybrid decoder runs at about 0.99 times the fp16 version, because once the model is small or the dispatch count is high the step is dispatch-bound and host-bound, not weight-bandwidth-bound.
+The int8 projections come back numerically correct, but the hybrid decoder runs at about 0.99 times the fp16 version, because once the model is small or the dispatch count is high the step is dispatch-bound and host-bound.
 Halving the weight traffic of a step whose wall time is set by forty-plus dispatch floors and host marshalling does not move the wall time.
 An int8 gain needs a fused, engine-dominated decoder where the weight stream is the bottleneck, which the per-layer dispatch structure of a general decoder does not provide.
 Batching, not quantization, is the control that moves serving throughput.
@@ -124,7 +124,7 @@ cache_out = cache_in * (1 - slot_onehot) + new_kv * slot_onehot
 
 Listing: One resident-cache decode step, where aliasing the cache output buffer onto its input buffer keeps the key-value cache on the engine across steps. {#lst:c14-cache-schematic}
 
-With the cache resident the host sends only the new token and the position one-hot each step, a few bytes, rather than the whole cache.
+With the cache resident the host sends only the new token and the position one-hot each step, a few bytes.
 This removes the per-token cache copy and is the form in which a decoder is most efficiently expressed on the engine.
 A resident cache removes one copy from a step whose wall time is still set by weight bandwidth and dispatch count, so it makes engine decode more efficient without making it as fast as the GPU.
 
@@ -141,7 +141,7 @@ The aliasing primitive is the same one that keeps optimizer state resident for o
 Two measurements confirm it on the M1.
 A resident accumulator that adds one each step, aliased output onto input with no re-supply, returns 1, 2, 3, 4 over four dispatches, accumulating in place.
 A resident cache of six slots, written by a masked positional update of $(t+1) \times 10$ at slot $t$, returns 10, 20, 30, 40, 50, 0 over five steps, each token written to its slot with the cache never leaving the device.
-The coordination behind residency is a hardware event signal-and-wait primitive that sequences the producer and consumer of the cache buffer, emitted by the compiler rather than requested by the user.
+The coordination behind residency is a hardware event signal-and-wait primitive that sequences the producer and consumer of the cache buffer, which the compiler emits on its own.
 
 ## A resident-cache decode step
 
