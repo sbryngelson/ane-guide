@@ -289,7 +289,7 @@ Table: The IOKit return constants and their meanings on the engine dispatch path
 
 At every layer the error surface is name-based or message-based.
 The client-visible surface above IOKit is an error factory that wraps the lower-layer code into a structured error across four domains, named `errorDomainCompiler`, `errorDomainEspresso`, `errorDomainGeneric`, and `errorDomainVirtIO`.
-Its factory methods are the taxonomy: a generic wrapper, a missing-code-signing form, program-load and new-instance-load forms that hold the lower-layer code, surface map and unmap forms, and a virtualization-kernel form.
+Its factory methods are the taxonomy: a generic wrapper, a missing-code-signing form, program-load and new-instance-load forms that contain the lower-layer code, surface map and unmap forms, and a virtualization-kernel form.
 The single most look-up-worthy client-visible value is `0xe00002c7` (`kIOReturnUnsupported`), returned on a disabled or unsupported path and when a gated feature's entitlement is absent.
 
 The second group is in [table](#tbl:apc-firmware-magic).
@@ -525,7 +525,7 @@ Table: The version-7 / H13 codegen opcode words for three operations, with the h
 
 ## C.7 The `.e5` FlatBuffer schema {.unnumbered}
 
-The program container is a FlatBuffer whose root table holds four fields, the schema given as [listing](#lst:apc-e5-schema).
+The program container is a FlatBuffer whose root table has four fields, the schema given as [listing](#lst:apc-e5-schema).
 The schema reconstructs from the serializer method set and the wire bytes, since the binary strips the reflection schema, and round-trips cleanly through the FlatBuffers tool to 23 tables, 4 enums, and 1 union.
 The data-type and op-type enums are recovered by name; the numeric ordinals are inferred.
 

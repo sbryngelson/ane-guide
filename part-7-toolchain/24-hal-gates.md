@@ -1,7 +1,7 @@
 # 24. HAL and capability gates
 
 > The compiler is one binary that builds any chip in the line from a per-chip data table, the hardware abstraction layer, read at compile time.
-> The table holds scalar fields indexed by byte offset for the numeric limits.
+> The table has scalar fields indexed by byte offset for the numeric limits.
 > A dense capability-byte region runs from offset `0x48f` through `0x8cc`, each byte read as `hal[offset] & 1` to gate one operation or format.
 > A `MinimumFamily<N>` trait on the operation declares its legality: native only when the target family index is `N` or greater, decomposed below that floor.
 > No compute operation floors above A15.
@@ -12,7 +12,7 @@ What separates one target from the next is a per-chip data table, read at compil
 
 ## HAL property table
 
-The hardware-abstraction-layer table is the compiler's profile of a target, one packed structure that holds both the numeric limits and the feature gates for a chip, with representative scalar fields and their M1 values in [Table](#tbl:c24-hal-scalars).
+The hardware-abstraction-layer table is the compiler's profile of a target, one packed structure that contains both the numeric limits and the feature gates for a chip, with representative scalar fields and their M1 values in [Table](#tbl:c24-hal-scalars).
 
 | Offset | Field | Meaning | M1 (H13) | Changes at |
 | --- | --- | --- | --- | --- |
@@ -41,9 +41,9 @@ The first is a block of scalar fields, indexed by byte offset, that record numer
 The second is a dense region of single-byte boolean flags, the capability bytes, each gating one operation or one format on or off for the target.
 A family of constructors, one per architecture, builds the structure per target inside the compiler.
 The scalar region runs from offset `0x18` to roughly `0x348` as plain data, with non-scalar members such as the format map and the cost-model curve extending past it.
-The capability-byte region occupies offsets `0x48f` through `0x8cc` and holds on the order of 165 single-byte flags, of which 24 have recovered field names and the rest are enumerated by offset and classified by the family that enables them.
+The capability-byte region occupies offsets `0x48f` through `0x8cc` and has on the order of 165 single-byte flags, of which 24 have recovered field names and the rest are enumerated by offset and classified by the family that enables them.
 The compiler reads a scalar as a value at its offset and a capability byte as `hal[offset] & 1`, so every limit and every gate is one indexed read into this one table ([Listing](#lst:c24-hal-struct)).
-The same structure holds the cost model: a policy-name string at `0x580`, frequency-to-efficiency curve at `0x7a8`, and per-cycle divisor at `0x228`, which the roofline of chapter 18 reads from this table.
+The same structure stores the cost model: a policy-name string at `0x580`, frequency-to-efficiency curve at `0x7a8`, and per-cycle divisor at `0x228`, which the roofline of chapter 18 reads from this table.
 
 ```c
 /* ZinIrHalParameters, selected fields at their byte offsets (M1/H13 values) */
@@ -92,7 +92,7 @@ Listing: The minimum-family gate, where an operation is emitted natively when th
 The M1 has family index two and the M5 has family index six, so an operation with floor four, such as sin, is native on the M5 and decomposed on the M1.
 
 The floors fall into a small number of tiers.
-The base tier, family 0, holds the operations every engine runs: convolution, matrix multiply, pooling, the elementwise and activation set, reshape, transpose, and concat.
+The base tier, family 0, lists the operations every engine runs: convolution, matrix multiply, pooling, the elementwise and activation set, reshape, transpose, and concat.
 At A13 come softmax, the normalizations, the reductions, fused attention, and the square-root and error functions.
 A14 brings the texture-engine samplers, crop-resize, and resample; A15 brings native sin and cos.
 No compute operation floors above A15, so the newest generations add core count and clock.
@@ -187,7 +187,7 @@ Not every per-target value in the table is a live gate.
 A byte-granular re-diff of all 28 target blobs leaves zero undecoded scalar fields, but several offsets that vary by family are populated by the per-chip builder and never read back through the table pointer, so their value is a write-only mirror.
 Five scalar offsets are dead as table fields in this fashion: the global element cap at `0x18`, kernel-depth constant at `0x80`, legacy tiling granule at `0x260`, offset at `0x320`, and die-class flag at `0x29c`.
 Each varies meaningfully by family, but the value a reader consumes is read off a different object that shares the byte displacement, a tensor-dimensions, compiler-parameters, or memory-pools structure, not the table.
-The distinguishing test is whether the base register at the access holds the table pointer, since the same displacement aliases dozens of other by-reference structures, so a raw displacement match inside a table-typed function is not proof of a table read.
+The distinguishing test is whether the base register at the access stores the table pointer, since the same displacement aliases dozens of other by-reference structures, so a raw displacement match inside a table-typed function is not proof of a table read.
 
 The one offset that looks dead on the M1 but is not is the FIFO-mode byte at `0x563`: it reads 0 on the M1 and is read through the table pointer under a branch that is taken only when the byte is set, which happens on the A18 generation.
 A per-family value pattern alone does not establish a live gate; only a traced reader off the table base does.
@@ -228,10 +228,10 @@ The same base-register test that found the five dead fields above also rules the
 
 With this round the silicon-capability subset of the packed bitfield, the part the compiler reads to gate a feature per family, is fully named.
 The struct is `0x938` bytes, and the few entries inside it that are not capability flags are the cost-model coefficient block at offsets `0x580` through `0x7f0`.
-This block holds the frequency-to-efficiency curve, rate indices, performance multiplier that the roofline of chapter 18 reads, and about two soft fp64 coefficients.
+This block contains the frequency-to-efficiency curve, rate indices, performance multiplier that the roofline of chapter 18 reads, and about two soft fp64 coefficients.
 These are all performance coefficients, with no legality cap among them.
 A small number of capability fields are also true holdouts, read only off aliased bases.
-The offsets past `0x938` hold no table: an earlier reading that located an A12 operation-emulation catalog at `0xa30` through `0xe84` was a read into the adjacent zeroed memory beyond the struct, not a real field.
+The offsets past `0x938` have no table: an earlier reading that located an A12 operation-emulation catalog at `0xa30` through `0xe84` was a read into the adjacent zeroed memory beyond the struct, not a real field.
 
 ## Attested is not reachable
 

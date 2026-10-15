@@ -46,7 +46,7 @@ The base name is 4 cores, the suffix `g` is 8, `s` is 16, `c` is 32, and `d` is 
 `H17s` is thus the 16-core Pro-class part that is the M5, and `H17d` is the 64-core Ultra-class die, the largest in the table.
 These decoded `num_nes` values are the compiler's per-die core field, not Apple's marketing Neural Engine count; on the base M1 the decoded four stands against the published sixteen [AppleANE].
 
-The reference targets hold placeholder limits that no part has: a maximum tensor depth of 1, a kernel-width limit of 1023, and no interchange-format support.
+The reference targets list placeholder limits that no part has: a maximum tensor depth of 1, a kernel-width limit of 1023, and no interchange-format support.
 They are unconstrained validation profiles the compiler builds for its own checking, not addressable silicon.
 The small embedded profile `M11` is addressable silicon.
 It is an efficiency-class engine that has the A16-class feature flags but the A13-class 16384-dimension limit, a single NE core, and the odd kernel-width ceiling of 15 that is between the A13 value of 13 and the A14 value of 16.

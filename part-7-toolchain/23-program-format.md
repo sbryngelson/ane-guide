@@ -24,8 +24,8 @@ A model passes through six on-disk and in-memory forms ([Table](#tbl:c23-forms))
 Table: The six on-disk and in-memory forms a model passes through, each with its format, identifying tag, and role. {#tbl:c23-forms}
 
 The compiler produces a dispatch descriptor and a hardware container for one network, cached together.
-The dispatch descriptor is above the operation level of the intermediate language: it holds the operation chain as a parametric program structure, with each operation reduced to an argument frame and a kernel attribute blob.
-The hardware container is below that level: it holds the register-write stream, weight coefficients laid out for the streaming datapath, and typed input and output layout, all in a Mach-O-shaped file with the magic `0xbeefface`.
+The dispatch descriptor is above the operation level of the intermediate language: it gives the operation chain as a parametric program structure, with each operation reduced to an argument frame and a kernel attribute blob.
+The hardware container is below that level: it stores the register-write stream, weight coefficients laid out for the streaming datapath, and typed input and output layout, all in a Mach-O-shaped file with the magic `0xbeefface`.
 The hardware container and the loaded program image share one byte format: the loaded copy is the on-disk container after the address relocations are resolved.
 
 The [figure](#fig:c23-stack) shows the layering, with the dispatch descriptor over the hardware container over the task-descriptor register groups that drive the DMA engines and the multiply array.
@@ -55,7 +55,7 @@ The serializer method set yields the root layout, validated byte for byte agains
 
 Table: The four fields of the dispatch-descriptor root table, with their vtable offsets, contents, and types. {#tbl:c23-root}
 
-The operation set the descriptor can hold is fixed.
+The operation set the descriptor can contain is fixed.
 The serializer instantiates one attribute-serialization template per operation kind, and the twelve instantiations enumerate the complete set that [listing](#lst:c23-schema) recovers as the root table and the operation-type enumeration.
 
 ```fbs
@@ -116,9 +116,9 @@ The canonical program shape is a fused compute operation bracketed by input and 
 A network that fuses to one engine dispatch decodes as `Op0_Cast` then `Op1_AneInference` then `Op2_Cast`.
 The cast operations convert the host half-precision layout to the engine-internal interleaved layout on input and back on output; the single inference operation is the entire fused graph.
 
-Each operation has two sections: an argument frame that names the operand binding and the per-axis tensor layout, and an attribute blob that holds the kernel parameters.
+Each operation has two sections: an argument frame that names the operand binding and the per-axis tensor layout, and an attribute blob that sets the kernel parameters.
 The attribute blob is a nested FlatBuffer sub-descriptor, not expanded microcode: its byte diversity is 0.19, the low value of a structured and sparse record, and the descriptor size does not change with the compute shape.
-A contraction over an inner dimension of 64 and one over an inner dimension of 256 both produce the same descriptor size, so the compute shape is a parameter the descriptor holds.
+A contraction over an inner dimension of 64 and one over an inner dimension of 256 both produce the same descriptor size, so the compute shape is a parameter the descriptor records.
 
 Two properties follow from this structure.
 The descriptor is depth-invariant: a one-operation graph and a six-operation fused graph both reduce to a single inference operation of the same size.
@@ -241,7 +241,7 @@ The 16-wide register runs are the binary form of the 16 output-channel-group par
 The kernel-common record `0x5021` set to `0x2041` is identical across both descriptor blocks and matches the firmware's own program-manager log byte for byte.
 
 A live M1 program image has the same shape in the task-descriptor stream itself.
-Its program-image text section holds three chained `ZinAneTd<7u>` records linked by a next-record pointer at offset `+0x1c` and followed to a null terminator.
+Its program-image text section contains three chained `ZinAneTd<7u>` records linked by a next-record pointer at offset `+0x1c` and followed to a null terminator.
 Each operation descriptor has a 32-bit opcode word, and the three operations of this program decode as the opcode words [Table](#tbl:c23-opcodes) lists.
 
 | Operation | Opcode word |
@@ -293,7 +293,7 @@ It names the toolchain (`zin_ane_compiler v9.509.0`, the intermediate-language c
 Listing: The entries of the build-info banner, the target selector plus the streaming, cache, and fp8 policy flags. {#lst:c23-buildinfo}
 
 The container is self-describing.
-Its symbol table holds the 24-entry element-type catalog with range encodings, half-precision as type 5, the 8-bit floating form as type 16, and 4-bit integer as type 23, alongside the per-axis stride frame for each tensor as a typed array, both reproduced in [listing](#lst:c23-typecat).
+Its symbol table lists the 24-entry element-type catalog with range encodings, half-precision as type 5, the 8-bit floating form as type 16, and 4-bit integer as type 23, alongside the per-axis stride frame for each tensor as a typed array, both reproduced in [listing](#lst:c23-typecat).
 
 ```c
 void:t1  int8:t2=r2;0;127  uint8:t3  int16:t4  float16:t5=r1;2;0  float:t6=r1;4;0
@@ -313,7 +313,7 @@ A convolution weight is in a `0xC0`-stride layout and a matrix-multiply weight i
 
 Table: The decoded weight-region tiling stride per weight kind, the fixed layout that lets a host patch weight values without recompiling. {#tbl:c23-wtstride}
 
-The weight bank holds 16 sub-kernels at a 512-byte stride.
+The weight bank has 16 sub-kernels at a 512-byte stride.
 Decoding the bytes proves the model: only 64 of the 8192 bytes are nonzero, each the half-precision value `0x3c00` equal to 1.0, laid one per partition across the 16 sub-kernels, the diagonal of a 64-by-64 identity matrix.
 The container is the complete compiled form of an identity linear layer that copies its input through the multiply-accumulate array.
 
@@ -324,7 +324,7 @@ The whole fused graph is still a single inference operation and a single dispatc
 ## On-disk container, decoded segment by segment
 
 A second M1 sample, an `h13g` container of 64 kibibytes, confirms the same format and contributes the deltas below; its segment map, `+0x1c` next-record chain, `0xC0` and `0x40` weight strides, build-info banner, and element-type catalog all match the identity-layer decode above.
-The delta that proves the format is a Mach-O variant rather than a Mach-O proper is the header magic: `0xbeefface` is little-endian bytes `CE FA EF BE` where a real 64-bit Mach-O would hold `0xfeedfacf`.
+The delta that proves the format is a Mach-O variant rather than a Mach-O proper is the header magic: `0xbeefface` is little-endian bytes `CE FA EF BE` where a real 64-bit Mach-O would have `0xfeedfacf`.
 Patching those four bytes lets `otool` and `rabin2` parse the file, while the in-kernel loader accepts the engine magic directly.
 
 The segment commands name `__FVMLIB`, `__TEXT`, and `__KERN_0` regions.
@@ -334,7 +334,7 @@ A pair of window-binding load commands, each a `{u32 size, u32 pad, u64 vmaddr, 
 
 ### Task-descriptor linked list
 
-This sample holds three `ZinAneTd` records linked through the `+0x1c` next-offset field at `0x000` to `0x300` to `0x500` to terminator.
+This sample has three `ZinAneTd` records linked through the `+0x1c` next-offset field at `0x000` to `0x300` to `0x500` to terminator.
 Each descriptor header decodes into a small set of fields, among them the next-offset field that chains the list ([Table](#tbl:c23-td-header)).
 
 | Offset | Field | Meaning |
@@ -353,7 +353,7 @@ The twelve relocations on `__text` are the tile base offsets: the first weighted
 
 ### Weight tiling and the per-lane naming
 
-The `__kern_0` section holds the half-precision weight coefficients split into 64-byte-aligned tiles, one tile per engine compute lane, named in the symbol table as `K<sha256>_ne_<i>` where the index `i` selects the lane.
+The `__kern_0` section stores the half-precision weight coefficients split into 64-byte-aligned tiles, one tile per engine compute lane, named in the symbol table as `K<sha256>_ne_<i>` where the index `i` selects the lane.
 The first weight in this sample, `K596A4B73…`, splits into eight tiles `_ne_0` through `_ne_7` at the `0xc0`-byte convolution stride of `3 × 64`.
 The second weight, `KE125552B…`, splits into four tiles `_ne_0` through `_ne_3` at the `0x40`-byte matrix-multiply stride, each tile a small weight padded up to the 64-byte tile granule.
 The symbol table also lists tiles `_ne_4` through `_ne_15` for that second weight, all pointing at the section end as empty sentinel tiles for the unused lanes, distinguished by a `desc` field of zero against `0x0002` on the live tiles.
@@ -377,7 +377,7 @@ The same symbol table enumerates the full hardware element-type catalog, the wid
 ### Build manifest
 
 The build manifest matches the banner decoded above and also names the bundle `com.apple.ANECompilerFramework`.
-Three `LC_THREAD` commands hold the per-engine register and thread state, the context-restore blobs the kernel pushes before it launches the descriptor chain.
+Three `LC_THREAD` commands store the per-engine register and thread state, the context-restore blobs the kernel pushes before it launches the descriptor chain.
 
 ## Element-type and operation enumerations
 
@@ -395,9 +395,9 @@ The serialization element-type enumeration the descriptor uses for an operand is
 Table: The eleven serialization element-type codes the dispatch descriptor uses for an operand. {#tbl:c23-eltcodes}
 
 The 8-bit floating forms and the palettized index types are a separate hardware element-type space, not part of this serialization enumeration: they are gated by the hardware-abstraction table and held as typed fields.
-The container's symbol-table catalog runs to 24 entries because it holds that wider hardware set.
+The container's symbol-table catalog runs to 24 entries because it lists that wider hardware set.
 
-The single inference operation the descriptor holds is a fused graph of backend operations, each one of a fixed micro-operation opcode space and one operation-class selector.
+The single inference operation the descriptor names is a fused graph of backend operations, each one of a fixed micro-operation opcode space and one operation-class selector.
 The operation-class enumeration, the unit the descriptor calls the operation mode, has 79 members; the compute-unit entries a developer reaches appear in [Table](#tbl:c23-opclass).
 
 | Class | Code | Class | Code |
@@ -436,6 +436,6 @@ The runtime hands the dispatch descriptor and the bound buffers to the driver th
 
 Table: The external-method selectors of the submission interface, with the structure size that disambiguates each overloaded selector. {#tbl:c23-abi}
 
-The submit call is the asynchronous selector 2, whose 2376-byte argument structure holds the program token, a sequence number, the quality-of-service pair, and the array of input, output, and intermediate surface identifiers.
-The 40-byte asynchronous reply holds the sequence result and the echoed token, and completion arrives on a wake port.
+The submit call is the asynchronous selector 2, whose 2376-byte argument structure contains the program token, a sequence number, the quality-of-service pair, and the array of input, output, and intermediate surface identifiers.
+The 40-byte asynchronous reply gives the sequence result and the echoed token, and completion arrives on a wake port.
 The chaining-prepare and chaining-set-active selectors build the firmware chaining cache, the structure a multi-segment descriptor and the resident-state path use to wire one inference segment to the next.

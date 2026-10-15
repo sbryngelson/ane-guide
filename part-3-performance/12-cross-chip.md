@@ -98,7 +98,7 @@ Three of them are at most a unit in the last place, and one is a finite-to-infin
 
 Table: The four fp16 cross-chip divergence axes, the codegen route each selects, and the bounded magnitude of each. {#tbl:c12-axes}
 
-The saturation axis is the only one that changes a finite value into an infinity, and it is magnitude-gated: it triggers only when a width-offset slice holds a value above 4094.
+The saturation axis is the only one that changes a finite value into an infinity, and it is magnitude-gated: it triggers only when a width-offset slice contains a value above 4094.
 Measured on the M1 the threshold is exact: a width-offset slice is finite at 4094 and goes to plus or minus infinity at 4100, while the zero-offset control stays finite even at 60000.
 The M2 saturates bit-identically to the M1, which corrects the earlier reading that the non-saturating route arrives at the A14: the saturation persists through the A14 and the M5 is the part that takes the non-saturating route.
 The reduction-then-square fusion never manifests on silicon: the M1, M2, and M5 all measure the unfused result, so that axis is uniform across the family.

@@ -32,7 +32,7 @@ The engine's single fused matrix multiply stalls on weight streaming once a squa
 Long-sequence attention shifts to the GPU as the sequence grows: at sequence length 512 the GPU is about 2.1 times faster, though the engine keeps a 1.8 times energy edge.
 
 On very large reductions the GPU also leads on fp16 accuracy.
-On the large square matrix multiply the GPU holds an fp16 relative error of $3.6 \times 10^{-4}$ flat across size, while the engine's error grows with the contraction dimension, from $1.2 \times 10^{-2}$ at N of 2048 to $6.2 \times 10^{-2}$ at N of 8192.
+On the large square matrix multiply the GPU keeps an fp16 relative error of $3.6 \times 10^{-4}$ flat across size, while the engine's error grows with the contraction dimension, from $1.2 \times 10^{-2}$ at N of 2048 to $6.2 \times 10^{-2}$ at N of 8192.
 That workload is thus disfavored on the engine on both axes.
 
 ## Where the CPU leads

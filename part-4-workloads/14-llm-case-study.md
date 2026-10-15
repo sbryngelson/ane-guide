@@ -102,7 +102,7 @@ For multi-shape serving, where each sequence length or batch width is a distinct
 ## Cache that stays resident
 
 The one part of the decoder that fits the engine's execution model is the key-value cache.
-The cache holds the keys and values of every prior token and grows by one row per step.
+The cache stores the keys and values of every prior token and grows by one row per step.
 Re-streaming the whole cache through the host each token would add a copy proportional to the sequence length on top of the weight stream.
 
 Instead, the cache stays resident on the engine across steps, as chapter 2 describes for resident state.

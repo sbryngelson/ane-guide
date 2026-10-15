@@ -86,7 +86,7 @@ A cancellation probe settles the question: a sum of a large value, its negation,
 The sum is physically wider than fp16.
 
 The wide accumulator is what suits the engine to vision, audio, and encoders.
-Those workloads are convolutions, matrix multiplies, and normalizations whose partial sums stay in range and whose results are representable, so the accumulator holds their precision.
+Those workloads are convolutions, matrix multiplies, and normalizations whose partial sums stay in range and whose results are representable, so the accumulator keeps their precision.
 The same arithmetic explains where a transformer decoder loses precision in fp16.
 The loss comes from the per-product fp16 rounding of the inputs and weights under heavy cancellation, in the down-projection in particular.
 The accumulator is wide enough; the inputs to it are already quantized.

@@ -23,7 +23,7 @@ At the operation level the engine is inference-only.
 The engine-native convolution family is the forward convolution and a single-channel cross-correlation.
 The forward convolution has a transpose mode, so the data-gradient, which is a transposed convolution, has a native operation.
 The weight-gradient has no native operation, because the only cross-correlation is single-channel and cannot serve the multi-channel correlation a weight-gradient requires.
-The weight-gradient thus lowers through a patch-extraction expansion into a matrix multiply, which is why a trainable convolution holds its weight as a graph input and why its backward cost grows with the minibatch.
+The weight-gradient thus lowers through a patch-extraction expansion into a matrix multiply, which is why a trainable convolution has its weight as a graph input and why its backward cost grows with the minibatch.
 
 The public on-device update path meets the same boundary [AppleCoreML].
 When the system framework fine-tunes a model on device, the forward pass may run on the engine, but the backward pass runs on the graphics processor or the host through those gradient operations.
@@ -130,7 +130,7 @@ Table: Conv weight-gradient saturation at a fixed shape, finite-to-infinity and 
 A 1x1 convolution does not touch the slice path, because it has no width-offset patch slice.
 The hazard is limited.
 A convolution-first network sends the normalization-bounded input through the width-offset slices on the forward side, where values stay well below 4094 regardless of loss scale.
-Its conv input-gradient, the path that would hold the loss-scaled gradient through the slice, is discarded because no layer precedes the first convolution.
+Its conv input-gradient, the path that would take the loss-scaled gradient through the slice, is discarded because no layer precedes the first convolution.
 The handwritten-digit network trains correctly at loss scales of 128, 1024, and 65536, with overlapping curves and final accuracies of $0.9070$, $0.9080$, and $0.9100$.
 The residual risk is a network that pushes width-offset-slice values in the weight-gradient path past 4094, which a preflight check can flag on the M1 and M2 generations.
 The M5 generation takes a different slice route and has no such saturation; the non-saturating route arrives on the A15 generation and later.

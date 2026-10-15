@@ -75,7 +75,7 @@ On the M1 the platform call reports unavailable: there is no exclave device-tree
 
 On the M5 this dormant path is the live execution substrate, which confirms the later-generation prediction above.
 The exclave device-tree node is present, the proxy binds, and the model program loads and runs inside a capability-scoped Swift secure component, `com.apple.aneexclave`, reached from the kernel only through a typed Tightbeam channel.
-The component holds explicit segment-access capabilities and nothing more: the seven per-client address-translation contexts the IORegistry exposes as `mapper-ane0-iso1` through `iso7`, plus thirty-two exclave memory regions.
+The component has explicit segment-access capabilities and nothing more: the seven per-client address-translation contexts the IORegistry exposes as `mapper-ane0-iso1` through `iso7`, plus thirty-two exclave memory regions.
 Because the program executes behind this boundary, the per-task-descriptor performance counters are produced secure-side and withheld from an unentitled host, which is why their live values stay gated.
 The M5 ran with System Integrity Protection enabled, so this is the enforced posture rather than an artifact of lowered security, and it adds a structural capability and address-translation layer to the temporal single-engine isolation the M1 provides.
 
@@ -86,7 +86,7 @@ That contention produces a cross-process timing side-channel, confirmed on the M
 
 A measuring process running a single tiny matmul in a continuous zero-copy loop is near the dispatch floor, where it is sensitive to anything that delays its turn at the engine.
 Alone, that process reads a median per-call latency of 153 microseconds.
-The moment a second process holds the engine with a heavy compute-bound load, the measuring process jumps to a median of about 355 microseconds, a 2.3x increase, because the shared single-in-flight queue serializes its calls behind the contender's.
+The moment a second process keeps the engine busy with a heavy compute-bound load, the measuring process jumps to a median of about 355 microseconds, a 2.3x increase, because the shared single-in-flight queue serializes its calls behind the contender's.
 Toggling the contender on and off produces a distinct square wave in the victim's latency that tracks the schedule at the exact toggle edges with no false transitions across a 10-second run ([Table](#tbl:c32-victim-latency)).
 
 | Contender state | Victim latency p50 | samples |
@@ -98,7 +98,7 @@ Toggling the contender on and off produces a distinct square wave in the victim'
 Table: Victim per-call latency tracking a contender toggled on and off on a shared M1 engine, bucketed at 250 ms. {#tbl:c32-victim-latency}
 
 The channel reads occupancy, not workload magnitude.
-A near-fixed serialization step of about +178 microseconds appears the instant the contender holds the queue at all, so even its tiniest workload pays almost the full penalty.
+A near-fixed serialization step of about +178 microseconds appears the instant the contender uses the queue at all, so even its tiniest workload pays almost the full penalty.
 Beyond that step there is only a weak monotonic trend, from 333 microseconds to 395 microseconds as the contender's work grows by a factor of roughly 64.
 The victim thus reliably learns that a co-tenant is running and a rough busy fraction, but cannot finely size individual operations from latency alone.
 The signal tracks engine-queue serialization: a concurrent 1 GB-per-loop CPU memory-copy hog moves the victim's latency by only 4 microseconds (a factor of 1.03), so only engine contention drives it.

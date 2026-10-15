@@ -162,7 +162,7 @@ for (int step = 0; step < n; step++) {
 
 Listing: Keeping a state buffer resident across dispatches by binding it to both an output port and the next step's input port. {#lst:exec-resident}
 
-Any multi-step computation that holds state uses this mechanism.
+Any multi-step computation that stores state uses this mechanism.
 An autoregressive decoder keeps its key and value cache resident, so each step appends the new entry in place, and no step restreams the whole cache through the host.
 A training loop keeps its optimizer state resident across steps for the same reason.
 The host sends only the small per-step inputs, a new token or a minibatch, and reads the resident buffers back at a checkpoint.

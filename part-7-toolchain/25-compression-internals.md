@@ -32,7 +32,7 @@ The palette formats are the enum range 7 through 27, selected by the guard `f - 
 The unity formats, the identity and scale-only weights that skip the multiply array, are the enum range 28 through 30, selected by `f - 0x1c < 3`.
 
 A compiled weight unit is a fixed set of sections, and the descriptor that names them is the authoritative field list.
-The descriptor holds an activation lookup table, palette lookup table, output-channel-group table, per-output-channel scale vector, per-output-channel bias vector, and the packed weight or index blob ([listing](#lst:c25-kernel-unit)).
+The descriptor stores an activation lookup table, palette lookup table, output-channel-group table, per-output-channel scale vector, per-output-channel bias vector, and the packed weight or index blob ([listing](#lst:c25-kernel-unit)).
 
 ```text
 t%u = s%lu
@@ -46,12 +46,12 @@ t%u = s%lu
 
 Listing: The per-output-channel-group kernel-unit descriptor, the authoritative six-section field list emitted into the compiled weight section. {#lst:c25-kernel-unit}
 
-The palette table tuple holds the palette format, index bit-depth, codebook count, and codebook byte size; a codebook count above one marks the vector-palettized case.
+The palette table tuple gives the palette format, index bit-depth, codebook count, and codebook byte size; a codebook count above one marks the vector-palettized case.
 The activation table and the palette table are peers in one descriptor.
 
 The element types the descriptor writes for a weight section are a subset of the 24-entry catalog.
 They are int8 as type 2, uint8 as type 3, half-precision as type 5, the lookup-table tag as type 8, 4-bit unsigned as type 9, the 8-bit floating form as type 16, and 4-bit signed as type 23.
-The half-precision type holds the codebook entries, scale, and bias, so a palette codebook supplies the multiply array with no further conversion.
+The half-precision type stores the codebook entries, scale, and bias, so a palette codebook supplies the multiply array with no further conversion.
 
 ## Four codecs
 
@@ -75,7 +75,7 @@ with quantized byte $q$, half-precision scale $s$, and zero point $z$, the encod
 The scale is scalar or one value per output channel.
 The M1 forces the zero point to zero, so the form is symmetric and reduces to $w = s\,q$: the asymmetric setter hard-asserts on the version-five table descriptor, and the firmware invariant requires the asymmetric-quantization configuration bit clear.
 
-The per-output-channel scale and bias do not cost a runtime operation: the compiler folds them into the weight coefficients at compile time and holds them in the descriptor's scale and bias arrays as per-output-channel vectors.
+The per-output-channel scale and bias do not cost a runtime operation: the compiler folds them into the weight coefficients at compile time and keeps them in the descriptor's scale and bias arrays as per-output-channel vectors.
 The engine applies them at the gain-offset-control stage as $y = s_{\mathrm{out}}\,(\sum_k w'_k x_k) + b_{\mathrm{out}}$ where the coefficient already absorbs the dequantization scale.
 This is why a symmetric quantized convolution on the M1 costs nothing extra for the affine: the compiler folds the scale and the zero point into the stored weights and the per-output-channel arrays before the dispatch.
 
@@ -86,7 +86,7 @@ The reconstructed weight is
 $$w = \mathrm{LUT}\big[g / v\big]\big[\,k\,\big]\big[\,c \bmod v\,\big]$$
 
 with output-channel-group index $g$, palette vector size $v$, the four-bit index $k$ for the element, and channel position $c$.
-For the common per-tensor case the vector size is one and a single codebook holds all 16 entries, so the relation flattens to one table lookup.
+For the common per-tensor case the vector size is one and a single codebook has all 16 entries, so the relation flattens to one table lookup.
 A 4-bit weight has no affine path at all: there is no 4-bit underlying scalar type in the type table, so it can only be a palette index.
 That is why the lookup-table form is structurally a palette and is the one form that streams on the M1.
 
@@ -205,7 +205,7 @@ On a bandwidth-bound stack the zero-skip alone moves the limit by about one perc
 
 The second is the sparse-binary store with on-chip decompress, which is the source of the bandwidth gain.
 The mask and the packed nonzeros cross the direct-memory-access stream, and the engine decompresses them on chip into the dense tile.
-The on-device kernel-configuration register holds a single packed sparse-format field beside the palette-enable and palette-bits fields in the same word.
+The on-device kernel-configuration register has a single packed sparse-format field beside the palette-enable and palette-bits fields in the same word.
 A six-by convolution stack at sixty-three percent zeros streams the sparse form at about 0.43 times the dense weight bytes and runs 1.55 to 1.64 times faster than the same weights stored dense.
 Effective bandwidth rises from about 29 to about 48 gigabytes per second, which is the M1 weight-stream ceiling.
 The compiled program is byte-identical between the dense and sparse bundles at 2416 bytes, so the difference is entirely in the streamed weight payload and its descriptor, which is the signature of a native stream rather than a fold or a changed program.
@@ -246,4 +246,4 @@ The sparse-binary index packing, multi-codebook palette, asymmetric quantization
 
 The full Winograd eligibility gate is derived in chapter 20: the enable bit, kernel-axis and tile-size conditions, and the $\mathrm{OCG} \times K_y \times K_x \times K_d \times 2$ work threshold against its non-float, float, and packed floors.
 The compression-relevant point is the weight-format interaction: eligibility requires a non-unity, non-sparse weight, so a sparse or unity-format weight is excluded from the Winograd path and keeps its own datapath.
-The transform matrices $G$, $B^\top$, and $A^\top$ are resident in the array and appear in no shippable weight blob, so no codec holds them.
+The transform matrices $G$, $B^\top$, and $A^\top$ are resident in the array and appear in no shippable weight blob, so no codec contains them.

@@ -103,7 +103,7 @@ The default never changes the numerical result of the graph.
 
 The reported gains follow the roofline.
 A fused attention route rewrite is 3.7 to 5.3 times faster on attention blocks and on a full vision transformer at cosine similarity 1.0, because it removes per-dispatch floors and intermediate round-trips.
-The optimizer's gate is the test corpus, which holds the cross-chip latency table as a regression so a change to the model cannot silently move an estimate.
+The optimizer's gate is the test corpus, which contains the cross-chip latency table as a regression so a change to the model cannot silently move an estimate.
 
 ## Estimating latency and tuning a graph
 
@@ -151,7 +151,7 @@ No faster array helps a layer pinned to the 0.23 ms floor on the M1, so a graph 
 ## Two cost models and their coefficients
 
 There are two cost models in the toolchain.
-The model above is the intra-engine analytic model the compiler holds, the cycles-to-roofline-to-wall-time chain, fit to silicon for a per-chip latency estimate.
+The model above is the intra-engine analytic model the compiler uses, the cycles-to-roofline-to-wall-time chain, fit to silicon for a per-chip latency estimate.
 A second model decides backend placement: whether each operation runs on the engine, central processor, or graphics processor, and it is in the segmenter rather than the engine compiler.
 The placement model costs an operation as the same roofline form, `max(flops/peak, bytes/bandwidth) + launch`, but with coarse abstract anchors rather than silicon-fit ones.
 
@@ -194,7 +194,7 @@ A transfer between two operations on the same backend costs zero, so a long run 
 
 ## Learned per-operation leaves
 
-Above the coarse roofline the placement model holds a learned per-operation layer: 322 regression trees, one set per platform class and compute path, that map the coarse roofline ratio onto a calibrated cost in nanoseconds.
+Above the coarse roofline the placement model has a learned per-operation layer: 322 regression trees, one set per platform class and compute path, that map the coarse roofline ratio onto a calibrated cost in nanoseconds.
 The trees split on a normalized feature built from the operation flops and bytes, and the leaf is the predicted cost.
 The engine trees are the small roofline-form ones, and the cost they return is monotone in operation cost: elementwise below pooling below linear below convolution below transposed convolution.
 [Table](#tbl:c18-tree-leaves) gives representative engine cost-tree leaves, spanning a constant-leaf elementwise operation to the largest transposed-convolution leaf.

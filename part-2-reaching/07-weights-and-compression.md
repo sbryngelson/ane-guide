@@ -8,7 +8,7 @@
 > Choose the form by what streams on the target.
 > On the M1, fall back to int8 only where its halved stored size pays, since the int8 fold expands to fp16 in DRAM and yields no bandwidth there.
 
-A compiled network holds its weights as a separate stream that the engine reads from DRAM on every dispatch.
+A compiled network stores its weights as a separate stream that the engine reads from DRAM on every dispatch.
 The weight stream is the primary cost of any layer whose arithmetic intensity is low, which covers most decode-shaped and projection-heavy work.
 Compressing the weights moves fewer bytes across that stream; it does more than shrink a stored file.
 
@@ -26,7 +26,7 @@ The target chip sets which outcome applies to a form, not the frontend.
 ## Compression forms
 
 The engine reconstructs four weight-compression forms, the same linear quantization, palettization, and pruning the conversion tools document as a model-size feature [AppleCoreMLTools].
-Per-tensor and per-channel int8 hold the weight as a single byte per element with an fp16 scale, one scale for the whole tensor or one per output channel, reconstructed as the scale times the byte.
+Per-tensor and per-channel int8 keep the weight as a single byte per element with an fp16 scale, one scale for the whole tensor or one per output channel, reconstructed as the scale times the byte.
 The reconstruction is the affine dequantization
 
 $$w = s\,(q - z)$$
@@ -56,18 +56,18 @@ constexpr_blockwise_shift_scale(q, scale)           # blockwise:    one scale pe
 
 Listing: The single reconstruction op that declares each compressed weight form to the compiler. {#lst:c7-constexpr-ops}
 
-The int4 lookup-table form holds a four-bit index per element into a sixteen-entry fp16 codebook, and reconstruction is a table lookup with no arithmetic since the codebook is already fp16.
+The int4 lookup-table form uses a four-bit index per element into a sixteen-entry fp16 codebook, and reconstruction is a table lookup with no arithmetic since the codebook is already fp16.
 Structurally it is a palette rather than an arithmetic dequantization, which is why it behaves differently from int8 on the streaming question.
 
 A worked example shows the packing and the decode.
-The four weights `[1.0, 0.0, 0.0, 1.0]` index a sixteen-entry fp16 codebook whose first two slots hold `0.0` (entry 0, `0x0000`) and `1.0` (entry 1, `0x3c00`).
+The four weights `[1.0, 0.0, 0.0, 1.0]` index a sixteen-entry fp16 codebook whose first two slots contain `0.0` (entry 0, `0x0000`) and `1.0` (entry 1, `0x3c00`).
 The index stream `[1, 0, 0, 1]` packs two four-bit indices per byte, low nibble first, so the four weights occupy the two bytes `0x01` and `0x10`.
 Decoding reads each nibble as a table index, recovering `[1.0, 0.0, 0.0, 1.0]`.
 
-Structured sparsity holds a one-bit mask marking the nonzero positions plus the packed fp16 values of those nonzeros.
+Structured sparsity has a one-bit mask marking the nonzero positions plus the packed fp16 values of those nonzeros.
 The mask costs one bit per element and the values cost two bytes per surviving element, so a weight that is half zeros or more stores well below its dense size.
 Reconstruction scatters the values back into the masked positions exactly apart from the fp16 rounding of the kept values.
-Blockwise affine holds a separate scale for each contiguous block of elements, finer than a per-channel scale and so lower in quantization error.
+Blockwise affine gives a separate scale to each contiguous block of elements, finer than a per-channel scale and so lower in quantization error.
 
 ## What streams on each family
 

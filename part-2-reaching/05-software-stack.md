@@ -4,7 +4,7 @@
 > The execution runtime beneath the model framework is reachable directly, with no placement planner and no entitlement for accepted operations.
 > The model framework segments work across the processor, graphics processor, and engine by a shortest-path solve over a per-operation cost graph.
 > The public model-plan read-out reports that solve.
-> A system daemon holds the single privileged device gate, a content-hashed program cache, and one time-shared request queue that arbitrates every client.
+> A system daemon has the single privileged device gate, a content-hashed program cache, and one time-shared request queue that arbitrates every client.
 
 Part I treated the engine as a machine: a fixed-function matrix accelerator with an fp16 datapath, driven as an autonomous coprocessor through a command mailbox.
 Part II treats it as a target a developer can address.
@@ -51,14 +51,14 @@ Beneath it is the execution runtime, the layer every path passes through.
 It owns compilation: it turns a network in the intermediate representation into the engine's program format, writes the result to a content-addressed cache on disk, and produces a loadable program.
 It owns the program library and the callable functions inside it.
 It owns the execution stream, the queue against which a compiled program is encoded and dispatched, and the descriptors that bind operands to a program's named ports.
-The same runtime hosts the central-processor and graphics-processor executors as alternative backends, so a single stream can hold operations placed on different devices.
+The same runtime runs the central-processor and graphics-processor executors as alternative backends, so a single stream can contain operations placed on different devices.
 The engine is one backend among those three.
 
 Beneath the runtime, on the path to the engine, is the client layer.
 It splits into two duties.
 The client layer hands program lifecycle, meaning compile, load, instantiate, cache, and purge, to the system daemon over an interprocess channel.
 Per-inference dispatch goes directly to the kernel driver once a program instance exists.
-The daemon holds the privileged device handle and the on-disk program cache; the client process holds the connection it uses for the hot path.
+The daemon has the privileged device handle and the on-disk program cache; the client process keeps the connection it uses for the hot path.
 
 The lowest user-space layer is a thin shim over the kernel driver.
 Its calls translate into driver method invocations on the engine's user client.
@@ -80,7 +80,7 @@ Table: Layers of the engine software stack, each layer's role, and whether a cal
 Each layer has a distinct symbol family in the binaries, and the family name identifies the layer a call is on.
 The execution runtime exports a flat C facade over a C++ core in the `E5RT::` namespace, with every entry point prefixed `e5rt_`.
 The client layer is Objective-C, every class prefixed `_ANE`.
-The daemon communicates over a private interprocess protocol whose selectors hold the arguments verbatim.
+The daemon communicates over a private interprocess protocol whose selectors name the arguments verbatim.
 The shim into the kernel driver is the `ANEServices` C and C++ entry points, which lower to the IOKit `IOConnectCall*` calls on the engine's user client.
 Each family appears beside its layer in [table](#tbl:c5-symbols).
 
@@ -108,9 +108,9 @@ Each family pairs a `_create` constructor with a `_release` destructor, and each
 
 The dictionary spans four objects.
 The compile-time options object (`e5rt_e5_compiler_options_`) exposes 21 keys: the backend bitmask (`compute_device_types_mask`, where `0x4` names the engine), the cache controls `force_recompilation` and `force_fetch_from_cache`, the `segmenter` selection, and a set of backend-preference and experimental toggles.
-A separate compiler-configuration object (`e5rt_e5_compiler_config_options_`) holds the 2 cache keys: `cache_bundle_location`, the directory the daemon writes the compiled bundle into, and `bundle_cache_apfs_purgeable`, which marks that bundle reclaimable under storage pressure.
-The per-operation options object (`e5rt_precompiled_compute_op_create_options_`) holds 14 keys, including `operation_name`, `allocate_intermediate_buffers`, the resident-weight path `mutable_mil_weight_paths`, and a cross-process IOSurface pool binding.
-The execution-stream configuration object holds 3 keys: `enable_concurrent_sync_execution`, `enable_low_latency_async_events`, and `skip_io_fences`.
+A separate compiler-configuration object (`e5rt_e5_compiler_config_options_`) has the 2 cache keys: `cache_bundle_location`, the directory the daemon writes the compiled bundle into, and `bundle_cache_apfs_purgeable`, which marks that bundle reclaimable under storage pressure.
+The per-operation options object (`e5rt_precompiled_compute_op_create_options_`) contains 14 keys, including `operation_name`, `allocate_intermediate_buffers`, the resident-weight path `mutable_mil_weight_paths`, and a cross-process IOSurface pool binding.
+The execution-stream configuration object has 3 keys: `enable_concurrent_sync_execution`, `enable_low_latency_async_events`, and `skip_io_fences`.
 A neutral all-engine compile sets only a small subset of these: the engine bitmask, `force_recompilation`, and the `"graph"` segmenter, leaving every other key at its runtime default.
 
 The on-disk program cache the daemon writes is keyed by content, not by source filename.
@@ -168,17 +168,17 @@ The placement audit trail is itself a queryable compile output: the program libr
 ## Broker
 
 A system daemon mediates access to the engine.
-Only that daemon and its per-user sibling hold the kernel gate that opens the device, so every other process reaches the engine through it.
+Only that daemon and its per-user sibling have the kernel gate that opens the device, so every other process reaches the engine through it.
 A client proves itself to the daemon over the interprocess channel, and the daemon performs the privileged device open on the client's behalf, returning a program handle the client then drives.
 
 The daemon arbitrates across clients.
 There is one physical engine, so concurrent demand resolves by time-division on a single request queue.
 The daemon owns the shared program cache, keyed by a content hash of each compiled network, so a network already compiled by one client is a cache hit for the next.
-It holds a quality-of-service value on every request and adjusts a client's requested queue depth under contention, which keeps one client from depriving another of service.
+It sets a quality-of-service value on every request and adjusts a client's requested queue depth under contention, which keeps one client from depriving another of service.
 A request from a developer-signed program and a request from a system dispatcher arrive at the same broker, and the same queue arbitrates both.
 
 The daemon is the one process holding the kernel gate, and its interprocess surface is the program-lifecycle protocol every client drives.
-The program-instance method holds the per-instance parameters verbatim in its selector, the residency, power, and statistics arguments among them ([listing](#lst:c5-instance-selectors)).
+The program-instance method lists the per-instance parameters verbatim in its selector, the residency, power, and statistics arguments among them ([listing](#lst:c5-instance-selectors)).
 
 ```objectivec
 # the daemon's central program-instance method (recovered selector, NSXPC _ANEDaemonProtocol)
@@ -207,7 +207,7 @@ Listing: The program-instance struct the daemon returns over the interprocess ch
 ## Access-control model
 
 The device has one user-space entry point.
-The kernel driver denies opening the user client without the entitlement `com.apple.ane.iokit-user-access`, and exactly two binaries on the system hold it: the daemon and its per-user sibling.
+The kernel driver denies opening the user client without the entitlement `com.apple.ane.iokit-user-access`, and exactly two binaries on the system have it: the daemon and its per-user sibling.
 Every other process proves itself to the daemon over the interprocess channel instead, gated by a `com.apple.aned.private.*` entitlement family that the daemon checks per connection and per method.
 [Table](#tbl:c5-entitlements) gives that entitlement family and what each member authorizes.
 
@@ -222,7 +222,7 @@ Every other process proves itself to the daemon over the interprocess channel in
 
 Table: The entitlement family that gates the engine, with the count of system binaries holding each in this build. {#tbl:c5-entitlements}
 
-A privileged subset of 27 binaries also holds a sandbox exception for the class `H11ANEInDirectPathClient`, which lets a latency-sensitive client open the low-latency user client and drive per-inference submission on its own connection rather than round-tripping each inference through the daemon.
+A privileged subset of 27 binaries also has a sandbox exception for the class `H11ANEInDirectPathClient`, which lets a latency-sensitive client open the low-latency user client and drive per-inference submission on its own connection rather than round-tripping each inference through the daemon.
 The exception grants no device access by itself: the daemon still performs the privileged open and returns the program handle.
 A developer-signed binary cannot assert the kernel gate, since it names a restricted user-client class that ad-hoc and development signing cannot claim.
 The direct route reaches the engine the same way a sanctioned application does, through the daemon.
@@ -233,10 +233,10 @@ It authors its work at the model and program layer.
 Compilation does not happen in the calling process.
 The service that turns a network into the engine's program format is a separate sandboxed interprocess service, `com.apple.ANECompilerService`, reached through an `NSXPCConnection` named for it.
 That service vends a single entry point, the method `compileModelAt:csIdentity:sandboxExtension:options:tempDirectory:...:withReply:`, and admits a connection only through an entitlement gate.
-The service's `listener:shouldAcceptNewConnection:` delegate calls `valueForEntitlement:` on the connection against the string returned by `+compilerServiceAccessEntitlement`, then logs whether the client holds the entitlement or is missing it.
+The service's `listener:shouldAcceptNewConnection:` delegate calls `valueForEntitlement:` on the connection against the string returned by `+compilerServiceAccessEntitlement`, then logs whether the client has the entitlement or is missing it.
 
 This is the concrete reason compilation leaves the calling process even for a hand-authored or self-compiled program.
-The service holds two entitlements an ordinary process does not: it writes the system-protected compile cache under `rootless.storage.ane_model_cache`, and it decrypts under `coreml.decypt_allowed`.
+The service has two entitlements an ordinary process does not: it writes the system-protected compile cache under `rootless.storage.ane_model_cache`, and it decrypts under `coreml.decypt_allowed`.
 A caller hands its network to the service and receives the compiled bundle back, the same separation the daemon imposes on device access.
 
 The service keeps a warm-start cache so a repeat compile of the same network is not re-paid.

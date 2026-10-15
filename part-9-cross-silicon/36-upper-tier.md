@@ -85,7 +85,7 @@ The master per-format direct-memory-access validity function `CheckValidDMAForma
 It validates fp32 against `0x52c`, E4M3 against `0x52d`, E5M2 against `0x52e`, and the two-byte live formats against `0x685`, with every code below `0xb` always valid.
 Three operation-semantics sites re-check the byte and abort with "E4M3 is not supported on this architecture": the dequantize validator at line 129078, the quantize validator at line 227466, and a third semantics validator at line 3407368.
 Below that runtime gate is a harder compile-time limit on the M1 generation.
-The M1 task-descriptor encoder packs the source element format into a two-bit field, which holds only the integer and half-precision codes and has no bit space for the E4M3 codepoint.
+The M1 task-descriptor encoder packs the source element format into a two-bit field, which stores only the integer and half-precision codes and has no bit space for the E4M3 codepoint.
 Feeding fp8 to the M1 encoder thus aborts the compile rather than refusing the operation at runtime.
 The encoder that does have the E4M3 codepoint widens that field to three bits and adds a distinct output slot, and that wider encoder is present from the A17 generation onward even though the runtime capability at `0x52d` fires only on H18.
 
@@ -178,7 +178,7 @@ A sharding attribute maps each tensor axis to a mesh axis, splitting that axis i
 The split requires even divisibility, which the strings "Input tensor dimension must be divisible by the number of shards along the tensor dimension" and "Kernel dimension must be divisible by number of shards" enforce.
 The compiler rejects sharding the same mesh dimension twice and allows a replicated section only on a multi-die network.
 
-The reduce-across-the-mesh operation lowers to a collective direct-memory-access that holds a hardware atomic read-modify-write: the reduction happens in memory as the direct-memory-access writes into a shared buffer, which is why the operation requires in-memory-reduction support that the single-die families lack.
+The reduce-across-the-mesh operation lowers to a collective direct-memory-access that contains a hardware atomic read-modify-write: the reduction happens in memory as the direct-memory-access writes into a shared buffer, which is why the operation requires in-memory-reduction support that the single-die families lack.
 The reduction-to-atomic map is decoded from the `ZinIrReductionTypeToZinAtomicOpType` switch ([table](#tbl:c36-atomic)).
 
 | Reduction type | Atomic-op register value |

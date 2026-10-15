@@ -4,7 +4,7 @@
 > The lane width emits eight output channels per cycle in the int8 fast path and four in the default fp16 path.
 > Output channels are the dimension that splits across cores and across accumulator passes.
 > Each core reduces through a radix-4 tree of fp16-rounded tiles into one wide running accumulator of fp32 class, rounding to fp16 only at the output port.
-> The firmware has no convolution, Winograd, or systolic code: it holds the real-time kernel and the tile, kernel, and output direct-memory-access plumbing, and nothing else.
+> The firmware has no convolution, Winograd, or systolic code: it is the real-time kernel and the tile, kernel, and output direct-memory-access plumbing, and nothing else.
 
 The array is a set of cores, accumulators, and lanes whose dimensions are constants in the compiler and in a per-chip hardware-abstraction table.
 The compiler supplies it by re-basing direct-memory-access engines per tile.
@@ -74,7 +74,7 @@ Those fp16-rounded tiles then feed a single wide running accumulator of fp32 cla
 
 The fan-in of four comes from measurement rather than from the table.
 A reduction of `[+B, -B, +1]` triples, repeated sixteen times so that the true sum is sixteen, returns sixteen survivors below a partial magnitude of 4096 and saturates to exactly four survivors for every `B` at or above 4096.
-The saturation count of four is the radix-4 tile signature: once a tile holds a partial at or above 4096, the unit increments sharing that tile fall below half of the fp16 spacing and vanish, and the three-element triple period beats against the four-lane tile to leave four unaffected lanes.
+The saturation count of four is the radix-4 tile signature: once a tile has a partial at or above 4096, the unit increments sharing that tile fall below half of the fp16 spacing and vanish, and the three-element triple period beats against the four-lane tile to leave four unaffected lanes.
 The threshold is at 4096 because that is where the fp16 spacing first reaches four.
 The result is layout-independent: the `[+B, -B, +1]` and `[+B, +1, -B]` orderings return byte-identical values, so the hardware reduction order is a fixed lattice over lane index.
 
@@ -106,7 +106,7 @@ A 1-by-1 convolution has a kernel-element count of one, so it admits a large gro
 At a kernel-element count of nine, a 3-by-3 convolution gets a group roughly nine times smaller and needs more passes over the input.
 The compiler relieves that pressure by selecting Winograd for dense 3-by-3 stride-1 convolutions, since the transform cuts the effective kernel-element count.
 
-Once the output-channel count exceeds what one pass holds, the array re-streams the input for a second pass.
+Once the output-channel count exceeds one output-channel group, the array re-streams the input for a second pass.
 The number of passes is
 
 $$\mathrm{OCG\ passes} = \left\lceil \frac{C_{out}}{\mathrm{OCG}} \right\rceil .$$
@@ -198,7 +198,7 @@ A live capture of the compiler during a real M1 compile pins the geometry it cos
 Table: Costed-geometry constants captured live during an M1 compile, with the active-engine count and the candidate split geometries. {#tbl:c20-live-geometry}
 
 The 8 active engines the compiler costs against differ from the 16 cores the I/O registry reports for the M1: the costed geometry is 8 active engines on 1 cluster, a model-internal figure rather than the registry core count or the four physical compute sets that the power rail confirms above.
-The model also holds a 64-unit kernel-memory budget that weight residency must fit under, and a 44-cycle fixed per-layer overhead that is added to every layer's execute cycles.
+The model also sets a 64-unit kernel-memory budget that weight residency must fit under, and a 44-cycle fixed per-layer overhead that is added to every layer's execute cycles.
 
 The full datapath reads top to bottom from the output-channel groups down through the four cores to each core's accumulator and its radix-4 reduction, as [figure](#fig:c20-datapath) draws it.
 

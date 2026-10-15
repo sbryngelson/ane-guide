@@ -38,7 +38,7 @@ Table: The five scheduler task states. {#tbl:c29-task-states}
 The distinct semaphore-wait state, separate from the generic wait, is the heritage of the real-time executive model the primitives follow.
 The message queue each task blocks on is a bounded-buffer control block holding a maximum message width, a ring depth, read and write pointers, a lock, and two counting semaphores.
 The send side blocks when full and the receive side blocks when empty.
-The kernel holds all its objects in fixed pools sized at build time: tasks, semaphores, mailboxes, queues, signals, timers, and mutexes each occupy a slot in a pre-sized table.
+The kernel keeps all its objects in fixed pools sized at build time: tasks, semaphores, mailboxes, queues, signals, timers, and mutexes each occupy a slot in a pre-sized table.
 There is no unbounded dynamic task creation at run time, and the capacity of each pool is fixed and reportable as a total-and-available count.
 A hard boot invariant ties the heap to the system reservation: the initial heap must exceed twice the reserved framework allocation, and the kernel refuses to boot if the arena is too small.
 
@@ -79,7 +79,7 @@ The first four apertures take a contiguous index base and three successive offse
 The three `ANEHAL` aperture indices are read from per-family device fields, which is why the aperture count and indices differ across chips.
 
 The kernel allocates the RTBuddy client during attach and stores it on the device object, with a name object retrieved from the `ANE` property and a separate mailbox object.
-The endpoint itself comes up inside `ANE_Init` through `EnableRTBuddyEndpoints`, which holds the endpoint identifier literal `0xe400`.
+The endpoint itself comes up inside `ANE_Init` through `EnableRTBuddyEndpoints`, which uses the endpoint identifier literal `0xe400`.
 The path first tries `ANE1Endpoint1`, and on failure cleans up and retries `ANEEndpoint1`.
 The endpoint lookup resolves the named service, retrieves the endpoint object, and registers the inbound message handler, with the doorbell paths wired alongside.
 
@@ -111,7 +111,7 @@ Bring-up is ready to accept the first command when all of the following hold.
 - The kernel has logged that the engine controller is ready, enabled interrupts, and round-tripped the start command.
 
 Only then does the kernel issue its first commands over the channel, in order: print-enable, start, the performance-monitoring-unit base set, a host-to-engine time synchronization, channel-property write, resource-information query, default-setting write, memory-cache power-on, and the shared-event-information initialization.
-The resource-information query returns the engine count, cache-request limits, and maximum procedure count, and the default-setting write holds the context-switch latency threshold.
+The resource-information query returns the engine count, cache-request limits, and maximum procedure count, and the default-setting write sets the context-switch latency threshold.
 
 ## Execution loop
 
@@ -143,7 +143,7 @@ The dispatcher checks each command identifier on every event against a fixed acc
 The complete decoded command set is in chapter 30.
 The firmware drops and counts a procedure call addressed to a process that is not running.
 
-The procedure-call command structures hold the buffer-access registers and optional event and execute-order arrays under fixed field limits, recovered from the firmware assertion strings ([Table](#tbl:c29-field-limits)).
+The procedure-call command structures list the buffer-access registers and optional event and execute-order arrays under fixed field limits, recovered from the firmware assertion strings ([Table](#tbl:c29-field-limits)).
 
 | Field | Limit |
 | --- | --- |
@@ -192,11 +192,11 @@ After staging a task-descriptor list the driver notifies the host by ringing a d
 The engine-to-host interrupt is a single 32-bit memory-mapped store to a host-supplied register, bracketed by the windowed-store gate of chapter 27.
 Bit 39 of the implementation-defined system register `S3_3_C15_C8_0` is cleared to arm the doorbell window, and the store is forwarded as a fabric-coherent transaction.
 Bit 39 is set again to close the window.
-The firmware masks interrupts across the four steps so the arm, store, sample, and disarm cannot be interrupted, and the two status bits sampled after the store hold the fabric response.
+The firmware masks interrupts across the four steps so the arm, store, sample, and disarm cannot be interrupted, and the two status bits sampled after the store record the fabric response.
 The same guarded sequence drives the engine-to-graphics-processor synchronization doorbell, which writes the value `1` to the fixed memory-mapped target `0x2_0646_8000` between the identical bit-39 clear and set.
 
 The system register is not a single-bit gate.
-At least six bit positions hold distinct meaning, recovered from the read, write, and sample patterns at the 28 access sites and decoded in [Table](#tbl:c29-fabric-reg).
+At least six bit positions have distinct meaning, recovered from the read, write, and sample patterns at the 28 access sites and decoded in [Table](#tbl:c29-fabric-reg).
 
 | Bit | Role |
 | --- | --- |
@@ -326,10 +326,10 @@ The first two bytes are the magic value `0x0101`, a version stamp.
 Table: The `0x28`-byte statistics-buffer header `CAneProgramManagerH11` writes on inference completion. {#tbl:c29-stats-header}
 
 After the header the firmware copies one descriptor per active engine, looping over up to 32 engines at a stride of `0x48` bytes in the engine table.
-Each descriptor holds the engine identifier and type, call index, and engine index, followed by a 16-byte counter quad read from `engine_block+0x30`.
+Each descriptor contains the engine identifier and type, call index, and engine index, followed by a 16-byte counter quad read from `engine_block+0x30`.
 The size query returns four constants the host uses to size the buffer: a `0x28`-byte header, a `0x14`-byte per-event descriptor, a `0x10`-byte per-debug-event record, and a `0x20`-byte per-engine descriptor.
 The per-engine values are software-tracked latency and event accumulators maintained by the firmware profiler, not raw register reads.
-The buffer also holds running totals the host reads back: a valid-record count, log-event total, and stat-event total.
+The buffer also stores running totals the host reads back: a valid-record count, log-event total, and stat-event total.
 
 The read is gated by a host-side null check.
 The map handler loads the host buffer address and size from the command, and a `cbz` on each skips the address-translation map when either is null, as [Listing](#lst:c29-stats-nullcheck) shows.
@@ -368,8 +368,8 @@ The engine cannot write a filesystem, so it depends on the host to drain the dum
 After staging the dump the firmware blocks while the host pulls it section by section, then the host resets the channel and re-initializes the firmware to the ready handshake.
 
 Firmware status is not a flat numeric enum.
-A namespace of notification commands sent to the host holds it, alongside inline return values at the point of failure.
-A generic per-channel error notification holds an opaque error index, a reset notification holds the task-queue range the reset spans, and a tile-sync error notification reports a data-movement error.
+A namespace of notification commands sent to the host records it, alongside inline return values at the point of failure.
+A generic per-channel error notification has an opaque error index, a reset notification gives the task-queue range the reset spans, and a tile-sync error notification reports a data-movement error.
 
 Faults divide into four dispositions.
 A version-minor mismatch warns and continues.

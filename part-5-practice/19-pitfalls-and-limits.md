@@ -116,7 +116,7 @@ It produces output byte-identical to a host conversion, saves roughly two millis
 ## A build-time pitfall check
 
 The pitfalls share one defense: gate the graph before it reaches the compiler, keyed on the target family and the offending shape.
-The estimate holds the per-target hazard flags, so a saturating slice, batched dynamic-weight convolution, or four-character-code input is rejected at build time ([listing](#lst:c19-pitfall-scan)).
+The estimate records the per-target hazard flags, so a saturating slice, batched dynamic-weight convolution, or four-character-code input is rejected at build time ([listing](#lst:c19-pitfall-scan)).
 
 ```python
 # Scan the graph for the known pitfalls and reject or rewrite before compiling, target = H13.
@@ -161,7 +161,7 @@ Listing: Scanning a graph for the five direct-path pitfalls and stopping the bui
 
 ## Symbolic shapes are not reachable on the direct path
 
-The engine compiler holds a full symbolic-shape system: it accepts a dimension written as an unknown, type-checks two dynamic operands for matching symbolic expressions, and enforces affine constraints on symbolic dimensions.
+The engine compiler has a full symbolic-shape system: it accepts a dimension written as an unknown, type-checks two dynamic operands for matching symbolic expressions, and enforces affine constraints on symbolic dimensions.
 The silicon can thus run a program that accepts a variable sequence length on one compile in principle.
 The direct compile path does not reach it.
 A relu over a tensor with an unknown dimension parses, but the compile fails with an unsupported-operation error, because the symbolic-shape machinery is behind the entitled model-input route that lowers enumerated or range shapes onto symbolic engine programs.

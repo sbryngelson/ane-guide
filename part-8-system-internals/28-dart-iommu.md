@@ -25,7 +25,7 @@ Table: The page granule, aperture base and size, and active stream set, read fro
 
 A host tensor buffer never reaches the engine as a host virtual address.
 The DART maps it into the engine's own address space, the device virtual address or IOVA, and the DMA engines issue reads and writes against IOVAs.
-The DART holds the page tables that translate each IOVA back to a physical DRAM page, so a buffer physically scattered across DRAM appears IOVA-contiguous to the engine.
+The DART contains the page tables that translate each IOVA back to a physical DRAM page, so a buffer physically scattered across DRAM appears IOVA-contiguous to the engine.
 The DART instance serving the engine on the M1 is a single controller bound to the engine stream set, and its managed address window and granule come from the live device tree.
 The controller is the device-tree node `dart-ane0` at physical base `0x85800000`, bound to the t6000-generation driver class, not the t8020 class.
 It has four 16 KB register windows at `0x85800000`, `0x85810000`, `0x85820000`, and `0x85804000`.
@@ -43,7 +43,7 @@ It has four 16 KB register windows at `0x85800000`, `0x85810000`, `0x85820000`, 
 Table: The live `dart-ane0` device-tree properties read from the controller node. {#tbl:c28-dart-props}
 
 The host-side translation object is a three-level mapper chain: the controller driver owns a mapper nub, which owns the translation mapper the engine driver is handed.
-That mapper holds the highest retain count of any mapper on the system, consistent with its role as the live tensor-mapping object.
+That mapper has the highest retain count of any mapper on the system, consistent with its role as the live tensor-mapping object.
 The page granule is 16 KB, not the 4 KB of the host page tables.
 The firmware validates the same value independently and rejects a wrong one with `MMU invalid page size: %x`, so the host maps and wires every engine DMA buffer at 16 KB granularity.
 A sub-page buffer still consumes a full 16 KB IOVA page.
@@ -94,15 +94,15 @@ Table: The bit-field layout of the 64-bit leaf page-table entry the DART stores 
 
 The physical frame is the full 16 KB-aligned physical address located unshifted, so its low 14 bits are zero and the frame and the valid bit do not overlap.
 
-The word holds the same shape for every live engine usage type.
-The mapping software holds two software protection classes, read-write for inputs, weights, and intermediates, and a device-write class for outputs, yet both collapse to the identical leaf template of bit 63 alone.
+The word keeps the same shape for every live engine usage type.
+The mapping software names two software protection classes, read-write for inputs, weights, and intermediates, and a device-write class for outputs, yet both collapse to the identical leaf template of bit 63 alone.
 The DART encodes access permission in the per-stream translation-control configuration.
 Bits 62, 60, and 59 are aux-protection classes that the engine driver never sets, because its direction-to-protection mapper produces only the values $\{1, 2, 3\}$, whose bits 3, 4, and 5 are always zero.
 Across 26178 measured leaf-map events none of those three bits was ever set.
 
 The mapping path that produces this word stacks two translations.
 The host pins the physical pages, then fills the leaf table by accumulating per-page segments and flushing them through the page-protection-layer write.
-That write holds a 40-byte per-page segment structure, from which the leaf word is assembled per page ([Listing](#lst:c28-ppl-seg)).
+That write uses a 40-byte per-page segment structure, from which the leaf word is assembled per page ([Listing](#lst:c28-ppl-seg)).
 
 ```c
 struct ppl_iommu_seg {   /* 0x28 bytes, measured layout */
@@ -189,7 +189,7 @@ Table: The three coexisting address spaces for one load: the host device address
 
 The program text is a list of 44-byte register-write records, each pairing an engine-register address in space B with two DRAM-tile operand values in space C.
 The engine-register address selects which data-movement engine to re-base: the weight-streaming sources, input-tile reader, and output-tile writer.
-The operand values hold the high half `0x1bc4` of space C, the firmware-resident rebase of the host buffers, which is why a naive comparison of raw register addresses across loads fails: the aperture base moves with each program load.
+The operand values are the high half `0x1bc4` of space C, the firmware-resident rebase of the host buffers, which is why a naive comparison of raw register addresses across loads fails: the aperture base moves with each program load.
 
 ### Firmware rebase arithmetic
 
@@ -211,7 +211,7 @@ The three runtime quantities the formula needs are fields of the firmware apertu
 
 Table: The firmware aperture-config fields at `engine+0xa000` that drive the rebase, populated at buffer-map time and absent from the firmware image. {#tbl:c28-aperture-config}
 
-These three are firmware-runtime state set at buffer-map time; the image holds only the arithmetic and the field offsets.
+These three are firmware-runtime state set at buffer-map time; the image has only the arithmetic and the field offsets.
 The firmware then writes the rebased value into the engine DMA bar registers at `0x285c25020 + engine*0x148 + barId*4`, where `engine*0x148` is the per-engine MMIO stride and `barId*4` selects the word-indexed bar register.
 Only the low 32 bits of the rebased address reach this MMIO path; a per-bar config flag gates wider bars onto a separate software descriptor table.
 Both the rebase tail and the register-target prologue were emulated under unicorn and reproduced the formula and the `0x285c25020 + engine*0x148` register address exactly.
@@ -235,7 +235,7 @@ The firmware keeps explicit buffer pools, tagging each mapped buffer with a pool
 A per-process pool tracks outstanding requests with an in-flight count capped at 127 per request.
 
 Under device-address pressure the kernel applies a least-recently-used eviction policy over its mappings, scoring each with `getDartBufferFreeUpScore` and freeing through the `FreeUpDart*` family.
-A long-running process that maps more than the address window holds thus loses its coldest mappings; its maps do not fail.
+A long-running process that maps more than the address window has room for thus loses its coldest mappings; its maps do not fail.
 
 ## Fault-capture registers
 

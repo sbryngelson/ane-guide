@@ -117,7 +117,7 @@ For vision and image models on the engine the public surface is the compute-unit
 ### Chapter 14. LLM case study {.unnumbered}
 
 The per-eval dispatch floor, int8-hybrid result, and resident-cache step are M1/H13 measured, the last by a two-proof resident-buffer probe; the batched-decode comparison, the per-projection placement table and position rule, and the speculative-decoding and batched-prefill serving controls are M5/H17s measured.
-The dispatch and resident-state machinery of the direct path is decompile-derived from the runtime, including the output-to-input buffer aliasing that holds the cache resident, the in-flight cap of 127, and per-process loaded-program cap near 128 (the next load returns `GetANEFModel: must re-compile`).
+The dispatch and resident-state machinery of the direct path is decompile-derived from the runtime, including the output-to-input buffer aliasing that keeps the cache resident, the in-flight cap of 127, and per-process loaded-program cap near 128 (the next load returns `GetANEFModel: must re-compile`).
 Apple does not publish engine-versus-GPU decode measurements, so the per-batch decode verdict is reported as measured.
 
 ### Chapter 15. Training on the engine {.unnumbered}

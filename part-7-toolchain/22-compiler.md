@@ -87,7 +87,7 @@ Chaining and co-issue are mutually exclusive: an operation is either pipelined i
 ## Lowering one operation
 
 A frontend operation lowers to one or more backend `anec.*` operations through the operation-converter pass, most of them one to one.
-A matrix multiply lowers to `anec.matmul`, which holds the contraction as two attributes ([listing](#lst:c22-matmul-lower)).
+A matrix multiply lowers to `anec.matmul`, which records the contraction as two attributes ([listing](#lst:c22-matmul-lower)).
 
 ```text
 mps.MatMulOp  ->  anec.matmul
@@ -223,7 +223,7 @@ The reachable surface here is confirmed against an on-device sweep.
 
 Validation happens in three distinct layers.
 The exported `_ANECValidate*` catalog, the per-layer and umbrella validators, is the outward face.
-Behind it the in-binary `ValidateSemantics_Impl` family holds the `MatchParams` and `MatchStatus` pattern grammar that the exported validators are generated from.
+Behind it the in-binary `ValidateSemantics_Impl` family has the `MatchParams` and `MatchStatus` pattern grammar that the exported validators are generated from.
 Below both, an in-kernel `ZinComputeProgramValidate*` family validates the compiled program again at load, across single-plane, multi-plane, uncompressed, and tiled-compressed matrix forms.
 
 ## Native layers and netplist authoring
@@ -246,4 +246,4 @@ The network description is a property-list document, the netplist, schema versio
 Table: The netplist dictionary keys the compiler reads, with the role of each. {#tbl:c22-netplist}
 
 A layer is a unit with a `Type` tag, a `Bottom` wiring list, and a `Params` sub-dictionary of typed attributes, and the wiring is by symbol name.
-The compiled program that comes out is a container with the magic `0xbeefface`, whose text section holds the task-descriptor register-write stream and whose `__KERN_N` sections hold the weight coefficients, the same image the kernel loads.
+The compiled program that comes out is a container with the magic `0xbeefface`, whose text section contains the task-descriptor register-write stream and whose `__KERN_N` sections store the weight coefficients, the same image the kernel loads.

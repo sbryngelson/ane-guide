@@ -32,7 +32,7 @@ This is distinct from the compressed-weight path of chapter 7, where an int8 wei
 The int8 path thus cuts compute cycles as well as storage.
 
 The bandwidth ceiling is the rate at which operands cross the DRAM boundary.
-The engine sustains about 85 GB/s of DRAM bandwidth measured at the memory controller, and the roofline below holds that figure as its B.
+The engine sustains about 85 GB/s of DRAM bandwidth measured at the memory controller, and the roofline below uses that figure as its B.
 A direct wall-clock measurement of weight streaming runs lower: a large matrix multiply with one output row reads each weight once and saturates at about 51 GB/s, roughly 60 percent of that 85 GB/s ceiling.
 That figure matches the compiler's own internal bandwidth constant of 50 GB/s.
 A small elementwise op reaches less than either.
@@ -73,7 +73,7 @@ The working-set limit scales with on-chip memory: it is near 2 MB on the M1 and 
 
 ## Dispatch floor
 
-Every dispatch pays a fixed minimum cost regardless of the work it holds.
+Every dispatch pays a fixed minimum cost regardless of the work it contains.
 On the M1 that floor is about 0.23 ms per evaluation.
 A relu, sigmoid, average pool, and small convolution are all at 0.23 to 0.26 ms, and a 64-element linear is 0.23 ms: below the floor, neither the operation nor its size matters.
 Host dispatch and operand transfer set the floor, so a small op spends almost all of its wall time outside the multiply array.
@@ -95,7 +95,7 @@ The same network fused into one program pays the floor once and keeps the interm
 The slope measurement isolated that fixed per-dispatch cost at roughly 0.76 ms for a program with 1 MB of operand input and output, and fusion removes it from every dispatch it eliminates at close to no compute cost.
 
 The amortization is measured directly, and depth and batch are the two controls.
-A stack of conv-relu layers fused into one program holds its per-call latency flat near 0.19 ms from one layer to thirty-two.
+A stack of conv-relu layers fused into one program keeps its per-call latency flat near 0.19 ms from one layer to thirty-two.
 A thirty-two-layer model thus pays one firmware round trip just as a one-layer model does, while the cost charged to each operation falls from about 222 microseconds at one layer to about 6.3 microseconds at thirty-two.
 Batching the same program to 512 samples amortizes that one round trip across the batch, dropping the per-sample cost from about 196 microseconds to about 1.5 microseconds, a 127-fold reduction.
 A deep model on a large batch thus pays a single round trip for all of it, which is why packing work into one fused program is the main way to cut latency below the compute roof.

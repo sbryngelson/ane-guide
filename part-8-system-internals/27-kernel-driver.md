@@ -2,7 +2,7 @@
 
 > The engine is reached through a single kernel driver and a flat user-client selector ABI.
 > There are 17 control-client selectors and 9 direct-path selectors, each pinned to one exact size tuple.
-> Opening either user client is gated on the kernel entitlement `com.apple.ane.iokit-user-access`, which exactly two system binaries hold.
+> Opening either user client is gated on the kernel entitlement `com.apple.ane.iokit-user-access`, which exactly two system binaries have.
 > Every application therefore reaches the engine through a privileged broker daemon.
 > Selector 2 alone reaches a hardware doorbell from user space, through a four-layer call path ending in an MMIO mailbox write.
 > The size tuples match across the M1 and M2-class kernel cache, so the ABI at this layer is family-invariant.
@@ -24,7 +24,7 @@ The interface and hardware driver registers the device, vends the user clients, 
 A per-die hardware abstraction layer supplies the clock, power, and topology constants.
 The load balancer owns the program-to-engine residency map and arbitrates across physical engines on parts that have more than one.
 The engine attaches as an Apple RTKit coprocessor endpoint, so the interface driver is the host side of a real-time-operating-system mailbox client.
-The work is spread over three kernel families: the address-translation family that drives the device IOMMU, the surface family that backs zero-copy tensor buffers, and the real-time mailbox family that holds firmware commands.
+The work is spread over three kernel families: the address-translation family that drives the device IOMMU, the surface family that backs zero-copy tensor buffers, and the real-time mailbox family that queues firmware commands.
 
 `ANEHWDevice::newUserClient(task*, void*, uint type, IOUserClient**)` vends two distinct user clients plus a hint-only client ([Listing](#lst:c27-userclients)).
 
@@ -37,7 +37,7 @@ ANEClientHints            /* scheduling-hint client (setClientHint)             
 
 Listing: The three user-client types, by requested type. {#lst:c27-userclients}
 
-The two functional clients hold separate connections and separate selector spaces that both start at zero, so one small selector integer names different methods on each.
+The two functional clients use separate connections and separate selector spaces that both start at zero, so one small selector integer names different methods on each.
 Each stores its connection at object offset `+0x40`, and every selector call loads that offset before issuing the kernel call.
 
 On the user-space side an `IOServiceOpen` whose return type is `0xe00002c5` opens the device, and the connection object is at offset `0x40` in the device handle.
@@ -131,7 +131,7 @@ The control client has 17 selectors covering the open handshake, the program lif
 Table: The seventeen control-client selectors, with handler name and kernel-authoritative scalar and structure sizes. {#tbl:c27-control-selectors}
 
 Selector 0 is the open handshake.
-It passes a 104-byte device-info structure as both the input and the output buffer, echoes the caller header back, fills the output half with the device descriptor, and returns the session token at offset `+0x00` that every later request holds, with the handshake fields given in [Table](#tbl:c27-deviceinfo).
+It passes a 104-byte device-info structure as both the input and the output buffer, echoes the caller header back, fills the output half with the device descriptor, and returns the session token at offset `+0x00` that every later request stores, with the handshake fields given in [Table](#tbl:c27-deviceinfo).
 
 | Offset | Input (client to kernel) | Output (kernel to client) |
 | --- | --- | --- |
@@ -216,7 +216,7 @@ H11ANEInUserClient::externalMethod(sel=2, args)
 Listing: The four-layer call path from a user-space submit selector down to the hardware doorbell write. {#lst:c27-doorbell-path}
 
 Below the dispatcher, the thin shim re-checks the argument sizes and unmarshals the typed argument structure, the client object method builds the memory descriptors and retains the shared-event fences, and the gated driver method runs on the command-gate workloop.
-The 2376-byte request structure holds the program handle minted at create time, a sequence number, the quality-of-service and execution-priority pair, and the array of surface identifiers for the input, output, and intermediate buffers, with the measured field layout in [Table](#tbl:c27-request-struct).
+The 2376-byte request structure contains the program handle minted at create time, a sequence number, the quality-of-service and execution-priority pair, and the array of surface identifiers for the input, output, and intermediate buffers, with the measured field layout in [Table](#tbl:c27-request-struct).
 
 | Offset | Field | Observed |
 | --- | --- | --- |
@@ -253,7 +253,7 @@ Listing: The two kernel entitlements checked when a user client is opened. {#lst
 
 A single kernel entitlement gates opening either user client.
 The check runs once at client construction and is a boolean on the client object.
-Across the whole system, exactly two binaries hold `com.apple.ane.iokit-user-access`: the system broker daemon and its per-user sibling.
+Across the whole system, exactly two binaries have `com.apple.ane.iokit-user-access`: the system broker daemon and its per-user sibling.
 No application process opens the device.
 Every other consumer reaches the engine through the broker over a cross-process call, where the credential is an entitlement from the broker's own private family and never the kernel gate.
 
@@ -297,7 +297,7 @@ Swappable model weights without recompilation rest on the adapter-weight path.
 A base model is loaded once, and each adapter is a new instance bound to a named base-model identifier holding only its per-adapter weight files, through a create-instance-with-weights method that names the base-model identifier and the weight-file count.
 Residency and power are explicit per-instance arguments on the create-instance method: an enable-power-saving flag, a more-aggressive variant gated by the restricted tier, an opt-out-of-model-memory-unwiring flag that keeps a hot client's weights resident at the cost of footprint, and a queue-depth that the broker down-adjusts under contention.
 A queue-index function and a program-priority function map the quality-of-service argument to hardware scheduling.
-A privileged subset of system daemons also holds a sandbox exception that opens the direct-path user client and drives per-inference submission on its own connection, skipping the per-call round trip through the broker.
+A privileged subset of system daemons also has a sandbox exception that opens the direct-path user client and drives per-inference submission on its own connection, skipping the per-call round trip through the broker.
 That exception is a latency optimization, not a capability grant: the privileged device open still happens in the broker, which hands the client a program handle and an intermediate-buffer handle.
 
 The kernel binds residency to code-signing identity.

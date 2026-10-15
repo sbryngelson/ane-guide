@@ -1,7 +1,7 @@
 # 16. Numerical and scientific computing
 
 > Dense linear algebra and fixed-iteration numerics fit the engine.
-> The wide accumulator holds precision to a condition number of roughly $10^4$, after which fp16 input rounding sets the error floor.
+> The wide accumulator keeps precision to a condition number of roughly $10^4$, after which fp16 input rounding sets the error floor.
 > Dense factorizations and full spectral decompositions run by unrolling into one static graph.
 > They reach about $n = 32$ for the factorizations and about $n = 20$ for the spectral decompositions.
 > The discrete Fourier transform runs as a matrix multiply, fp16-clean to about $N = 2048$.
@@ -18,17 +18,17 @@ The three levels of dense linear algebra map onto the multiply array directly [A
 A level-1 operation is a vector reduction or scaling: a dot product is a single contraction, and an axpy or a norm is a scaled add or a reduction.
 A level-2 operation is a matrix-vector product, one matmul with a unit output dimension.
 A level-3 operation is a matrix-matrix product, the native shape of the array.
-The wide accumulator (chapter 3) holds the reduction in a register of fp32 class, so a representable sum comes back near exact and the only quantization is the fp16 rounding of the inputs and the output.
+The wide accumulator (chapter 3) stores the reduction in a register of fp32 class, so a representable sum comes back near exact and the only quantization is the fp16 rounding of the inputs and the output.
 
 Iterative kernels inherit the same precision behavior because each step is a matmul or a reduction.
 Power iteration for a dominant eigenpair, conjugate-gradient sweep for a symmetric positive-definite solve, and fixed-cycle generalized-minimal-residual solve for a general system all fold the matrix as a constant weight and run as one program.
 Because the matrix is a fixed weight, the program size does not grow with $n$: a symmetric positive-definite solve runs unchanged from a small system up to $n = 512$ at the same relative error.
-Across these solvers the wide accumulator holds the precision to a condition number of roughly $10^4$, above which the fp16 rounding of the inputs sets the error floor.
+Across these solvers the wide accumulator keeps the precision to a condition number of roughly $10^4$, above which the fp16 rounding of the inputs sets the error floor.
 
 The measured envelope for the on-engine iterative solvers is a relative error near $10^{-3}$ at a condition number at or below $10^2$.
 A dominant eigenpair from power iteration returns to about $10^{-15}$, limited only by the spectral gap, because the iteration is a repeated matmul whose fixed point is exact in the representable range.
 
-The accumulator that holds the precision is measured, not assumed: a reduction accumulates in a register of fp32 class and rounds to fp16 only at the output port, with the silicon-probe worked examples and the radix-4 fan-in derived in chapter 3.
+The accumulator that retains the precision is measured, not assumed: a reduction accumulates in a register of fp32 class and rounds to fp16 only at the output port, with the silicon-probe worked examples and the radix-4 fan-in derived in chapter 3.
 A representable sum thus comes back near exact, while a cancellation-heavy reduction has its input lanes round in radix-4 groups first, which makes the matrix-multiply contraction path the more accurate route, exact to fp32 and rounded once at the output.
 The compiler emits a precision warning steering a narrow reduction toward it.
 
@@ -94,7 +94,7 @@ def dft(x):
 Listing: The discrete Fourier transform expressed as one matrix multiply against a compile-time-constant Fourier matrix. {#lst:c16-dft-matmul}
 
 The arithmetic is complex, and the engine computes in real fp16, so each complex value is held as a real and an imaginary pair and the complex product expands into four real multiplies and two real adds.
-The wide accumulator holds the length-$N$ reduction, so the transform is fp16-clean to about $N = 2048$, above which the fp16 rounding of the matrix entries and the input begins to dominate the result.
+The wide accumulator keeps the length-$N$ reduction, so the transform is fp16-clean to about $N = 2048$, above which the fp16 rounding of the matrix entries and the input begins to dominate the result.
 
 The fast-transform factorization does not gain over the matmul form on this engine.
 A fast Fourier transform replaces the $O(N^2)$ matmul with an $O(N \log N)$ chain of butterfly stages, but each stage is a small data shuffle and a complex multiply, and the shuffle is a static structure.

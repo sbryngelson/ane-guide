@@ -26,9 +26,9 @@ Table: The six fields of the command header. {#tbl:c30-cmd-header}
 
 The dispatcher validates the full message length before reading the body: `maxCmdBufSize >= sizeof(*pMsg) + pCmdHdr->size`.
 The byte offsets follow the field order under a packed 32-bit layout, and the field presence and widths are read from the firmware's assert and log format strings.
-The `priority` field holds two scheduling classes: values `0` and `1` are the privileged realtime band and values `2` through `7` are the normal queue.
+The `priority` field has two scheduling classes: values `0` and `1` are the privileged realtime band and values `2` through `7` are the normal queue.
 These are encoded by the firmware checks `(priority >= 0 && priority <= 1) || (priority >= 2 && priority <= 7)` and the normal-only `(priority >= 2 && priority <= 7)`, under the full-range bound `fwPriority < 8`.
-The signed `programId` and `processId` hold `-1`, which reads as `0xFFFFFFFF`, as the unbound-slot marker.
+The signed `programId` and `processId` use `-1`, which reads as `0xFFFFFFFF`, as the unbound-slot marker.
 The firmware resolves the pair against `progProcInfo[builtinProgramId]` with the fields `.valid`, `.progId`, and `.procId`, under `builtinProgramId < maxProgramServerSupported` and `id < CAneBuiltInNetworkId::ANE_NET_TOT`.
 The resident cache-request commands prepend one further field, an opaque 64-bit `cacheHandler` logged as `cacheHandler: 0x%llx`, naming a long-lived request object.
 
@@ -106,7 +106,7 @@ A wait or signal event is a fixed 24-byte record, `{ uint32 type; uint32 targetM
 
 The procedure-call type gate admits only certain content types: `getProcedureCallType(programId, procedureId)` must return `ContentType_0`, `_3`, or `_4` for a plain `PROCEDURE_CALL`, and `_0` or `_3` on the cache-request path, under `procedureId < pProg->pProgram->procNbr`.
 The `WITH_CUSTOM_BARS` variant adds a trailing custom execute-order array, whose offset and length are bounded by `callSize <= customExecuteOrderArrayOffset`, `0 < nbrOfCustomExecuteOrder`, `nbrOfCustomExecuteOrder <= 128`, and `(customExecuteOrderArrayOffset + nbrOfCustomExecuteOrder * sizeof(uint32_t)) <= sizeof(sCSneCmdProcedureCallCopyContainer)`.
-Each custom bar holds `type == ANE_CUSTOM_BAR_GENERIC` and `config == ANE_CUSTOM_BAR_HW_32BIT`, the on-wire count is bounded `nbrOfCustomBars <= 32`, and a blob in the compiled program may hold up to 128.
+Each custom bar has `type == ANE_CUSTOM_BAR_GENERIC` and `config == ANE_CUSTOM_BAR_HW_32BIT`, the on-wire count is bounded `nbrOfCustomBars <= 32`, and a blob in the compiled program may store up to 128.
 The `WITH_SIGNAL_EVENTS` variant adds the `procCallWithSignalEvents` sub-struct, bounded by `nbrOfSignalEvents > 0 && nbrOfSignalEvents <= 16`, with the sub-network custom execute-order disallowed (`0 == bSubNetworkCustomExecuteOrder`).
 
 [Table](#tbl:c30-percall-limits) collects the per-call and per-request numeric limits so a host can size a submission ahead of dispatch.
@@ -126,19 +126,19 @@ A trigger command at `0x46` names that handle and fires it, holding an `execTime
 The firmware drops a trigger on a handle not in the `ANE_DATA_CHAINING_CACHE_REQUEST_IN_USE` state with `cacheHandler (0x%llx) in wrong state (%d) for trigger. trigger dropped`.
 The recycle command at `0x47` returns a consumed output buffer to a resident request, the invalidate command at `0x48` tears it down, and the group select at `0x4f` picks the active member of a buffer-sharing group.
 The force-disable at `0x4d` is the global disable, which the firmware admits only when set true.
-The firmware constrains chained buffers to the low address window: a data-chaining buffer descriptor must hold `buffer.type == eCSneBufferDescriptorType_OutputBuffer`, `outputBufferSetId < nbrOfOutputBufferSets`, and a device address whose high 32 bits are zero (`(buffer >> 32) == 0`).
+The firmware constrains chained buffers to the low address window: a data-chaining buffer descriptor must have `buffer.type == eCSneBufferDescriptorType_OutputBuffer`, `outputBufferSetId < nbrOfOutputBufferSets`, and a device address whose high 32 bits are zero (`(buffer >> 32) == 0`).
 
 The inference call at `0x5a` is the higher-level submission path, which the firmware expands into one or more `CANE_SUB_PACKET_CMD_PROCEDURE_CALL` sub-packets, holding a pre-mapped property buffer and validating the buffer count against the program descriptor: `pMsg->bufNbr == 1 + pAneProgramDesc2->procedures[procedureId].numIoBuffers`.
 The `PREMAP_BUFFER` command at `0x4a` pre-maps that property buffer, hard-validated for exactly one operation and exactly one buffer (`pPreMapOp->nbrOfBuffers == 1`) with nonzero address and size.
 The procedure call at `0x41` is the lower-level direct form addressing the program, process, and procedure triple; both share the `sCSneCmdProcedureCall` body and the same priority scheduler.
 
 The property channel exposes a register-poke surface that the host uses to read and write firmware registers directly.
-The read command at `0x1f` and the write command at `0x1e` each hold a two-field body, recovered from the `IPC Writer regAddr 0x%lx regValue 0x%x` log line as `{ uintptr regAddr; uint32 regValue; }`, and a write checks `regValue != 0`.
+The read command at `0x1f` and the write command at `0x1e` each contain a two-field body, recovered from the `IPC Writer regAddr 0x%lx regValue 0x%x` log line as `{ uintptr regAddr; uint32 regValue; }`, and a write checks `regValue != 0`.
 The back-channel RPC at `0x5b` is a firmware-initiated call into the host driver: the firmware client posts directly into the direct-proc-call event pool, gated on `GetDirectProcCallEventPoolAvailNum() >= 2`, tracks outstanding calls in `RPCEventMap[%d]`, and reports a stuck slot with `RPCEventMap[%d] is dirty. (No ack from driver)`.
 
 ## Recovered command-id enum
 
-The dispatched table above is the contiguous logger ordering, but the firmware also holds the canonical protocol enum as a packed `{char* name; u64 id}` array at vaddr `0xf5ba8` (file offset `0xf9ba8`, in `__DATA.__const`).
+The dispatched table above is the contiguous logger ordering, but the firmware also keeps the canonical protocol enum as a packed `{char* name; u64 id}` array at vaddr `0xf5ba8` (file offset `0xf9ba8`, in `__DATA.__const`).
 This is the `ECSneCmdId` enum, 94 named entries plus a trailing zero-id terminator, and the id is the literal 16-bit value held on the wire at message `+0x4`.
 The array is reached through a fixed-up pointer with no `adrp`+`add` cross-reference, consistent with a shared name-lookup helper.
 The protocol enum and the dispatched logger ordering are not the same numbering in the `0x2xx` region, so this enum is the wire vocabulary while the table in the preceding section is the firmware's own logger index.
@@ -163,7 +163,7 @@ The tree implements only about ten ids, all on the procedure-call and inference 
 Sending a non-fast-path id on this channel is thus a hard fault on the live device, consistent with the unrecoverable behavior of a DART or fence fault.
 
 The implemented arm of the compare tree dispatches each id to a PAC-signed virtual method on the engine object, reached through the `ldr`/`autda`/`blraa` pattern at a fixed vtable offset.
-Each such slot is an arm64e auth-rebase chained pointer in `__DATA.__const` whose low thirty-two bits hold the raw target address, matched to its call site by the `movk` discriminator, so the seventy-six-slot table resolves statically.
+Each such slot is an arm64e auth-rebase chained pointer in `__DATA.__const` whose low thirty-two bits give the raw target address, matched to its call site by the `movk` discriminator, so the seventy-six-slot table resolves statically.
 The procedure-call slot at `+0x200` targets `0x7374c` and the inference slot at `+0x190` targets `0x74510`.
 [Table](#tbl:c30-exeloop-ids) gives the ids the ExeLoop dispatcher implements, with each id's vtable offset and behavior.
 

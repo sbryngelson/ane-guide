@@ -32,7 +32,7 @@ Its layers are dictionary entries the compiler calls Units, each holding a `Type
 The representation is hand-authorable, which is what makes the hidden layers reachable.
 
 The reusable method has four steps.
-Author one Unit whose `Type` is the native layer name and whose `Params` hold the descriptor attributes that layer's parser expects.
+Author one Unit whose `Type` is the native layer name and whose `Params` contain the descriptor attributes that layer's parser expects.
 Supply the wiring and any constant weight blobs the layer needs.
 Compile the description through the runtime, which lowers the Unit to its `ANEC<Name>LayerDesc`, runs the matching validator, and assigns it to an engine.
 Then load, bind buffers to the named ports, and dispatch, exactly as chapter 6 gives for any compiled program.
@@ -44,7 +44,7 @@ A required key the parser does not find raises a parse error such as `InvalidPar
 ## Classes reached this way
 
 The reachable native layer kinds fall into several groups.
-Fused attention is a single descriptor, scaled dot-product attention over four or five operands of query, key, value, and constant scale, where the optional fifth operand is an additive mask that holds the causal and decode cases as data.
+Fused attention is a single descriptor, scaled dot-product attention over four or five operands of query, key, value, and constant scale, where the optional fifth operand is an additive mask that records the causal and decode cases as data.
 Ranking and selection cover the top-k, sort, and argument-minimum-and-maximum descriptors, including the whole-tensor argument form; their integer index outputs come back float16-encoded and exact for the index ranges these layers produce.
 The spatial rearrangers come as pairs, pixel-shuffle with pixel-unshuffle, the channel-and-space pair, and the space-and-batch pair, each parameterized by per-axis integer factors, and the two members of a pair differ by channel-ordering convention, so neither is an alias of the other.
 Three further normalizations appear: the range normalization that maps a tensor to its minimum-to-maximum span, local response normalization, and per-channel affine gain-offset control in static and runtime-tensor forms.

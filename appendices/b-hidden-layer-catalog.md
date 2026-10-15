@@ -2,7 +2,7 @@
 
 > This appendix is the reference catalog of the hardware-native layer kinds reached by authoring the network description directly, behind chapter 26.
 
-Every row is a native descriptor the conversion path never emits: the descriptor and its `_ANECValidate<Name>Layer` checker are present in the compiler on every target, and the layer is reached by handing the compiler a Unit whose `Type` is the native name and whose `Params` hold the attributes the matching `ZinParse<Name>Unit` parser reads.
+Every row is a native descriptor the conversion path never emits: the descriptor and its `_ANECValidate<Name>Layer` checker are present in the compiler on every target, and the layer is reached by handing the compiler a Unit whose `Type` is the native name and whose `Params` list the attributes the matching `ZinParse<Name>Unit` parser reads.
 
 ## Catalog
 

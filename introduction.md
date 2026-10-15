@@ -25,7 +25,7 @@ Some of the quantities we report, and some of the bytecodes we emit, are likely 
 Nothing here should be built into software that has to keep working.
 
 We stage the performance results around a roofline.
-On the M1 Max, the engine holds about 12 fp16 TFLOP/s of compute, bounded above by a DRAM-bandwidth ceiling.
+On the M1 Max, the engine reaches about 12 fp16 TFLOP/s of compute, bounded above by a DRAM-bandwidth ceiling.
 The roofline has a ridge point near 141 FLOP per byte, a 2 MB working-set threshold, a 0.23 ms floor under any single dispatch, and efficiency near 0.37 picojoules per FLOP at peak compute.
 On a 256-channel 3x3 convolution it runs about 3.8 times faster than the same chip's GPU and is 9 times more energy-efficient.
 We take the power side of those figures from shipped device measurement tooling.
@@ -39,7 +39,7 @@ Weight compression on the direct path cuts bandwidth, not only stored size.
 On the unentitled engine, int4 lookup-table weights run about 2.37 times faster than fp16, and structured sparsity 1.55 to 1.64 times faster at 0.43 times the bytes.
 
 The engine runs on a private stack beneath the datapath.
-It holds the compiler and its backend dialect, the on-disk program and container format, the kernel-driver IOKit ABI, the unencrypted firmware and its ninety-three-command host protocol, and the address-translation path that maps host buffers into the engine.
+It contains the compiler and its backend dialect, the on-disk program and container format, the kernel-driver IOKit ABI, the unencrypted firmware and its ninety-three-command host protocol, and the address-translation path that maps host buffers into the engine.
 We decode twenty-eight compiler targets, spanning the A11 through A18 and M1 through M5 families.
 The decode yields the rule that maps each M-series part to its internal H-series identity, the per-family operation floors, and an operation-by-device matrix.
 Our cross-generation predictions held when we checked them on a second physical chip, and a seeded training run reproduced across generations to within 0.001 in final accuracy.

@@ -94,7 +94,7 @@ Table: Engine versus GPU speed and efficiency across convolution, ResNet, matrix
 An encoder forward pass favors the engine at low to moderate batch on both latency and energy.
 A single-sentence encoder runs about 4.4 times faster than the GPU.
 A twelve-layer encoder forward runs about 1.5 times faster and at about 18 times the energy efficiency per inference.
-Short-sequence attention, a transformer block at sequence length 197, is at once the fastest, most efficient, and most accurate in fp16 on the engine, because its partial sums stay in range and the wide accumulator holds their precision.
+Short-sequence attention, a transformer block at sequence length 197, is at once the fastest, most efficient, and most accurate in fp16 on the engine, because its partial sums stay in range and the wide accumulator retains their precision.
 
 Batch size moves the choice, because serving batches requests.
 The engine saturates near a batch of 1 while the GPU scales with batch, which produces a throughput crossover.
@@ -161,7 +161,7 @@ The datapath runs best with a small set of model-construction choices.
   preprocessing on the engine only on the A14 and later, where the texture
   engine is present.
 
-The native convolution backend operation holds its geometry in a fixed set of attributes ([listing](#lst:c13-conv-backend)).
+The native convolution backend operation records its geometry in a fixed set of attributes ([listing](#lst:c13-conv-backend)).
 
 ```mlir
 anec.convolution(%input, %weights, %bias) {

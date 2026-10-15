@@ -89,7 +89,7 @@ The working set is the 2 MB on-chip region, and the matrix-multiply path also bo
 Tiling preserves the result.
 A reduction or transpose over an axis larger than the on-chip threshold switches to a tiled route at no change to the output, so the threshold is a performance boundary, not a correctness one.
 Where latency matters, keep a single operation's largest live operand under 2 MB.
-At fp16, 2 MB holds about $2^{21}/2 \approx 1.05 \times 10^{6}$ elements, so a square activation of side near 1024 is at the edge of the resident regime, and a larger one streams.
+At fp16, 2 MB stores about $2^{21}/2 \approx 1.05 \times 10^{6}$ elements, so a square activation of side near 1024 is at the edge of the resident regime, and a larger one streams.
 This is the working-set input to the cost model in chapter 18, where the roofline relation turns the resident-versus-streaming split into a latency estimate.
 
 ## Validating shapes against the design rules

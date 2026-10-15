@@ -6,7 +6,7 @@
 
 That 2 to 14 times envelope is throughput per watt of idle-subtracted total-package power.
 A stack of sixteen 3x3 convolutions sets the high mark: the engine reaches 2063 GFLOP/s per watt against the GPU's 142, a 14.5 times efficiency advantage, while also running about 2 times faster.
-The M5 holds the same shape at 2289 GFLOP/s per watt on the engine against 175 on the GPU, a 13 times advantage.
+The M5 has the same shape at 2289 GFLOP/s per watt on the engine against 175 on the GPU, a 13 times advantage.
 
 The efficiency lead survives even where the engine loses on latency.
 On a large square matrix multiply with inner dimension 4096 the M1 GPU is about 2 times faster in raw throughput, yet the engine still leads on energy.
@@ -74,7 +74,7 @@ The two figures are thus the same workload measured over different durations rat
 ## Rail-off idle floor
 
 The engine reads about zero milliwatts at idle, and that figure is a property of the power-state machine, not a measurement artifact.
-The firmware holds the engine in a fully gated state, `ANE_POWER_STATE_ALL_OFF`, with every domain off, until a job arrives.
+The firmware keeps the engine in a fully gated state, `ANE_POWER_STATE_ALL_OFF`, with every domain off, until a job arrives.
 Power-up is lazy and job-triggered: the engine is at `ALL_OFF` and brings up its base domain only on the first call, transitioning through `ANE_POWER_STATE_BASE_PS_ON_WAIT` before it gates in the compute sets.
 There is no clock-gated but powered idle floor; the idle state is rail-off.
 
@@ -95,7 +95,7 @@ The engine exposes only the power reading and a binary on-or-off state even to t
 
 ## Sustained load holds one clock state
 
-The efficiency figures above are warmup measurements, so they leave open whether the engine holds its power state under minutes of continuous load.
+The efficiency figures above are warmup measurements, so they leave open whether the engine stays in its power state under minutes of continuous load.
 A compute-bound probe answers it directly: a chain of eight 1024-square fp16 matrix multiplies run as one program in a low-overhead zero-copy loop, at about 2.11 milliseconds per call, roughly ten times the dispatch floor, so the loop is compute-bound.
 Run continuously for 210 seconds and 98,092 calls on the M1, the throughput curve is flat.
 The whole-run median is 2109.6 microseconds, the start bucket reads 2153 microseconds and the end bucket 205 seconds later reads 2143.
@@ -195,7 +195,7 @@ A layer that prints `compute` runs in the region where the convolution-stack fig
 
 ## Reference: engine versus GPU efficiency constants
 
-[Table](#tbl:c10-constants) holds every figure quoted in this chapter.
+[Table](#tbl:c10-constants) lists every figure quoted in this chapter.
 
 | Quantity | Value | Silicon |
 | --- | ---: | --- |

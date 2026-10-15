@@ -1,6 +1,6 @@
 # 21. Memory hierarchy
 
-> The engine holds its working data in one on-chip pool.
+> The engine keeps its working data in one on-chip pool.
 > Its 2 MB size, at hardware-abstraction-table field `0x1b8` on the M1, is the dominant size limit.
 > A layer whose largest single operand fits stays on-chip; one that exceeds it is tiled and streamed from DRAM.
 > The pool is interleaved across 64 banks at a 16-byte granule, with the bank index `floor(addr / 16) mod 64`.
@@ -24,7 +24,7 @@ if (GetTensorSizeInBytes(rhs) >= HAL[0x1b8]) {  /* HAL[0x1b8] = 2 MB on M1 */
 Listing: Matmul lowering: reject the resident RHS and stream a tiled copy once the operand reaches the working-set bound. {#lst:c21-matmul-lower}
 
 The largest single operand that stays in on-chip SRAM on the M1 is 2 MB, the value at field `0x1b8`, the maximum operand bytes for the SRAM working set.
-The same field holds 1 MB on the efficiency-class engine of the M9 part: the value is per-chip.
+The same field is 1 MB on the efficiency-class engine of the M9 part: the value is per-chip.
 The compiler names this field `MemCacheSize`, also `L2Size`, and exposes overrides for it through `fl2-size` and the related cache-mode and allocator options.
 
 A layer runs entirely from the on-chip pool when its largest single operand, the larger of the input activation, weight, or output, fits within this bound.
@@ -41,7 +41,7 @@ The M5 softens this threshold.
 Its compiler tiles over the batch and the output dimensions together, so neither operand need be fully resident and the crossing is a smooth throughput ramp where the M1 shows a sharp step.
 The working-set cost then appears in DRAM energy per operation, which bottoms near a 2 MB operand and rises beyond about 4 to 5 MB, around the M5 bound of 4.72 MB.
 
-The measured throughput threshold is slightly above the table value, near 2.28 to 2.34 MB, because the tiler holds roughly 0.3 MB of double-buffer and alignment margin before it splits the weight.
+The measured throughput threshold is slightly above the table value, near 2.28 to 2.34 MB, because the tiler uses roughly 0.3 MB of double-buffer and alignment margin before it splits the weight.
 Sweeping a batched matrix multiply whose weight grows from 1.25 to 3.1 MB resolves the threshold directly, with a smooth plateau below the bound and a sharp step just above it ([table](#tbl:c21-threshold-sweep)).
 
 | weight size | throughput, GFLOP/s |
@@ -59,7 +59,7 @@ Table: Measured throughput of a batched matrix multiply as the weight crosses th
 Throughput is higher above the threshold than below it.
 Below the bound the whole weight is one resident operand that must fill before compute starts, a serialized stream into the array.
 Above the bound the weight is tiled and double-buffered, so the fill of tile $n + 1$ overlaps compute on tile $n$ and throughput climbs.
-The threshold is at the same 2.31 MB sweeping the grid up or down, so the boundary holds no memory state.
+The threshold is at the same 2.31 MB sweeping the grid up or down, so the boundary has no memory state.
 
 ## 64-bank pool and bank function
 
@@ -127,7 +127,7 @@ if (HAL[0x491] == 1 &&
 
 Listing: The output-buffer allocator deciding between a dedicated resident buffer and the shared default, gated by the residency threshold. {#lst:c21-resident-buffer}
 
-A convolution can be given a dedicated on-chip buffer that holds its output residency across the convolution so the result is not re-streamed.
+A convolution can be given a dedicated on-chip buffer that keeps its output residency across the convolution so the result is not re-streamed.
 Field `0x1f0`, the resident-buffer threshold, decides whether that buffer is allocated by comparison against the convolution's output DMA footprint.
 On the M1 the field is 0, and the allocator skips the dedicated buffer when the footprint is strictly greater than the threshold.
 
@@ -163,7 +163,7 @@ Each page maps to physical memory through a single 64-bit leaf descriptor: for e
 The descriptor reads $\mathrm{phys} \mathbin{|} \mathtt{0x8000000000000000}$ for an input, weight, intermediate, or output page alike, since the physical frames are 16 KB-aligned and leave the high bits free; unmap clears the descriptor to zero, dropping the valid bit.
 Read-only protection of the inputs is outside the leaf descriptor on the M1: a configuration bit collapses the would-be read-only class into read-write at the translation unit, so input protection is enforced upstream.
 
-Each mapped buffer holds a usage code that records its role ([table](#tbl:c21-usage-codes)).
+Each mapped buffer has a usage code that records its role ([table](#tbl:c21-usage-codes)).
 
 | usage code | role |
 | --- | --- |

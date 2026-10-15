@@ -40,7 +40,7 @@ The numeric hardware version maps to the family enum through a fixed table, the 
 
 Table: The hardware-version-to-family map read from the `ANEFamilyToMLIR` data table, with the targets that resolve to each family. {#tbl:c35-fammap}
 
-This table holds two collisions that the compiler must guard.
+This table has two collisions that the compiler must guard.
 Hardware versions 6 and 8 both resolve to family A15, so `h16` and the A16-tier parts compile with A15-family operation legality.
 Hardware versions 9 and 10 both resolve to family A17, so `h18` uses A17-family operation legality.
 The family enum drives the `MinimumFamily<N>` operation legality only.
@@ -257,7 +257,7 @@ The A15 cost-table constants and the YUV420 acceptance are decoded from the comp
 
 Only the M1 family has a named per-family validity gate.
 `IsValidForH13` is the gather gate: it asserts the gather-axes size is 3, the data batch and depth are 1, the index channel is 3 with width and depth 1, plus an axis-pattern check.
-`IsValidForH13GatherNCH` holds the channel-height-width-layout gather restriction.
+`IsValidForH13GatherNCH` enforces the channel-height-width-layout gather restriction.
 No equivalent named gate exists for any other family; the rest gate numerically through the hardware-abstraction clamps, and the compression gate `IsValidForCompression` is hardware-abstraction-driven with the universal rule that only kernels of at least eight bits are compressible.
 
 ## Cross-compiled across the family

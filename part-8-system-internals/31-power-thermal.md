@@ -69,7 +69,7 @@ A parameter-push call at init delivers these, and the firmware arms the power bl
 Table: The decoded boot, power, and clocking facts; the register-init constants are decoded in Appendix C. {#tbl:c31-power-facts}
 
 The engine runs at a single fixed clock with no local voltage or frequency scaling of its own; any frequency change is the system power manager's to make externally.
-The only clock string in the firmware is the boot-time timebase report; the image holds no frequency table, no enumerated operating points, and no voltage string.
+The only clock string in the firmware is the boot-time timebase report; the image has no frequency table, no enumerated operating points, and no voltage string.
 Voltage is the system power manager's concern, reached only through an opaque power-management base address (`0x2_3b70_c008`) that the firmware never interprets.
 
 Performance is modulated by two controls, neither of them frequency.
@@ -147,12 +147,12 @@ That cost grows from near zero at back-to-back dispatch to about $0.5$ ms once t
 
 The engine has no frequency-or-voltage sequence of its own.
 The kext delegates operating-point selection to the system power manager: the SoC CLPC within ApplePMGR.
-The kext holds no clock register addresses.
+The kext has no clock register addresses.
 A disassembly of `enableAneSysClock` shows it performs no memory-mapped writes itself; it loads an ApplePMGR service object, authenticates the vtable pointer, and calls a PMGR method with the enable argument set, with the only literal in the path being the string `"ApplePMGR"`.
 The `ane0` device-tree node publishes the PMGR clock and power-gate identifiers but has no `dvfm-states`, `voltage-states`, or `perf-states` property, so the per-state frequency in Hz and voltage in mV stay held privately by ApplePMGR behind the power-manager base and are not recoverable from the engine binaries.
 
 What is on the engine side is the firmware `H13TunableManager` register-init table, where `H13` is the M1 family.
-A `TunableManager` descriptor at base `0x2_6b8f_4000` (`aneDpePpt_soc_dpe_lee`, the SoC dynamic-power-estimation control block) holds a 7-step monotonic credit sequence, written once at firmware bring-up and gated by chip revision ([Table](#tbl:c31-tunable)).
+A `TunableManager` descriptor at base `0x2_6b8f_4000` (`aneDpePpt_soc_dpe_lee`, the SoC dynamic-power-estimation control block) contains a 7-step monotonic credit sequence, written once at firmware bring-up and gated by chip revision ([Table](#tbl:c31-tunable)).
 
 | Offset | Mask | Value | Decoded |
 | --- | --- | --- | ---: |
@@ -168,12 +168,12 @@ Table: The 7-step monotonic DPE/PPT credit sequence in the `aneDpePpt_soc_dpe_le
 
 These nine-bit fields are the per-operating-point power-credit and peak-power-throttle thresholds the on-die estimator caps activity against, indexed by the perf state the CLPC selects.
 Their strictly increasing sequence is the signature of a seven-state perf sequence.
-The engine has seven operating points whose registers hold throttle credits.
-A parallel eight-step sequence for the ASC block holds the values `4, 7, 13, 20, 27, 36, 46, 59`.
+The engine has seven operating points whose registers store throttle credits.
+A parallel eight-step sequence for the ASC block lists the values `4, 7, 13, 20, 27, 36, 46, 59`.
 
-Live read-only dtrace confirms the engine holds one power state through sustained work.
+Live read-only dtrace confirms the engine keeps one power state through sustained work.
 A six-layer matmul-and-relu program dispatched in a continuous loop for 16 seconds drove 56,527 dispatches, traced entry-only with no destructive flag.
 `ChangePowerState`, `populateCLPCPerfInfo`, `power_on_hardware`, and `setPowerStateGated` each fired exactly once at warm-up and never again across the 56,527 dispatches.
 Every dispatch instead walked a fixed path: `EnableANEClocksAndPower` to un-gate, one `submitWorkToPerfController` that hands an `ANEPerfRequest` and a modeled-performance hint to the CLPC, a `notifyPerfController` start-and-end pair, then `enableDynPowerGating_gated` to re-arm the idle gate.
-The kext does not walk a frequency sequence per submit; the engine holds a single power-domain state for the whole run while the CLPC drives any frequency change internally and invisibly to the kext.
+The kext does not walk a frequency sequence per submit; the engine stays in a single power-domain state for the whole run while the CLPC drives any frequency change internally and invisibly to the kext.
 This is the runtime counterpart to the flat power and throughput measured under sustained load: the firmware tracks a single PerfMode, and setting it twice is a no-op.

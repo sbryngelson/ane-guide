@@ -72,7 +72,7 @@ The counter-and-event engine arrives on a later generation, so native resident s
 The serialization layer and the datapath both block the bf16 program input and output type.
 The dtype enumeration that declares a program's input and output types has eleven codes, covering fp16, fp32, and the integer widths, and bf16 is not among them, so a program that declares a bf16 input or output fails the compile with an unsupported-dtype rejection.
 The framework accepts a bf16 array at its boundary, but it casts to fp16 before the engine segment, so the engine runs no bf16 datapath under the sanctioned route either.
-The fp16 datapath of chapter 3 already holds the accumulation precision a bf16 declaration would otherwise imply.
+The fp16 datapath of chapter 3 already gives the accumulation precision a bf16 declaration would otherwise imply.
 
 Flexible and symbolic shapes stop at the runtime path.
 The compiler has a full symbolic-shape system, with its master gate on for the M1, yet the direct runtime path will not drive it: a program with a symbolic dimension parses and then fails to lower.

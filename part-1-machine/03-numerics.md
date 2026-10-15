@@ -47,7 +47,7 @@ $$[4096] + [1]\times 1024 = 5120,$$
 
 and the engine returns 5116, between the naive-fp16 result $4096$ and the exact total.
 A naive fp16 running sum returns 4096, because each added one falls below half the spacing at 4096 and is swallowed.
-The engine instead holds the 1024 ones that fp16 would drop, and the small deficit from the exact 5120 is the fp16 rounding of the single input tile that holds the 4096.
+The engine instead keeps the 1024 ones that fp16 would drop, and the small deficit from the exact 5120 is the fp16 rounding of the single input tile that contains the 4096.
 
 The discriminating test is a cancellation triple.
 A sum of a large value, its negation, and a one, repeated sixteen times near a magnitude of four thousand, returns all sixteen ones intact.
@@ -132,7 +132,7 @@ The compressed-weight quantization adds error only at the input rounding: an int
 ## Where precision holds and where it is lost
 
 Convolution, matrix multiply, and normalization keep their precision when their partial sums stay in fp16 range and their results are representable.
-The wide accumulator holds the reduction, and the only quantization is the fp16 rounding of the inputs and the output.
+The reduction happens in the wide accumulator, and the only quantization is the fp16 rounding of the inputs and the output.
 Vision, audio, and encoder workloads are in this regime, and run on the engine without a precision penalty.
 
 Precision is lost on cancellation-heavy steps.
@@ -209,7 +209,7 @@ This is a different axis from the width-slice gain below: it is a property of th
 The threshold is pinned to the bit: the largest fp16 value below $2^{15}$, which is $32752$, passes through a linear, and the next fp16 value, $32768$, returns infinity.
 It holds for $K = 1$, for $K = 2$, and for a two-channel convolution, so it tracks the would-be output magnitude at the accumulator port.
 An interior partial that exceeds $2^{15}$ overflows to infinity even when a later cancellation would have brought the final result back into range.
-The paths that drive a dedicated reduction or a single elementwise multiply hold the full fp16 range instead.
+The paths that drive a dedicated reduction or a single elementwise multiply have the full fp16 range instead.
 A reduce-sum rounds to 65504 first and then overflows, an elementwise multiply overflows at the true fp16 limit of 65504, and a pointwise one-by-one convolution with a single input channel passes a fill of 60000.
 This earlier accumulator ceiling is consistent with the multiply-accumulate datapath having about one bit less margin than the fp16 storage format on the M1, so the guard for a matrix multiply or a multi-tap convolution is to keep the output magnitude below $2^{15}$.
 

@@ -63,7 +63,7 @@ $$\mathrm{driverMask}(m) = \begin{cases} \mathrm{remap}(m \bmod 16) & m < 16 \\ 
 When the mask is non-zero the firmware writes each task descriptor's counter block into a shared stats buffer in DRAM.
 The host decoder is built against the `sCAneStatsData` ABI version `0x0201`, distinct from the on-wire header magic `0x0101` the firmware writes into the buffer (chapter 29).
 The buffer's required size is the sum of the stats header, event descriptors, and per-event records.
-The host decodes it through a parser that walks a Group to Layer to task-descriptor hierarchy, where the leaf task-descriptor node holds the counter block.
+The host decodes it through a parser that walks a Group to Layer to task-descriptor hierarchy, where the leaf task-descriptor node contains the counter block.
 
 ## Free-running timestamp
 

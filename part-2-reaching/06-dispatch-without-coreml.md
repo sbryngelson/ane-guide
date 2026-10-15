@@ -141,7 +141,7 @@ The synchronous form blocks the caller until the encoded stream completes.
 The lightweight asynchronous form returns a submit and a complete identifier, and the full asynchronous form delivers an error object and accepts a timeout, the timeout existing because an asynchronous completion can hang.
 Single-stream pipelining is sound: keep several operations in flight, each with its own completion event, and drain by waiting on the events.
 Overlapping two or more streams at once is the unsound path, where the completion event of the second and later streams never notifies and the waiter blocks; the low-latency-async-event stream option and the timeout argument are the controls that break that wait.
-The caller holds resident state across steps by binding a buffer object once and reusing it: the output port of one step is the input port of the next in the same buffer.
+The caller keeps resident state across steps by binding a buffer object once and reusing it: the output port of one step is the input port of the next in the same buffer.
 The caller re-encodes the prepared operation against fresh small inputs without rebinding the held buffer.
 
 ## Compiling once, dispatching many
