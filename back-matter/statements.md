@@ -23,3 +23,9 @@ The work was conducted independently and received no external funding.
 
 The author declares no competing interests.
 This is independent work and is not affiliated with, authorized by, or endorsed by Apple Inc.
+
+## Use of AI tools
+
+Claude Code was used in preparing this guide, for drafting and revising prose, organizing material, and copyediting.
+The reverse engineering behind it is the author's own: the decompilation, the on-device measurements, and the claims and figures they support.
+The author reviewed the text and is responsible for its accuracy.

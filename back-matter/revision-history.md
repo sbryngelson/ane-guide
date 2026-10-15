@@ -20,6 +20,7 @@ Each entry separates additions and corrections to the text from changes in the e
 - Appendix C no longer directs readers to an unpublished research corpus. The tables too large to print are now described as held in the collected data and not reproduced here.
 - Editorial pass over the whole guide: varied how tables, listings and figures are introduced, removed the chapter-summary restatements that the following paragraph repeated, cut prose that re-read the rows of an adjacent table, thinned repeated statements of a single measurement, and reduced the contrastive construction that had become the default emphasis throughout. Comma splices, dropped articles, inconsistent numeral style and one British spelling were repaired along the way.
 - Rewrote the abstract and the opening of the introduction.
+- Added a statement on the use of AI tools in preparing the guide.
 - Evidence: no claim changed evidentiary status in this edition. Every measured, decompile-derived and predicted mark stands as it did in v2.
 
 ## v2 (June 24, 2026)
