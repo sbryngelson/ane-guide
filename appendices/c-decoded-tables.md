@@ -1,10 +1,10 @@
 # Appendix C. Decoded reference tables
 
 > This appendix collects the decoded values cited throughout the guide into one reference: enum tokens, struct layouts, status codes, the register-init table, command table, register map, and program-container schema.
-> Each section begins with its table and names the research-corpus file that contains the full set when only a representative excerpt is reproduced here.
+> Each section begins with its table, and says when only a representative excerpt of a larger decoded set is reproduced here.
 
 Each section reproduces the representative and structurally important rows of a larger table.
-Where a table runs to hundreds or thousands of rows, the full set is in the research corpus and the section names the file that contains it.
+Where a table runs to hundreds or thousands of rows, the section reproduces an excerpt and the full set stays in the collected data behind this guide.
 Every value here is read out of an M1/H13 binary by static analysis.
 
 ## C.1 Operation-attribute enum tokens to integer values {.unnumbered}
@@ -264,7 +264,7 @@ The `ANEDeviceOpen` shared in/out buffer (104 bytes, selector 0) decodes by byte
 
 Table: The field layout of the ANEDeviceOpen shared input and output buffer by byte offset. {#tbl:apc-anedeviceopen}
 
-The full 171-key attribute corpus, the decoded enum-value tables, and the per-selector field layouts for the HW direct-path client are in the research corpus.
+The full 171-key attribute set, the decoded enum-value tables, and the per-selector field layouts for the HW direct-path client are from collected data not reproduced here.
 
 ## C.3 Numeric error, status, and return codes {.unnumbered}
 
@@ -309,7 +309,7 @@ The single most look-up-worthy client-visible value is `0xe00002c7` (`kIOReturnU
 Table: The fixed firmware magic words and sentinel constants with their meanings. {#tbl:apc-firmware-magic}
 
 This section shows the three loader magic words as 32-bit integers; on disk the bytes are little-endian, so a raw byte scan finds `HENA`, `PENA`, and `SENA` (the characters of `ANEH`, `ANEP`, `ANES` reversed).
-The firmware-to-host notification names, inline `status=0x%x` print sites, AArch64 and L2C fault-register dump fields, and compiler diagnostic categories are in the research corpus.
+The firmware-to-host notification names, inline `status=0x%x` print sites, AArch64 and L2C fault-register dump fields, and compiler diagnostic categories are from collected data not reproduced here.
 
 ## C.4 The tunable register-init table {.unnumbered}
 
@@ -351,7 +351,7 @@ Table: Representative register-init records with their address, mask, value, and
 
 The 32 `mask=1 value=1` records at a regular stride are direct evidence of the 32-tile MAC array geometry, each tile individually clock and power gateable.
 The DPE system block has seven ascending sampling thresholds (25, 50, 70, 85, 95, 105, 115), and the SoC leakage-estimation block has eight (10, 22, 39, 64, 89, 121, 164, 189): the firmware-side breakpoints of the power model.
-All 1994 decoded records are in the research corpus.
+All 1994 decoded records are from collected data not reproduced here.
 
 ## C.5 The `CSNE_CMD_*` numeric command table {.unnumbered}
 
@@ -476,7 +476,7 @@ The single dispatch path takes exactly one output buffer set, one task-descripto
 
 Table: The fixed command-header fields with their offsets, widths, and meanings. {#tbl:apc-command-header}
 
-The full 93-entry table with file offsets, the decoded request structs, and the per-call numeric limits are in the research corpus.
+The full 93-entry table with file offsets, the decoded request structs, and the per-call numeric limits are from collected data not reproduced here.
 
 ## C.6 The task-descriptor hardware register map {.unnumbered}
 
@@ -511,7 +511,7 @@ Table: The register-address ranges and the aperture group, image base, and windo
 Table: Representative G1 dimension register fields with their bit ranges, widths, and meanings. {#tbl:apc-g1-fields}
 
 To invert a raw value: DMA strides are 26-bit signed at bits [31:6]; L2-result base and strides are 17-bit at bits [20:4]; a full device address is `(hi << 32) | lo` with `lo` 64-byte aligned and `hi` 10 bits, capped at 42 bits.
-The complete inventory of roughly 190 register fields across the 7 groups, 11 reloc slots, and on-M1 stubbed engines (CCDMA, atomic scatter, LDTID) is in the research corpus.
+The complete inventory of roughly 190 register fields across the 7 groups, 11 reloc slots, and on-M1 stubbed engines (CCDMA, atomic scatter, LDTID) is from collected data not reproduced here.
 
 Each operation descriptor in the task-descriptor stream has a 32-bit opcode word.
 [Table](#tbl:apc-opcode-words) gives the words decoded from a live M1 program for three operations.
